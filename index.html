@@ -7,21 +7,19 @@
     <title>学生任务检查 Pro</title>
     <style>
         :root {
-            /* Palette */
             --bg-body: #f0f2f5;
-            --bg-card: #ffffff;
+            --bg-card: #fff;
             --bg-done: #28a745;
-            /* Green for done */
             --text-main: #212529;
             --text-muted: #6c757d;
             --primary: #0d6efd;
             --success: #198754;
             --border: #dee2e6;
-            --shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            --shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--bg-body);
             color: var(--text-main);
             margin: 0;
@@ -30,25 +28,23 @@
             flex-direction: column;
             height: 100vh;
             box-sizing: border-box;
-            overflow: hidden;
-            /* Prevent body scroll, main handles it */
+            overflow: hidden
         }
 
-        /* Header */
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 0.5rem;
-            padding: 0.25rem 1rem;
+            margin-bottom: .5rem;
+            padding: .25rem 1rem;
             background: var(--bg-card);
             border-radius: 16px;
             box-shadow: var(--shadow);
             height: 52px;
             flex-shrink: 0;
             z-index: 10;
-            position: relative;
+            position: relative
         }
 
         .progress-bar-container {
@@ -57,152 +53,143 @@
             left: 0;
             width: 100%;
             height: 4px;
-            background: rgba(0, 0, 0, 0.04);
-            border-bottom-left-radius: 16px;
-            border-bottom-right-radius: 16px;
+            background: rgba(0, 0, 0, .04);
+            border-radius: 0 0 16px 16px;
             overflow: hidden;
-            pointer-events: none;
+            pointer-events: none
         }
 
         .progress-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--success), #28a745);
             width: 0%;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width .4s cubic-bezier(.4, 0, .2, 1)
         }
 
         select {
             flex-grow: 1;
-            padding: 0.5rem;
+            padding: .5rem;
             font-size: 1rem;
             font-weight: 600;
             border: 1px solid transparent;
             border-radius: 8px;
             background-color: #f8f9fa;
             color: var(--text-main);
-            cursor: pointer;
-            outline: none;
-            transition: all 0.2s;
-            max-width: 50%;
+            outline: 0;
+            transition: all .2s;
+            max-width: 50%
         }
 
         select:hover {
             border-color: var(--border);
-            background-color: white;
+            background-color: #fff
         }
 
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: .75rem
         }
 
-        /* Counter */
         .counter-badge {
             font-family: 'Inter', monospace;
-            /* Blend monospace with Inter */
             font-weight: 600;
-            font-size: 0.85rem;
-            background: rgba(40, 167, 69, 0.1);
+            font-size: .85rem;
+            background: rgba(40, 167, 69, .1);
             color: #198754;
-            padding: 0.35rem 0.75rem;
+            padding: .35rem .75rem;
             border-radius: 99px;
             white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 6px;
-            border: 1px solid rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, .2)
         }
 
         button {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.9rem;
+            padding: .4rem .8rem;
+            font-size: .9rem;
             font-weight: 600;
             border: none;
             border-radius: 8px;
-            /* Adaptive width for text */
             cursor: pointer;
             background-color: transparent;
             color: var(--text-muted);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
-            height: 36px;
+            transition: all .2s;
+            height: 36px
         }
 
         button:hover {
             background-color: #f1f3f5;
             color: var(--text-main);
-            transform: translateY(-1px);
+            transform: translateY(-1px)
         }
 
         button.active {
             background-color: var(--primary);
-            color: white !important;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, .3)
         }
 
-        /* Menu Dropdown - Premium Style */
         .menu-container {
-            position: relative;
+            position: relative
         }
 
         .menu-dropdown {
             position: absolute;
             top: 120%;
             right: 0;
-            background: white;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, .05);
             border-radius: 12px;
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
-            padding: 0.5rem;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, .2);
+            padding: .5rem;
             display: none;
             flex-direction: column;
-            gap: 0.25rem;
+            gap: .25rem;
             z-index: 1000;
             min-width: 200px;
             opacity: 0;
             transform: translateY(-10px);
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity .2s, transform .2s
         }
 
         .menu-dropdown.open {
             display: flex;
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0)
         }
 
         .menu-item {
-            padding: 0.75rem 1rem;
+            padding: .75rem 1rem;
             text-align: left;
-            font-size: 0.95rem;
+            font-size: .95rem;
             font-weight: 500;
             width: 100%;
             box-sizing: border-box;
-            background: none;
+            background: 0 0;
             border-radius: 8px;
             color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 12px;
-            width: 100%;
-            height: auto;
-            /* Allow auto height */
+            height: auto
         }
 
         .menu-item:hover {
-            background-color: #f8f9fa;
+            background-color: #f8f9fa
         }
 
         .menu-icon {
             font-size: 1.1rem;
             width: 20px;
             text-align: center;
-            display: inline-block;
+            display: inline-block
         }
 
-        /* Main Grid - High Density */
         main {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -210,15 +197,14 @@
             overflow-y: auto;
             padding: 2px;
             flex-grow: 1;
-            align-content: start;
+            align-content: start
         }
 
         .student-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 8px;
-            aspect-ratio: 1 / 1;
-            /* Square */
+            aspect-ratio: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -227,146 +213,136 @@
             cursor: pointer;
             user-select: none;
             position: relative;
-            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-
-            /* Mobile Optimizations */
+            box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
             touch-action: pan-y;
-            -webkit-touch-callout: none;
             -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-tap-highlight-color: transparent
         }
 
         .student-card.done {
             background-color: var(--bg-done);
             border-color: #218838;
-            color: white;
+            color: #fff
         }
 
-        /* View Modes */
         .student-card .student-id {
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-muted);
-            line-height: 1;
+            line-height: 1
         }
 
         .student-card.done .student-id {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, .9)
         }
 
         .student-card .student-name {
-            display: none;
-            /* Hidden by default (Mode A) */
+            display: none
         }
 
-        /* Mode B: Details */
         body.mode-details .student-card .student-id {
-            font-size: 0.85rem;
-            margin-bottom: 2px;
+            font-size: .85rem;
+            margin-bottom: 2px
         }
 
         body.mode-details .student-card .student-name {
             display: block;
-            font-size: 0.65rem;
+            font-size: .65rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
             padding: 0 2px;
-            font-weight: 500;
+            font-weight: 500
         }
 
         .score-badge {
             background-color: #ffc107;
-            /* Orange for contrast on green */
             color: #000;
             padding: 1px 4px;
             border-radius: 4px;
-            font-size: 0.65rem;
+            font-size: .65rem;
             font-weight: 700;
             position: absolute;
             top: 4px;
             right: 4px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .1)
         }
 
-        /* Modal */
         dialog {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, .2);
             padding: 0;
             max-width: 600px;
             width: 90%;
-            background: var(--bg-card);
+            background: var(--bg-card)
         }
 
         dialog::backdrop {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, .4)
         }
 
         .modal-header,
         .modal-footer {
             padding: 1rem;
-            border-color: var(--border);
+            border-color: var(--border)
         }
 
         .modal-header {
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: center
         }
 
         .modal-body {
             padding: 1rem;
             overflow-y: auto;
-            max-height: 60vh;
+            max-height: 60vh
         }
 
         .modal-footer {
             border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            /* Use gap instead of margin */
+            gap: 10px
         }
 
         .modal-footer button {
             width: auto;
             height: auto;
             border-radius: 6px;
-            font-size: 0.95rem;
+            font-size: .95rem;
             min-width: 80px;
-            padding: 0.5rem 1.25rem;
+            padding: .5rem 1.25rem
         }
 
-        /* Stats Styles */
         .stat-box {
             background: #f8f9fa;
-            padding: 0.75rem;
+            padding: .75rem;
             border-radius: 6px;
-            text-align: center;
+            text-align: center
         }
 
         .stats-summary {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: .5rem;
+            margin-bottom: 1rem
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: .85rem
         }
 
         th,
         td {
-            padding: 0.5rem;
+            padding: .5rem;
             border-bottom: 1px solid var(--border);
-            text-align: left;
+            text-align: left
         }
     </style>
 </head>
@@ -374,12 +350,12 @@
 <body>
 
     <header>
-        <select id="assignmentSelect" onchange="switchAssignment(this.value)"></select>
+        <select id="assignmentSelect" onchange="switchAsg(this.value)"></select>
 
         <div class="header-controls">
             <div id="counterBadge" class="counter-badge">0/49</div>
-            <button id="scoringModeToggle" onclick="toggleScoringMode()" title="打分模式">打分</button>
-            <button id="viewModeToggle" onclick="toggleViewMode()" title="切换视图">姓名</button>
+            <button id="scoringModeToggle" onclick="toggleScore()" title="打分模式">打分</button>
+            <button id="viewModeToggle" onclick="toggleView()" title="切换视图">姓名</button>
 
             <div class="menu-container">
                 <button onclick="toggleMenu()" title="更多选项">选项</button>
@@ -450,502 +426,7 @@
     </dialog>
 
     <script>
-        // --- Data & Config ---
-        const STORAGE_KEY = 'tracker_db';
-        const ROSTER_KEY = 'tracker_roster';
-
-        // Default 01-49 Roster (Fallback)
-        const DEFAULT_ROSTER = [
-            "01 Alice", "02 Bob", "03 Charlie", "04 David", "05 Eve", "06 Frank", "07 Grace", "08 Heidi", "09 Ivan", "10 Judy",
-            "11 Kevin", "12 Leo", "13 Mall", "14 Niaj", "15 Olivia", "16 Peggy", "17 Quentin", "18 Rupert", "19 Sybil", "20 Ted",
-            "21 Ursula", "22 Victor", "23 Walter", "24 Xena", "25 Yves", "26 Zoe", "27 Aris", "28 Ber", "29 Cyd", "30 Dan",
-            "31 Erin", "32 Fay", "33 Gus", "34 Hal", "35 Ida", "36 Jay", "37 Kia", "38 Lee", "39 Mia", "40 Ned",
-            "41 Ola", "42 Pat", "43 Quin", "44 Ray", "45 Sue", "46 Tom", "47 Una", "48 Val", "49 Wes"
-        ];
-
-        let ROSTER = [...DEFAULT_ROSTER];
-
-        let assignments = [];
-        let currentAssignmentId = null;
-        let showNames = false; // View Mode A (ID only) default
-        let isScoringMode = false; // Registration vs Scoring mode
-
-        // Helpers
-        const getStudentId = (str) => str.split(' ')[0];
-        const getStudentName = (str) => str.slice(str.indexOf(' ') + 1);
-
-        // --- 初始化 ---
-        function init() {
-            loadData();
-            if (assignments.length === 0) createAssignment("任务 1");
-            else if (!currentAssignmentId) currentAssignmentId = assignments[0].id;
-
-            renderHeader();
-            renderGrid();
-
-            // Click outside to close menu
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.menu-container')) {
-                    document.getElementById('menuDropdown').classList.remove('open');
-                }
-            });
-        }
-
-        // --- State ---
-        function loadData() {
-            try {
-                // Load Roster
-                const storedRoster = localStorage.getItem(ROSTER_KEY);
-                if (storedRoster) {
-                    const parsed = JSON.parse(storedRoster);
-                    if (Array.isArray(parsed) && parsed.length > 0) ROSTER = parsed;
-                }
-
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) assignments = JSON.parse(stored);
-                if (!Array.isArray(assignments)) assignments = [];
-            } catch (e) {
-                console.error("Data load error", e);
-                assignments = [];
-            }
-        }
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments));
-        }
-
-        function createAssignment(name) {
-            const newAsg = {
-                id: Date.now(),
-                name: name,
-                records: {}
-            };
-            // Init records with new IDs
-            ROSTER.forEach(s => newAsg.records[getStudentId(s)] = { done: false, score: null });
-            assignments.push(newAsg);
-            currentAssignmentId = newAsg.id;
-            saveData();
-            renderHeader();
-            renderGrid();
-        }
-
-        // --- UI/UX ---
-        function toggleViewMode() {
-            showNames = !showNames;
-            document.body.classList.toggle('mode-details', showNames);
-            document.getElementById('viewModeToggle').classList.toggle('active', showNames);
-            renderGrid();
-        }
-
-        function toggleMenu() {
-            document.getElementById('menuDropdown').classList.toggle('open');
-        }
-
-        function toggleScoringMode() {
-            isScoringMode = !isScoringMode;
-            document.getElementById('scoringModeToggle').classList.toggle('active', isScoringMode);
-        }
-
-        function switchAssignment(id) {
-            currentAssignmentId = parseInt(id);
-            renderGrid();
-            updateHeaderStats();
-        }
-
-        function updateHeaderStats() {
-            if (!currentAssignmentId) return;
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-
-            let doneCount = 0;
-            let total = ROSTER.length;
-
-            // Count done based on ROSTER to be safe
-            ROSTER.forEach(s => {
-                const id = getStudentId(s);
-                if (cur.records[id]?.done) doneCount++;
-            });
-
-            document.getElementById('counterBadge').textContent = `${doneCount}/${total}`;
-
-            // Update Progress Bar
-            const percent = total > 0 ? (doneCount / total) * 100 : 0;
-            document.getElementById('statsProgressBar').style.width = `${percent}%`;
-        }
-
-        // --- Rendering ---
-        function renderHeader() {
-            const sel = document.getElementById('assignmentSelect');
-            sel.innerHTML = '';
-            assignments.forEach(a => {
-                const opt = document.createElement('option');
-                opt.value = a.id;
-                opt.text = a.name;
-                opt.selected = a.id === currentAssignmentId;
-                sel.add(opt);
-            });
-            updateHeaderStats();
-        }
-
-        function renderGrid() {
-            const grid = document.getElementById('gridContainer');
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-
-            // Reuse DOM elements if possible to maintain scroll position and performance
-            const hasCards = grid.children.length === ROSTER.length;
-
-            if (!hasCards) grid.innerHTML = '';
-
-            ROSTER.forEach((s, index) => {
-                const id = getStudentId(s);
-                const name = getStudentName(s);
-                const rec = cur.records[id] || { done: false, score: null };
-
-                let card;
-                if (hasCards) {
-                    card = grid.children[index];
-                } else {
-                    card = document.createElement('div');
-                    card.id = `card-${id}`; // Stable ID
-                    // Events - attached once
-                    addInteraction(card, id, name);
-                    card.oncontextmenu = (e) => { e.preventDefault(); return false; };
-                    grid.appendChild(card);
-                }
-
-                // Update State
-                card.className = `student-card ${rec.done ? 'done' : ''}`;
-
-                // Content Update
-                let html = `
-                <div class="student-id">${id}</div>
-                <div class="student-name">${name}</div>
-            `;
-                if (rec.score !== null) html += `<div class="score-badge">${rec.score}</div>`;
-
-                // diff HTML to avoid unnecessary parsing? innerHTML is fast enough for small strings
-                if (card.innerHTML !== html) card.innerHTML = html;
-            });
-        }
-
-        function addInteraction(card, id, name) {
-            let timer;
-            let startX, startY;
-
-            const start = () => timer = setTimeout(() => promptScore(id, name), 500);
-            const clear = () => { clearTimeout(timer); timer = null; };
-
-            card.addEventListener('touchstart', e => {
-                if (e.touches.length > 1) return;
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                start();
-            }, { passive: false });
-
-            card.addEventListener('touchmove', e => {
-                if (!timer) return;
-                const dx = Math.abs(e.touches[0].clientX - startX);
-                const dy = Math.abs(e.touches[0].clientY - startY);
-                if (dx > 10 || dy > 10) clear();
-            }, { passive: true });
-
-            card.addEventListener('touchend', e => {
-                if (timer) {
-                    clear();
-                    if (isScoringMode) promptScore(id, name);
-                    else toggleDone(id);
-                    if (e.cancelable) e.preventDefault();
-                }
-            });
-
-            card.addEventListener('mousedown', e => {
-                if (e.button === 0) start();
-            });
-            card.addEventListener('mouseup', () => {
-                if (timer) {
-                    clear();
-                    if (isScoringMode) promptScore(id, name);
-                    else toggleDone(id);
-                }
-            });
-            card.addEventListener('mouseleave', clear);
-        }
-
-        function toggleDone(id) {
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-            if (!cur.records[id]) cur.records[id] = { done: false, score: null };
-
-            cur.records[id].done = !cur.records[id].done;
-            saveData();
-
-            // Optimized update: only update this card and header
-            updateCardVisual(id, cur.records[id]);
-            updateHeaderStats();
-        }
-
-        // Helper for partial updates
-        function updateCardVisual(id, rec) {
-            const card = document.getElementById(`card-${id}`);
-            if (!card) return; // Should not happen
-
-            // Toggle class
-            if (rec.done) card.classList.add('done');
-            else card.classList.remove('done');
-
-            // Update Score Badge
-            let badge = card.querySelector('.score-badge');
-            if (rec.score !== null) {
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.className = 'score-badge';
-                    card.appendChild(badge);
-                }
-                badge.textContent = rec.score;
-            } else if (badge) {
-                badge.remove();
-            }
-        }
-
-        function promptScore(id, name) {
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            const val = cur.records[id]?.score || '';
-            const input = prompt(`请输入 ${id} ${name} 的分数:`, val);
-
-            if (input !== null) {
-                if (!cur.records[id]) cur.records[id] = { done: false, score: null };
-
-                if (input.trim() === '') {
-                    cur.records[id].score = null;
-                } else {
-                    const s = parseInt(input);
-                    if (!isNaN(s)) {
-                        cur.records[id].score = s;
-                        cur.records[id].done = true;
-                    }
-                }
-                saveData();
-                // Optimized update
-                updateCardVisual(id, cur.records[id]);
-                updateHeaderStats();
-            }
-        }
-
-        // CRUD wrappers
-        function addAssignment() {
-            toggleMenu();
-            const n = prompt("任务名称:");
-            if (n) createAssignment(n);
-        }
-
-        function deleteAssignment() {
-            toggleMenu();
-            if (!currentAssignmentId) return;
-            if (!confirm("确定要删除此任务吗？")) return;
-
-            // Use loose comparison != to handle potential string vs number ID mismatch
-            assignments = assignments.filter(a => a.id != currentAssignmentId);
-
-            if (assignments.length === 0) {
-                createAssignment("任务 1");
-            } else {
-                currentAssignmentId = assignments[assignments.length - 1].id;
-                saveData();
-                renderHeader();
-                renderGrid();
-            }
-        }
-
-        // --- Roster Editor ---
-        function openRosterEditor() {
-            toggleMenu();
-            const m = document.getElementById('rosterModal');
-            document.getElementById('rosterInput').value = ROSTER.join('\n');
-            m.showModal();
-        }
-
-        function closeRosterEditor() {
-            document.getElementById('rosterModal').close();
-        }
-
-        function saveRoster() {
-            const raw = document.getElementById('rosterInput').value;
-            const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-            if (lines.length === 0) {
-                alert("名单不能为空！");
-                return;
-            }
-
-            if (!confirm("更新名单？学号必须保持一致以保留数据。")) return;
-
-            ROSTER = lines;
-            localStorage.setItem(ROSTER_KEY, JSON.stringify(ROSTER));
-
-            closeRosterEditor();
-
-            // Full refresh to apply changes (simplest way to handle grid size changes)
-            // But we can just try re-rendering
-            document.getElementById('gridContainer').innerHTML = ''; // Force clear
-            renderGrid();
-            updateHeaderStats();
-        }
-
-        // --- Backup System ---
-        function downloadBackup() {
-            toggleMenu();
-            const data = {
-                timestamp: Date.now(),
-                roster: ROSTER,
-                assignments: assignments
-            };
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-
-            // Format: tracker_backup_YYYYMMDD_HHmm.json
-            const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-            a.download = `tracker_backup_${ts}.json`;
-
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function triggerImport() {
-            toggleMenu();
-            document.getElementById('importFile').click();
-        }
-
-        function handleImport(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-
-                    if (!data.assignments || !Array.isArray(data.assignments)) {
-                        alert("备份文件无效：缺少任务记录。");
-                        return;
-                    }
-
-                    if (confirm(`导入 ${new Date(data.timestamp || Date.now()).toLocaleString()} 的备份？这将覆盖当前数据。`)) {
-                        assignments = data.assignments;
-                        if (data.roster && Array.isArray(data.roster)) {
-                            ROSTER = data.roster;
-                            localStorage.setItem(ROSTER_KEY, JSON.stringify(ROSTER));
-                        }
-
-                        // Safety: ensure current ID is valid
-                        if (assignments.length > 0) currentAssignmentId = assignments[0].id;
-                        else currentAssignmentId = null;
-
-                        saveData();
-
-                        // Full Reload to ensure clean state
-                        location.reload();
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("解析备份文件出错。");
-                }
-                // Reset input
-                input.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-
-        // --- Stats (Simplified for brevity but functional) ---
-        // Using previous logic but adapted to new structure
-        let statsSort = 'id';
-        let statSelIds = [];
-
-        function openStats() {
-            toggleMenu(); // Close menu if open
-            const m = document.getElementById('statsModal');
-            statSelIds = assignments.map(a => a.id);
-            renderStats();
-            m.showModal();
-        }
-        function closeStats() { document.getElementById('statsModal').close(); }
-
-        function renderStats() {
-            const c = document.getElementById('statsContent');
-            // Simple HTML generation for stats
-
-            // 1. Checkboxes
-            let html = '<div style="margin-bottom:1rem; display:flex; gap:10px; overflow-x:auto;">';
-            assignments.forEach(a => {
-                html += `<label><input type="checkbox" value="${a.id}" checked onchange="updateStatSel()"> ${a.name}</label>`;
-            });
-            html += '</div>';
-
-            // 2. Calc
-            const active = assignments.filter(a => statSelIds.includes(a.id));
-            let totalRec = 0, totalDone = 0, scoreSum = 0, scoreCount = 0;
-            const sStats = {};
-            ROSTER.forEach(s => sStats[getStudentId(s)] = { done: 0, name: getStudentName(s) });
-
-            active.forEach(a => {
-                ROSTER.forEach(s => {
-                    const id = getStudentId(s);
-                    const rec = a.records[id];
-                    totalRec++;
-                    if (rec && rec.done) { totalDone++; sStats[id].done++; }
-                    if (rec && rec.score !== null) { scoreSum += rec.score; scoreCount++; }
-                });
-            });
-
-            const rate = totalRec ? ((totalDone / totalRec) * 100).toFixed(1) : 0;
-            const avg = scoreCount ? (scoreSum / scoreCount).toFixed(1) : '-';
-
-            html += `<div class="stats-summary">
-            <div class="stat-box"><h3>${rate}%</h3><small>提交率</small></div>
-            <div class="stat-box"><h3>${avg}</h3><small>平均分</small></div>
-        </div>`;
-
-            // 3. Table
-            let rows = Object.keys(sStats).map(id => {
-                const d = sStats[id];
-                return { id, name: d.name, rate: active.length ? (d.done / active.length) * 100 : 0 };
-            });
-
-            if (statsSort === 'rate') rows.sort((a, b) => b.rate - a.rate);
-            else rows.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-
-            html += `<table><thead><tr>
-            <th onclick="toggleStatSort()">学生</th>
-            <th onclick="toggleStatSort()">完成率</th>
-        </tr></thead><tbody>`;
-
-            rows.forEach(r => {
-                html += `<tr><td><b>${r.id}</b> ${r.name}</td><td>${Math.round(r.rate)}%</td></tr>`;
-            });
-            html += '</tbody></table>';
-
-            c.innerHTML = html;
-        }
-
-        function updateStatSel() {
-            const boxes = document.querySelectorAll('#statsContent input[type="checkbox"]:checked');
-            statSelIds = Array.from(boxes).map(b => parseInt(b.value));
-            renderStats();
-        }
-        function toggleStatSort() {
-            statsSort = statsSort === 'id' ? 'rate' : 'id';
-            renderStats();
-        }
-
-        init();
+        const ST = 'tracker_db', RK = 'tracker_roster', DEF_ROSTER = ["01 Alice", "02 Bob", "03 Charlie", "04 David", "05 Eve", "06 Frank", "07 Grace", "08 Heidi", "09 Ivan", "10 Judy", "11 Kevin", "12 Leo", "13 Mall", "14 Niaj", "15 Olivia", "16 Peggy", "17 Quentin", "18 Rupert", "19 Sybil", "20 Ted", "21 Ursula", "22 Victor", "23 Walter", "24 Xena", "25 Yves", "26 Zoe", "27 Aris", "28 Ber", "29 Cyd", "30 Dan", "31 Erin", "32 Fay", "33 Gus", "34 Hal", "35 Ida", "36 Jay", "37 Kia", "38 Lee", "39 Mia", "40 Ned", "41 Ola", "42 Pat", "43 Quin", "44 Ray", "45 Sue", "46 Tom", "47 Una", "48 Val", "49 Wes"]; let ROSTER = [...DEF_ROSTER], asgs = [], curId = null, showNames = !1, isScoring = !1; const getID = s => s.split(' ')[0], getName = s => s.slice(s.indexOf(' ') + 1); function init() { load(); if (asgs.length === 0) newAsg("任务 1"); else if (!curId) curId = asgs[0].id; renHead(); renGrid(); document.addEventListener('click', e => { if (!e.target.closest('.menu-container')) document.getElementById('menuDropdown').classList.remove('open') }) } function load() { try { const r = localStorage.getItem(RK); if (r) { const p = JSON.parse(r); if (Array.isArray(p) && p.length) ROSTER = p } const s = localStorage.getItem(ST); if (s) asgs = JSON.parse(s); if (!Array.isArray(asgs)) asgs = [] } catch (e) { console.error(e); asgs = [] } } function save() { localStorage.setItem(ST, JSON.stringify(asgs)) } function newAsg(n) { const a = { id: Date.now(), name: n, records: {} }; ROSTER.forEach(s => a.records[getID(s)] = { done: !1, score: null }); asgs.push(a); curId = a.id; save(); renHead(); renGrid() } function toggleView() { showNames = !showNames; document.body.classList.toggle('mode-details', showNames); document.getElementById('viewModeToggle').classList.toggle('active', showNames); renGrid() } function toggleMenu() { document.getElementById('menuDropdown').classList.toggle('open') } function toggleScore() { isScoring = !isScoring; document.getElementById('scoringModeToggle').classList.toggle('active', isScoring) } function switchAsg(id) { curId = parseInt(id); renGrid(); updStats() } function updStats() { if (!curId) return; const c = asgs.find(a => a.id === curId); if (!c) return; let d = 0, t = ROSTER.length; ROSTER.forEach(s => { if (c.records[getID(s)]?.done) d++ }); document.getElementById('counterBadge').textContent = `${d}/${t}`; const p = t > 0 ? (d / t) * 100 : 0; document.getElementById('statsProgressBar').style.width = `${p}%` } function renHead() { const s = document.getElementById('assignmentSelect'); s.innerHTML = ''; asgs.forEach(a => { const o = document.createElement('option'); o.value = a.id; o.text = a.name; o.selected = a.id === curId; s.add(o) }); updStats() } function renGrid() { const g = document.getElementById('gridContainer'), c = asgs.find(a => a.id === curId); if (!c) return; if (g.children.length !== ROSTER.length) g.innerHTML = ''; ROSTER.forEach((s, i) => { const id = getID(s), nm = getName(s), r = c.records[id] || { done: !1, score: null }; let el; if (g.children[i]) el = g.children[i]; else { el = document.createElement('div'); el.id = `card-${id}`; intr(el, id, nm); el.oncontextmenu = e => (e.preventDefault(), !1); g.appendChild(el) } el.className = `student-card ${r.done ? 'done' : ''}`; let h = `<div class="student-id">${id}</div><div class="student-name">${nm}</div>`; if (r.score !== null) h += `<div class="score-badge">${r.score}</div>`; if (el.innerHTML !== h) el.innerHTML = h }) } function intr(el, id, nm) { let t, sx, sy; const st = () => t = setTimeout(() => pScore(id, nm), 500), cl = () => { clearTimeout(t); t = null }; el.addEventListener('touchstart', e => { if (e.touches.length > 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; st() }, { passive: !1 }); el.addEventListener('touchmove', e => { if (!t) return; if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) cl() }, { passive: !0 }); el.addEventListener('touchend', e => { if (t) { cl(); isScoring ? pScore(id, nm) : tog(id); if (e.cancelable) e.preventDefault() } }); el.addEventListener('mousedown', e => { if (e.button === 0) st() }); el.addEventListener('mouseup', () => { if (t) { cl(); isScoring ? pScore(id, nm) : tog(id) } }); el.addEventListener('mouseleave', cl) } function tog(id) { const c = asgs.find(a => a.id === curId); if (!c) return; if (!c.records[id]) c.records[id] = { done: !1, score: null }; c.records[id].done = !c.records[id].done; save(); updCard(id, c.records[id]); updStats() } function updCard(id, r) { const c = document.getElementById(`card-${id}`); if (!c) return; if (r.done) c.classList.add('done'); else c.classList.remove('done'); let b = c.querySelector('.score-badge'); if (r.score !== null) { if (!b) { b = document.createElement('div'); b.className = 'score-badge'; c.appendChild(b) } b.textContent = r.score } else if (b) b.remove() } function pScore(id, nm) { const c = asgs.find(a => a.id === curId), v = c.records[id]?.score || '', i = prompt(`请输入 ${id} ${nm} 的分数:`, v); if (i !== null) { if (!c.records[id]) c.records[id] = { done: !1, score: null }; if (i.trim() === '') c.records[id].score = null; else { const s = parseInt(i); if (!isNaN(s)) { c.records[id].score = s; c.records[id].done = !0 } } save(); updCard(id, c.records[id]); updStats() } } function addAssignment() { toggleMenu(); const n = prompt("任务名称:"); if (n) newAsg(n) } function deleteAssignment() { toggleMenu(); if (!curId || !confirm("确定要删除此任务吗？")) return; asgs = asgs.filter(a => a.id != curId); if (asgs.length === 0) newAsg("任务 1"); else { curId = asgs[asgs.length - 1].id; save(); renHead(); renGrid() } } function openRosterEditor() { toggleMenu(); document.getElementById('rosterInput').value = ROSTER.join('\n'); document.getElementById('rosterModal').showModal() } function closeRosterEditor() { document.getElementById('rosterModal').close() } function saveRoster() { const l = document.getElementById('rosterInput').value.split('\n').map(x => x.trim()).filter(x => x.length > 0); if (l.length === 0) return alert("名单不能为空！"); if (!confirm("更新名单？学号必须保持一致以保留数据。")) return; ROSTER = l; localStorage.setItem(RK, JSON.stringify(ROSTER)); closeRosterEditor(); document.getElementById('gridContainer').innerHTML = ''; renGrid(); updStats() } function downloadBackup() { toggleMenu(); const d = { timestamp: Date.now(), roster: ROSTER, assignments: asgs }, b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; const n = new Date(), p = x => String(x).padStart(2, '0'), ts = `${n.getFullYear()}${p(n.getMonth() + 1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}`; a.download = `tracker_backup_${ts}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u) } function triggerImport() { toggleMenu(); document.getElementById('importFile').click() } function handleImport(i) { const f = i.files[0]; if (!f) return; const r = new FileReader(); r.onload = e => { try { const d = JSON.parse(e.target.result); if (!d.assignments || !Array.isArray(d.assignments)) return alert("备份文件无效：缺少任务记录。"); if (confirm(`导入 ${new Date(d.timestamp || Date.now()).toLocaleString()} 的备份？这将覆盖当前数据。`)) { asgs = d.assignments; if (d.roster && Array.isArray(d.roster)) { ROSTER = d.roster; localStorage.setItem(RK, JSON.stringify(ROSTER)) } curId = asgs.length ? asgs[0].id : null; save(); location.reload() } } catch (x) { console.error(x); alert("解析备份文件出错。") } i.value = '' }; r.readAsText(f) } let sSort = 'id', selIds = []; function openStats() { toggleMenu(); selIds = asgs.map(a => a.id); renStats(); document.getElementById('statsModal').showModal() } function closeStats() { document.getElementById('statsModal').close() } function renStats() { const c = document.getElementById('statsContent'); let h = '<div style="margin-bottom:1rem;display:flex;gap:10px;overflow-x:auto;">'; asgs.forEach(a => { h += `<label><input type="checkbox" value="${a.id}" checked onchange="updStatSel()"> ${a.name}</label>` }); h += '</div>'; const act = asgs.filter(a => selIds.includes(a.id)), sS = {}; ROSTER.forEach(s => sS[getID(s)] = { done: 0, name: getName(s) }); let tR = 0, tD = 0, sSum = 0, sCnt = 0; act.forEach(a => { ROSTER.forEach(s => { const id = getID(s), r = a.records[id]; tR++; if (r && r.done) { tD++; sS[id].done++ } if (r && r.score !== null) { sSum += r.score; sCnt++ } }) }); const rt = tR ? ((tD / tR) * 100).toFixed(1) : 0, av = sCnt ? (sSum / sCnt).toFixed(1) : '-'; h += `<div class="stats-summary"><div class="stat-box"><h3>${rt}%</h3><small>提交率</small></div><div class="stat-box"><h3>${av}</h3><small>平均分</small></div></div>`; let r = Object.keys(sS).map(id => ({ id, name: sS[id].name, rate: act.length ? (sS[id].done / act.length) * 100 : 0 })); if (sSort === 'rate') r.sort((a, b) => b.rate - a.rate); else r.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: !0 })); h += '<table><thead><tr><th onclick="togStatSort()">学生</th><th onclick="togStatSort()">完成率</th></tr></thead><tbody>'; r.forEach(x => { h += `<tr><td><b>${x.id}</b> ${x.name}</td><td>${Math.round(x.rate)}%</td></tr>` }); h += '</tbody></table>'; c.innerHTML = h } function updStatSel() { selIds = Array.from(document.querySelectorAll('#statsContent input:checked')).map(b => parseInt(b.value)); renStats() } function togStatSort() { sSort = sSort === 'id' ? 'rate' : 'id'; renStats() } init();
     </script>
 </body>
 
