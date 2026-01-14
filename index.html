@@ -455,6 +455,100 @@
             resize: vertical;
         }
 
+        /* --- Stats Full Screen & Controls --- */
+        dialog.dialog-full {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        dialog.dialog-full .dialog-content {
+            flex-grow: 1;
+            max-height: none;
+            /* Override default limit */
+        }
+
+        .stats-toolbar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .stats-control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .filter-group {
+            display: inline-flex;
+            background: #e9ecef;
+            padding: 3px;
+            border-radius: 8px;
+            gap: 2px;
+        }
+
+        .filter-btn {
+            border: none;
+            background: transparent;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .filter-btn.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+        }
+
+        .sort-btn {
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .sort-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--bg-active);
+        }
+
+        .sort-btn.active {
+            background: var(--bg-active);
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+
         /* Stats Table */
         .stat-grid {
             display: grid;
@@ -851,31 +945,113 @@
             // Sub-modules: Stats & Roster
             stats() {
                 const d = UI.els.dialog;
-                UI.els.dialogTitle.textContent = '统计数据';
-                UI.els.dialogConfirm.style.display = 'none';
 
-                // Calculate
-                const rows = State.roster.map(line => {
-                    const sid = line.split(' ')[0];
-                    const name = line.split(' ').slice(1).join(' ');
-                    const count = State.assignments.filter(a => a.records[sid]?.done).length;
-                    const rate = Math.round((count / State.assignments.length) * 100);
-                    return { sid, name, rate };
-                }).sort((a, b) => b.rate - a.rate);
+                // State for this view
+                let state = {
+                    range: 'all', // all, 3, 5, 10
+                    sortField: 'rate', // id, rate
+                    sortDir: 'desc' // asc, desc
+                };
 
-                const avg = (rows.reduce((a, b) => a + b.rate, 0) / rows.length).toFixed(1);
+                const updateView = () => {
+                    d.classList.add('dialog-full'); // Full screen
+                    UI.els.dialogTitle.textContent = '统计数据';
+                    UI.els.dialogConfirm.style.display = 'none';
 
-                UI.els.dialogBody.innerHTML = `
-            <div class="stat-grid">
-                <div class="stat-card"><h3>${avg}%</h3><small>平均完成率</small></div>
-                <div class="stat-card"><h3>${State.assignments.length}</h3><small>总任务数</small></div>
-            </div>
-            <table class="data-table">
-                <thead><tr><th>学号 姓名</th><th>完成率</th></tr></thead>
-                <tbody>${rows.map(r => `<tr><td><b>${r.sid}</b> ${r.name}</td><td>${r.rate}%</td></tr>`).join('')}</tbody>
-            </table>
-        `;
+                    // Filter Assignments
+                    let targetAsgs = State.assignments;
+                    if (state.range !== 'all') {
+                        const n = parseInt(state.range);
+                        targetAsgs = State.assignments.slice(-n);
+                    }
+
+                    // Calculate Data
+                    let rows = State.roster.map(line => {
+                        const sid = line.split(' ')[0];
+                        const name = line.split(' ').slice(1).join(' ');
+                        const count = targetAsgs.filter(a => a.records[sid]?.done).length;
+                        const rate = targetAsgs.length ? Math.round((count / targetAsgs.length) * 100) : 0;
+                        return { sid, name, rate };
+                    });
+
+                    // Sort
+                    rows.sort((a, b) => {
+                        let valA = a[state.sortField];
+                        let valB = b[state.sortField];
+
+                        // For ID string comparison
+                        if (state.sortField === 'sid') {
+                            return state.sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        }
+                        // For Rate number comparison
+                        return state.sortDir === 'asc' ? valA - valB : valB - valA;
+                    });
+
+                    const avg = targetAsgs.length ? (rows.reduce((a, b) => a + b.rate, 0) / rows.length).toFixed(1) : 0;
+
+                    // Render
+                    UI.els.dialogBody.innerHTML = `
+                       <div class="stats-toolbar">
+                           <div class="stats-control-group">
+                               <span style="font-size:0.9rem;color:var(--text-muted);margin-right:4px">范围</span>
+                               <div class="filter-group">
+                                   <button class="filter-btn ${state.range === 'all' ? 'active' : ''}" data-range="all">全部</button>
+                                   <button class="filter-btn ${state.range === '3' ? 'active' : ''}" data-range="3">近3次</button>
+                                   <button class="filter-btn ${state.range === '5' ? 'active' : ''}" data-range="5">近5次</button>
+                                   <button class="filter-btn ${state.range === '10' ? 'active' : ''}" data-range="10">近10次</button>
+                               </div>
+                           </div>
+                           <div class="stats-control-group" style="margin-left:auto">
+                               <button class="sort-btn ${state.sortField === 'sid' ? 'active' : ''}" data-sort="sid">
+                                   学号 ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
+                               </button>
+                               <button class="sort-btn ${state.sortField === 'rate' ? 'active' : ''}" data-sort="rate">
+                                   完成率 ${state.sortField === 'rate' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
+                               </button>
+                           </div>
+                       </div>
+
+                       <div class="stat-grid">
+                           <div class="stat-card"><h3>${avg}%</h3><small>平均完成率</small></div>
+                           <div class="stat-card"><h3>${targetAsgs.length}</h3><small>纳入统计数</small></div>
+                       </div>
+                       <table class="data-table">
+                           <thead><tr><th>学号 姓名</th><th>完成率</th></tr></thead>
+                           <tbody>${rows.map(r => `<tr><td><b>${r.sid}</b> ${r.name}</td><td>${r.rate}%</td></tr>`).join('')}</tbody>
+                       </table>
+                   `;
+
+                    // Bind Events
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            state.range = btn.dataset.range;
+                            updateView();
+                        };
+                    });
+
+                    document.querySelectorAll('.sort-btn').forEach(btn => {
+                        btn.onclick = () => {
+                            const field = btn.dataset.sort;
+                            if (state.sortField === field) {
+                                state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                state.sortField = field;
+                                state.sortDir = 'desc'; // Default desc for new field
+                            }
+                            updateView();
+                        };
+                    });
+                };
+
+                // Initial Render
+                updateView();
                 d.showModal();
+
+                // Cleanup on close
+                d.onclose = () => {
+                    d.classList.remove('dialog-full');
+                    d.onclose = null; // reset
+                };
             },
 
             roster() {
