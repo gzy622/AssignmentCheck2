@@ -4,350 +4,502 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>学生任务检查 Pro</title>
+    <title>作业极速登记2</title>
     <style>
         :root {
-            --bg-body: #f0f2f5;
-            --bg-card: #fff;
-            --bg-done: #28a745;
-            --text-main: #212529;
-            --text-muted: #6c757d;
             --primary: #0d6efd;
             --success: #198754;
+            --danger: #dc3545;
+            --bg-body: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-active: #e7f1ff;
+            --text-main: #212529;
+            --text-muted: #6c757d;
             --border: #dee2e6;
-            --shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            --radius-md: 8px;
+            --radius-lg: 16px;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-body);
             color: var(--text-main);
             margin: 0;
             padding: 10px;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            height: 100vh;
             box-sizing: border-box;
-            overflow: hidden
+            overflow: hidden;
         }
 
+        /* --- Components: Header --- */
         header {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: .5rem;
-            padding: .25rem 1rem;
-            background: var(--bg-card);
-            border-radius: 16px;
-            box-shadow: var(--shadow);
             height: 52px;
             flex-shrink: 0;
+            position: relative;
             z-index: 10;
-            position: relative
         }
 
-        .progress-bar-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: rgba(0, 0, 0, .04);
-            border-radius: 0 0 16px 16px;
-            overflow: hidden;
-            pointer-events: none
-        }
-
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--success), #28a745);
-            width: 0%;
-            transition: width .4s cubic-bezier(.4, 0, .2, 1)
+        .select-wrapper {
+            flex-grow: 1;
+            min-width: 0;
+            max-width: 50%;
         }
 
         select {
-            flex-grow: 1;
-            padding: .5rem;
+            width: 100%;
+            padding: 0.5rem;
             font-size: 1rem;
             font-weight: 600;
             border: 1px solid transparent;
-            border-radius: 8px;
-            background-color: #f8f9fa;
+            border-radius: var(--radius-md);
+            background: #f8f9fa;
             color: var(--text-main);
-            outline: 0;
-            transition: all .2s;
-            max-width: 50%
+            outline: none;
+            transition: all 0.2s;
+            text-overflow: ellipsis;
         }
 
-        select:hover {
+        select:hover,
+        select:focus {
+            background: #fff;
             border-color: var(--border);
-            background-color: #fff
         }
 
-        .header-controls {
+        .toolbar {
             display: flex;
             align-items: center;
-            gap: .75rem
+            gap: 0.5rem;
         }
 
-        .counter-badge {
-            font-family: 'Inter', monospace;
-            font-weight: 600;
-            font-size: .85rem;
-            background: rgba(40, 167, 69, .1);
-            color: #198754;
-            padding: .35rem .75rem;
+        .badge {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+            padding: 0.35rem 0.75rem;
             border-radius: 99px;
+            font-family: monospace;
+            font-weight: 700;
+            border: 1px solid rgba(40, 167, 69, 0.2);
             white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(40, 167, 69, .2)
         }
 
-        button {
-            padding: .4rem .8rem;
-            font-size: .9rem;
-            font-weight: 600;
+        .btn-icon {
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            background-color: transparent;
+            background: transparent;
             color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all .2s;
-            height: 36px
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
 
-        button:hover {
-            background-color: #f1f3f5;
+        .btn-icon:hover {
+            background: #f1f3f5;
             color: var(--text-main);
-            transform: translateY(-1px);
         }
 
-        button.active {
-            background-color: var(--primary);
-            color: #fff !important;
+        .btn-icon.active {
+            background: var(--primary);
+            color: #fff;
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
         }
 
-        /* Menu System */
-        .menu-container {
-            position: relative;
-        }
-
-        .menu-dropdown {
+        /* Progress Bar */
+        .progress-track {
             position: absolute;
-            top: 120%;
+            bottom: 0;
+            left: 0;
             right: 0;
-            background: #fff;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
-            padding: 0.5rem;
-            display: none;
-            flex-direction: column;
-            gap: 0.25rem;
-            z-index: 1000;
-            min-width: 200px;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: opacity 0.2s, transform 0.2s;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            overflow: hidden;
+            pointer-events: none;
         }
 
-        .menu-dropdown.open {
-            display: flex;
-            opacity: 1;
-            transform: translateY(0);
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.4s ease;
         }
 
-        .menu-item {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-size: 0.95rem;
-            font-weight: 500;
-            width: 100%;
-            box-sizing: border-box;
-            background: none;
-            border-radius: 8px;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            height: auto;
-        }
-
-        .menu-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .menu-icon {
-            font-size: 1.1rem;
-            width: 20px;
-            text-align: center;
-            display: inline-block;
-        }
-
-        /* Main Grid */
+        /* --- Components: Grid --- */
         main {
+            flex-grow: 1;
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            /* Responsive grid */
+            grid-auto-rows: min-content;
             gap: 6px;
             overflow-y: auto;
-            padding: 2px;
-            flex-grow: 1;
             align-content: start;
+            padding: 2px;
+            /* Optimize touch scrolling */
+            -webkit-overflow-scrolling: touch;
         }
 
-        .student-card {
+        /* Mobile optimization: fixed 5 columns strict */
+        @media (max-width: 600px) {
+            main {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        /* Mobile Header Fix for small screens */
+        @media (max-width: 420px) {
+            header {
+                padding: 0.5rem;
+                gap: 0.4rem;
+            }
+
+            .select-wrapper {
+                max-width: 38%;
+            }
+
+            select {
+                padding: 0.4rem 0.25rem;
+                font-size: 0.9rem;
+            }
+
+            .toolbar {
+                gap: 2px;
+            }
+
+            .btn-icon {
+                padding: 0.4rem 0.4rem;
+                font-size: 0.85rem;
+            }
+
+            .badge {
+                padding: 0.35rem 0.4rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             aspect-ratio: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             cursor: pointer;
             user-select: none;
             position: relative;
-            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-            touch-action: pan-y;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            transition: all 0.1s;
+            touch-action: manipulation;
+            /* Improves touch response */
         }
 
-        .student-card.done {
-            background-color: var(--bg-done);
-            border-color: #218838;
-            color: #fff;
+        .card:active {
+            transform: scale(0.96);
         }
 
-        .student-card .student-id {
+        .card.done {
+            background: var(--success);
+            border-color: #146c43;
+            color: white;
+        }
+
+        .card.done .student-id {
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .card.done .student-name {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .student-id {
             font-size: 1.4rem;
             font-weight: 700;
             color: var(--text-muted);
             line-height: 1;
+            pointer-events: none;
         }
 
-        .student-card.done .student-id {
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .student-card .student-name {
+        .student-name {
             display: none;
+            pointer-events: none;
         }
 
-        /* View Mode: Details */
-        body.mode-details .student-card .student-id {
-            font-size: 0.85rem;
+        .score-tag {
+            background: #ffc107;
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 4px;
+            border-radius: 4px;
+            position: absolute;
+            top: 3px;
+            right: 3px;
+        }
+
+        /* View Modes */
+        body.mode-names .student-id {
+            font-size: 0.9rem;
             margin-bottom: 2px;
         }
 
-        body.mode-details .student-card .student-name {
+        body.mode-names .student-name {
             display: block;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
-            padding: 0 2px;
+            max-width: 95%;
             font-weight: 500;
         }
 
-        .score-badge {
-            background-color: #ffc107;
-            color: #000;
-            padding: 1px 4px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 700;
+        /* --- Menu & Modals --- */
+        .dropdown {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            top: 110%;
+            right: 0;
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 180px;
+            z-index: 100;
         }
 
-        /* Dialogs */
+        .dropdown.show {
+            display: flex;
+            animation: fadeIn 0.1s ease;
+        }
+
+        .menu-item {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            transition: background 0.1s;
+        }
+
+        .menu-item:hover {
+            background: #f8f9fa;
+        }
+
+        .menu-item.danger {
+            color: var(--danger);
+        }
+
+        .divider {
+            border-top: 1px solid var(--border);
+            margin: 4px 0;
+        }
+
+        /* Notification Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-box {
+            background: #fff;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            margin: 0 0 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--bg-body);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        .modal-input:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-cancel {
+            background: #f1f3f5;
+            color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        /* Editor Modal (Dialog) */
         dialog {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--shadow-lg);
             padding: 0;
             max-width: 600px;
             width: 90%;
-            background: var(--bg-card);
         }
 
         dialog::backdrop {
             background: rgba(0, 0, 0, 0.4);
         }
 
-        .modal-header,
-        .modal-footer {
+        .dialog-header {
             padding: 1rem;
-            border-color: var(--border);
-        }
-
-        .modal-header {
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .modal-body {
+        .dialog-content {
             padding: 1rem;
-            overflow-y: auto;
             max-height: 60vh;
+            overflow-y: auto;
         }
 
-        .modal-footer {
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .modal-footer button {
-            width: auto;
-            height: auto;
+        textarea.code-editor {
+            width: 100%;
+            height: 300px;
+            padding: 0.8rem;
+            border: 1px solid var(--border);
             border-radius: 6px;
-            font-size: 0.95rem;
-            min-width: 80px;
-            padding: 0.5rem 1.25rem;
+            font-family: monospace;
+            box-sizing: border-box;
+            resize: vertical;
         }
 
-        /* Statistics */
-        .stat-box {
+        /* Stats Table */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
             background: #f8f9fa;
-            padding: 0.75rem;
-            border-radius: 6px;
+            padding: 1rem;
+            border-radius: 8px;
             text-align: center;
         }
 
-        .stats-summary {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+        .stat-card h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary);
         }
 
-        table {
+        table.data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
         th,
         td {
-            padding: 0.5rem;
+            padding: 0.75rem 0.5rem;
             border-bottom: 1px solid var(--border);
             text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            color: var(--primary);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -355,541 +507,463 @@
 <body>
 
     <header>
-        <select id="assignmentSelect" onchange="switchAsg(this.value)"></select>
+        <div class="select-wrapper">
+            <select id="asgSelect"></select>
+        </div>
 
-        <div class="header-controls">
-            <div id="counterBadge" class="counter-badge">0/49</div>
-            <button id="scoringModeToggle" onclick="toggleScore()" title="打分模式">打分</button>
-            <button id="viewModeToggle" onclick="toggleView()" title="切换视图">姓名</button>
+        <div class="toolbar">
+            <div id="counter" class="badge">0/0</div>
+            <button id="btnScore" class="btn-icon" title="打分模式 (长按卡片)">打分</button>
+            <button id="btnView" class="btn-icon" title="切换视图">姓名</button>
 
-            <div class="menu-container">
-                <button onclick="toggleMenu()" title="更多选项">选项</button>
-                <div id="menuDropdown" class="menu-dropdown">
-                    <button class="menu-item" onclick="addAssignment()">
-                        新建任务
-                    </button>
-                    <button class="menu-item" onclick="openStats()">
-                        统计数据
-                    </button>
-                    <button class="menu-item" onclick="openRosterEditor()">
-                        编辑学生名单
-                    </button>
-                    <div style="border-top: 1px solid var(--border); margin: 0.25rem 0;"></div>
-                    <button class="menu-item" onclick="downloadBackup()">
-                        导出备份
-                    </button>
-                    <button class="menu-item" onclick="triggerImport()">
-                        导入备份
-                    </button>
-                    <div style="border-top: 1px solid var(--border); margin: 0.25rem 0;"></div>
-                    <button class="menu-item" onclick="deleteAssignment()" style="color: #dc3545;">
-                        删除当前任务
-                    </button>
+            <div style="position: relative;">
+                <button id="btnMenu" class="btn-icon">选项</button>
+                <div id="menuDropdown" class="dropdown">
+                    <button class="menu-item" action="add">新建任务</button>
+                    <button class="menu-item" action="stats">统计数据</button>
+                    <button class="menu-item" action="roster">编辑学生名单</button>
+                    <div class="divider"></div>
+                    <button class="menu-item" action="export">导出备份</button>
+                    <button class="menu-item" action="import">导入备份</button>
+                    <div class="divider"></div>
+                    <button class="menu-item danger" action="delete">删除当前任务</button>
                 </div>
             </div>
         </div>
-        <div class="progress-bar-container">
-            <div id="statsProgressBar" class="progress-bar-fill"></div>
+        <div class="progress-track">
+            <div id="progressFill" class="progress-fill"></div>
         </div>
     </header>
 
-    <main id="gridContainer">
-        <!-- Grid Populated Here -->
-    </main>
-    <input type="file" id="importFile" style="display:none" onchange="handleImport(this)" accept=".json">
+    <main id="mainGrid"></main>
 
-    <dialog id="statsModal">
-        <div class="modal-header">
-            <h3 style="margin:0">统计数据</h3>
-            <button onclick="closeStats()" style="font-size:1.2rem">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="statsContent"></div>
-        </div>
-        <div class="modal-footer">
-            <button onclick="closeStats()" style="padding: 0.5rem 1rem; background: #e9ecef;">关闭</button>
-        </div>
-    </dialog>
+    <!-- Hidden File Input -->
+    <input type="file" id="fileInput" hidden accept=".json">
 
-    <dialog id="rosterModal">
-        <div class="modal-header">
-            <h3 style="margin:0">编辑学生名单</h3>
-            <button onclick="closeRosterEditor()" style="font-size:1.2rem">&times;</button>
+    <!-- Custom Notification/Input Modal -->
+    <div id="uiModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="modal-title" id="uiTitle">提示</h3>
+            <div class="modal-body" id="uiMessage"></div>
+            <input type="text" id="uiInput" class="modal-input" style="display:none">
+            <div class="modal-actions">
+                <button id="uiBtnCancel" class="btn btn-cancel">取消</button>
+                <button id="uiBtnConfirm" class="btn btn-primary">确定</button>
+            </div>
         </div>
-        <div class="modal-body">
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                每行一名学生。格式：<b>学号 姓名</b><br>
-                示例：<code>01 张三</code>
-            </p>
-            <textarea id="rosterInput"
-                style="width:100%; height:300px; padding:0.5rem; border:1px solid var(--border); border-radius:6px; font-family:monospace; box-sizing:border-box;"></textarea>
+    </div>
+
+    <!-- Generic Dialog (Reused for Stats & Roster) -->
+    <dialog id="appDialog">
+        <div class="dialog-header">
+            <h3 id="dialogTitle" style="margin:0">标题</h3>
+            <button onclick="document.getElementById('appDialog').close()"
+                style="border:none;background:none;font-size:1.5rem;cursor:pointer">&times;</button>
         </div>
-        <div class="modal-footer">
-            <button onclick="closeRosterEditor()" style="background: #e9ecef; color: var(--text-main);">取消</button>
-            <button onclick="saveRoster()" style="background: var(--primary); color: white;">保存更改</button>
+        <div id="dialogBody" class="dialog-content"></div>
+        <div class="dialog-header"
+            style="border-top: 1px solid var(--border); border-bottom: none; justify-content: flex-end; gap: 10px;">
+            <button class="btn btn-cancel" onclick="document.getElementById('appDialog').close()">关闭</button>
+            <button id="dialogConfirm" class="btn btn-primary" style="display:none">保存</button>
         </div>
     </dialog>
 
     <script>
-        // --- Data & Configuration ---
-        const DB_KEY = 'tracker_db';
-        const ROSTER_KEY = 'tracker_roster';
-        const DEFAULT_ROSTER = [
-            "01 Alice", "02 Bob", "03 Charlie", "04 David", "05 Eve", "06 Frank", "07 Grace", "08 Heidi", "09 Ivan", "10 Judy",
-            "11 Kevin", "12 Leo", "13 Mall", "14 Niaj", "15 Olivia", "16 Peggy", "17 Quentin", "18 Rupert", "19 Sybil", "20 Ted",
-            "21 Ursula", "22 Victor", "23 Walter", "24 Xena", "25 Yves", "26 Zoe", "27 Aris", "28 Ber", "29 Cyd", "30 Dan",
-            "31 Erin", "32 Fay", "33 Gus", "34 Hal", "35 Ida", "36 Jay", "37 Kia", "38 Lee", "39 Mia", "40 Ned",
-            "41 Ola", "42 Pat", "43 Quin", "44 Ray", "45 Sue", "46 Tom", "47 Una", "48 Val", "49 Wes"
-        ];
+        /**
+         * Assignment Check Pro - Clean & Optimized
+         */
 
-        // App State
-        let ROSTER = [...DEFAULT_ROSTER];
-        let assignments = [];
-        let currentAssignmentId = null;
-        let showNames = false;
-        let isScoringMode = false;
+        // --- Constants ---
+        const STORAGE_KEYS = { DB: 'tracker_db', ROSTER: 'tracker_roster' };
+        const DEFAULT_ROSTER = Array.from({ length: 49 }, (_, i) =>
+            `${(i + 1).toString().padStart(2, '0')} Student${i + 1}`); // Simplified Default
 
-        // Helpers
-        const getStudentId = (str) => str.split(' ')[0];
-        const getStudentName = (str) => str.slice(str.indexOf(' ') + 1);
+        // --- State Management (Reactive) ---
+        const State = {
+            roster: [],
+            assignments: [],
+            currentId: null,
+            viewMode: 'id', // 'id' or 'name'
+            scoringMode: false,
 
-        // --- Initialization ---
-        function init() {
-            loadData();
-            if (assignments.length === 0) createAssignment("任务 1");
-            else if (!currentAssignmentId) currentAssignmentId = assignments[0].id;
+            // Observers
+            _listeners: [],
+            subscribe(fn) { this._listeners.push(fn); },
+            notify() { this._listeners.forEach(fn => fn(this)); },
 
-            renderHeader();
-            renderGrid();
-
-            // Events
-            document.addEventListener('click', e => {
-                if (!e.target.closest('.menu-container')) {
-                    document.getElementById('menuDropdown').classList.remove('open');
-                }
-            });
-        }
-
-        // --- Data Management ---
-        function loadData() {
-            try {
-                // Roster
-                const storedRoster = localStorage.getItem(ROSTER_KEY);
-                if (storedRoster) {
-                    const parsed = JSON.parse(storedRoster);
-                    if (Array.isArray(parsed) && parsed.length > 0) ROSTER = parsed;
-                }
-                // Assignments
-                const storedDB = localStorage.getItem(DB_KEY);
-                if (storedDB) assignments = JSON.parse(storedDB);
-                if (!Array.isArray(assignments)) assignments = [];
-            } catch (e) {
-                console.error("Load error:", e);
-                assignments = [];
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem(DB_KEY, JSON.stringify(assignments));
-        }
-
-        function createAssignment(name) {
-            const newAsg = {
-                id: Date.now(),
-                name: name,
-                records: {}
-            };
-            // Initialize empty records
-            ROSTER.forEach(s => newAsg.records[getStudentId(s)] = { done: false, score: null });
-            assignments.push(newAsg);
-            currentAssignmentId = newAsg.id;
-            saveData();
-            renderHeader();
-            renderGrid();
-        }
-
-        // --- UI/View Logic ---
-        function toggleView() {
-            showNames = !showNames;
-            document.body.classList.toggle('mode-details', showNames);
-            document.getElementById('viewModeToggle').classList.toggle('active', showNames);
-            renderGrid();
-        }
-
-        function toggleMenu() {
-            document.getElementById('menuDropdown').classList.toggle('open');
-        }
-
-        function toggleScore() {
-            isScoringMode = !isScoringMode;
-            document.getElementById('scoringModeToggle').classList.toggle('active', isScoringMode);
-        }
-
-        function switchAsg(id) {
-            currentAssignmentId = parseInt(id);
-            renderGrid();
-            updateStats();
-        }
-
-        function updateStats() {
-            if (!currentAssignmentId) return;
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-
-            let doneCount = 0;
-            let total = ROSTER.length;
-
-            ROSTER.forEach(s => {
-                if (cur.records[getStudentId(s)]?.done) doneCount++;
-            });
-
-            document.getElementById('counterBadge').textContent = `${doneCount}/${total}`;
-
-            // Update Progress Bar
-            const percent = total > 0 ? (doneCount / total) * 100 : 0;
-            document.getElementById('statsProgressBar').style.width = `${percent}%`;
-        }
-
-        // --- Rendering ---
-        function renderHeader() {
-            const sel = document.getElementById('assignmentSelect');
-            sel.innerHTML = '';
-            assignments.forEach(a => {
-                const opt = document.createElement('option');
-                opt.value = a.id;
-                opt.text = a.name;
-                opt.selected = a.id === currentAssignmentId;
-                sel.add(opt);
-            });
-            updateStats();
-        }
-
-        function renderGrid() {
-            const grid = document.getElementById('gridContainer');
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-
-            // Reuse DOM if count matches
-            if (grid.children.length !== ROSTER.length) grid.innerHTML = '';
-
-            ROSTER.forEach((s, i) => {
-                const id = getStudentId(s);
-                const name = getStudentName(s);
-                const rec = cur.records[id] || { done: false, score: null };
-
-                let card;
-                if (grid.children[i]) {
-                    card = grid.children[i];
-                } else {
-                    card = document.createElement('div');
-                    card.id = `card-${id}`;
-                    setupInteraction(card, id, name);
-                    card.oncontextmenu = e => { e.preventDefault(); return false; };
-                    grid.appendChild(card);
-                }
-
-                // Visual Update
-                card.className = `student-card ${rec.done ? 'done' : ''}`;
-
-                let html = `<div class="student-id">${id}</div><div class="student-name">${name}</div>`;
-                if (rec.score !== null) html += `<div class="score-badge">${rec.score}</div>`;
-
-                if (card.innerHTML !== html) card.innerHTML = html;
-            });
-        }
-
-        // --- Interactions ---
-        function setupInteraction(card, id, name) {
-            let timer, startX, startY;
-            const startLongPress = () => timer = setTimeout(() => promptScore(id, name), 500);
-            const clearTimer = () => { clearTimeout(timer); timer = null; };
-
-            card.addEventListener('touchstart', e => {
-                if (e.touches.length > 1) return;
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                startLongPress();
-            }, { passive: false });
-
-            card.addEventListener('touchmove', e => {
-                if (!timer) return;
-                // Cancel if moved significantly
-                if (Math.abs(e.touches[0].clientX - startX) > 10 || Math.abs(e.touches[0].clientY - startY) > 10) clearTimer();
-            }, { passive: true });
-
-            card.addEventListener('touchend', e => {
-                if (timer) {
-                    clearTimer();
-                    // Just a click/tap
-                    isScoringMode ? promptScore(id, name) : toggleDone(id);
-                    if (e.cancelable) e.preventDefault();
-                }
-            });
-
-            card.addEventListener('mousedown', e => { if (e.button === 0) startLongPress(); });
-            card.addEventListener('mouseup', () => {
-                if (timer) {
-                    clearTimer();
-                    isScoringMode ? promptScore(id, name) : toggleDone(id);
-                }
-            });
-            card.addEventListener('mouseleave', clearTimer);
-        }
-
-        function toggleDone(id) {
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            if (!cur) return;
-            if (!cur.records[id]) cur.records[id] = { done: false, score: null };
-
-            cur.records[id].done = !cur.records[id].done;
-            saveData();
-            updateCardVisual(id, cur.records[id]);
-            updateStats();
-        }
-
-        function updateCardVisual(id, rec) {
-            const card = document.getElementById(`card-${id}`);
-            if (!card) return;
-
-            if (rec.done) card.classList.add('done');
-            else card.classList.remove('done');
-
-            let badge = card.querySelector('.score-badge');
-            if (rec.score !== null) {
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.className = 'score-badge';
-                    card.appendChild(badge);
-                }
-                badge.textContent = rec.score;
-            } else if (badge) badge.remove();
-        }
-
-        function promptScore(id, name) {
-            const cur = assignments.find(a => a.id === currentAssignmentId);
-            const val = cur.records[id]?.score || '';
-            const input = prompt(`请输入 ${id} ${name} 的分数:`, val);
-
-            if (input !== null) {
-                if (!cur.records[id]) cur.records[id] = { done: false, score: null };
-
-                if (input.trim() === '') {
-                    cur.records[id].score = null;
-                    // Note: clearing score doesn't necessarily un-check done, but let's keep it simple
-                } else {
-                    const s = parseInt(input);
-                    if (!isNaN(s)) {
-                        cur.records[id].score = s;
-                        cur.records[id].done = true;
-                    }
-                }
-                saveData();
-                updateCardVisual(id, cur.records[id]);
-                updateStats();
-            }
-        }
-
-        // --- Assignment Management ---
-        function addAssignment() {
-            toggleMenu();
-            const n = prompt("任务名称:");
-            if (n) createAssignment(n);
-        }
-
-        function deleteAssignment() {
-            toggleMenu();
-            if (!currentAssignmentId || !confirm("确定要删除此任务吗？")) return;
-
-            assignments = assignments.filter(a => a.id != currentAssignmentId);
-            if (assignments.length === 0) createAssignment("任务 1");
-            else {
-                currentAssignmentId = assignments[assignments.length - 1].id;
-                saveData();
-                renderHeader();
-                renderGrid();
-            }
-        }
-
-        // --- Roster Editor ---
-        function openRosterEditor() {
-            toggleMenu();
-            document.getElementById('rosterInput').value = ROSTER.join('\n');
-            document.getElementById('rosterModal').showModal();
-        }
-
-        function closeRosterEditor() {
-            document.getElementById('rosterModal').close();
-        }
-
-        function saveRoster() {
-            const lines = document.getElementById('rosterInput').value.split('\n')
-                .map(x => x.trim()).filter(x => x.length > 0);
-
-            if (lines.length === 0) return alert("名单不能为空！");
-            if (!confirm("更新名单？学号必须保持一致以保留数据。")) return;
-
-            ROSTER = lines;
-            localStorage.setItem(ROSTER_KEY, JSON.stringify(ROSTER));
-            closeRosterEditor();
-            document.getElementById('gridContainer').innerHTML = ''; // Force redraw
-            renderGrid();
-            updateStats();
-        }
-
-        // --- Backup & Restore ---
-        function downloadBackup() {
-            toggleMenu();
-            const data = {
-                timestamp: Date.now(),
-                roster: ROSTER,
-                assignments: assignments
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-
-            a.download = `tracker_backup_${ts}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function triggerImport() {
-            toggleMenu();
-            document.getElementById('importFile').click();
-        }
-
-        function handleImport(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = e => {
+            // Actions
+            load() {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    if (!data.assignments || !Array.isArray(data.assignments)) {
-                        return alert("备份文件无效：缺少任务记录。");
-                    }
+                    this.roster = JSON.parse(localStorage.getItem(STORAGE_KEYS.ROSTER) || JSON.stringify(DEFAULT_ROSTER));
+                    this.assignments = JSON.parse(localStorage.getItem(STORAGE_KEYS.DB) || '[]');
+                } catch (e) { console.error('Data corrupted, reset'); this.assignments = []; }
 
-                    if (confirm(`导入 ${new Date(data.timestamp || Date.now()).toLocaleString()} 的备份？这将覆盖当前数据。`)) {
-                        assignments = data.assignments;
-                        if (data.roster && Array.isArray(data.roster)) {
-                            ROSTER = data.roster;
-                            localStorage.setItem(ROSTER_KEY, JSON.stringify(ROSTER));
-                        }
-                        currentAssignmentId = assignments.length ? assignments[0].id : null;
-                        saveData();
-                        location.reload();
+                if (this.assignments.length === 0) this.createAssignment("任务 1");
+                if (!this.currentId && this.assignments.length) this.currentId = this.assignments[0].id;
+                this.notify();
+            },
+
+            save() {
+                localStorage.setItem(STORAGE_KEYS.DB, JSON.stringify(this.assignments));
+                localStorage.setItem(STORAGE_KEYS.ROSTER, JSON.stringify(this.roster));
+                this.notify();
+            },
+
+            get currentAsg() { return this.assignments.find(a => a.id === this.currentId); },
+
+            createAssignment(name) {
+                const newAsg = { id: Date.now(), name, records: {} };
+                this.assignments.push(newAsg);
+                this.currentId = newAsg.id;
+                this.save();
+            },
+
+            deleteCurrent() {
+                this.assignments = this.assignments.filter(a => a.id !== this.currentId);
+                if (!this.assignments.length) this.createAssignment('Default');
+                else this.currentId = this.assignments[this.assignments.length - 1].id;
+                this.save();
+            },
+
+            updateRecord(sid, payload) { // payload: { done: bool, score: int|null }
+                const asg = this.currentAsg;
+                if (!asg) return;
+                if (!asg.records[sid]) asg.records[sid] = { done: false, score: null };
+                Object.assign(asg.records[sid], payload);
+                this.save();
+            }
+        };
+
+        // --- UI Framework ---
+        const UI = {
+            $: (id) => document.getElementById(id),
+
+            init() {
+                // Cache DOM
+                this.els = {
+                    grid: this.$('mainGrid'),
+                    select: this.$('asgSelect'),
+                    counter: this.$('counter'),
+                    bar: this.$('progressFill'),
+                    menu: this.$('menuDropdown'),
+                    dialog: this.$('appDialog'),
+                    dialogTitle: this.$('dialogTitle'),
+                    dialogBody: this.$('dialogBody'),
+                    dialogConfirm: this.$('dialogConfirm')
+                };
+
+                // Bind Global Events
+                this.bindEvents();
+
+                // Subscribe to state changes
+                State.subscribe(() => this.render());
+
+                // Initial Render
+                State.load();
+            },
+
+            bindEvents() {
+                // Toolbar
+                this.$('asgSelect').onchange = (e) => { State.currentId = parseInt(e.target.value); State.notify(); };
+
+                this.$('btnScore').onclick = (e) => {
+                    State.scoringMode = !State.scoringMode;
+                    e.target.classList.toggle('active', State.scoringMode);
+                };
+
+                this.$('btnView').onclick = (e) => {
+                    State.viewMode = State.viewMode === 'id' ? 'name' : 'id';
+                    document.body.className = State.viewMode === 'name' ? 'mode-names' : '';
+                    e.target.classList.toggle('active', State.viewMode === 'name');
+                };
+
+                // Menu Toggle
+                this.$('btnMenu').onclick = (e) => {
+                    e.stopPropagation();
+                    this.els.menu.classList.toggle('show');
+                };
+                document.onclick = () => this.els.menu.classList.remove('show');
+
+                // Menu Actions
+                this.els.menu.onclick = (e) => {
+                    const action = e.target.getAttribute('action');
+                    if (action && Actions[action]) Actions[action]();
+                };
+
+                // Grid Interaction (Delegation)
+                this.setupGridInteractions();
+
+                // File Import
+                this.$('fileInput').onchange = Actions.handleFile;
+            },
+
+            setupGridInteractions() {
+                let timer = null;
+                const grid = this.els.grid;
+
+                // Helper to find card
+                const getCard = (el) => el.closest('.card');
+
+                // Logic
+                const handleTap = (card) => {
+                    const sid = card.dataset.id;
+                    const name = card.dataset.name;
+                    if (State.scoringMode) Actions.promptScore(sid, name);
+                    else {
+                        const rec = State.currentAsg.records[sid] || {};
+                        State.updateRecord(sid, { done: !rec.done });
                     }
-                } catch (err) {
-                    console.error(err);
-                    alert("解析备份文件出错。");
+                };
+
+                const handleLongPress = (card) => {
+                    Actions.promptScore(card.dataset.id, card.dataset.name);
+                };
+
+                // Mouse
+                grid.addEventListener('mousedown', e => {
+                    const card = getCard(e.target);
+                    if (!card || e.button !== 0) return;
+                    timer = setTimeout(() => { timer = null; handleLongPress(card); }, 500);
+                });
+                grid.addEventListener('mouseup', e => {
+                    const card = getCard(e.target);
+                    if (timer && card) { clearTimeout(timer); handleTap(card); }
+                    timer = null;
+                });
+                grid.addEventListener('mouseleave', () => clearTimeout(timer));
+
+                // Touch (Simple Implementation)
+                grid.addEventListener('touchstart', e => {
+                    const card = getCard(e.target);
+                    if (!card) return;
+                    timer = setTimeout(() => { timer = null; handleLongPress(card); }, 600);
+                }, { passive: true });
+
+                grid.addEventListener('touchend', e => {
+                    const card = getCard(e.target);
+                    if (timer && card) { clearTimeout(timer); timer = null; handleTap(card); }
+                    else clearTimeout(timer); // Moved or Long pressed already
+                });
+                grid.addEventListener('touchmove', () => clearTimeout(timer));
+            },
+
+            render() {
+                const asg = State.currentAsg;
+                if (!asg) return;
+
+                // 1. Header Select
+                const sel = this.els.select;
+                if (sel.children.length !== State.assignments.length || sel.value != asg.id) {
+                    sel.innerHTML = State.assignments.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                    sel.value = asg.id;
                 }
-                input.value = '';
-            };
-            reader.readAsText(file);
-        }
 
-        // --- Statistics ---
-        let statsSort = 'id';
-        let statsSelectedIds = [];
+                // 2. Stats
+                let done = 0;
+                const total = State.roster.length;
+                State.roster.forEach(s => {
+                    if (asg.records[s.split(' ')[0]]?.done) done++;
+                });
+                this.els.counter.textContent = `${done}/${total}`;
+                this.els.bar.style.width = total ? `${(done / total) * 100}%` : '0%';
 
-        function openStats() {
-            toggleMenu();
-            statsSelectedIds = assignments.map(a => a.id);
-            renderStatsContent();
-            document.getElementById('statsModal').showModal();
-        }
+                // 3. Grid
+                // Diffing Strategy: Create map of existing elements to avoid full redraw
+                const existing = new Map();
+                Array.from(this.els.grid.children).forEach(el => existing.set(el.dataset.id, el));
 
-        function closeStats() {
-            document.getElementById('statsModal').close();
-        }
+                // We will just re-apply classes/content to existing cards or create new ones
+                // If roster length changes effectively clear grid first for simplicity in this version
+                if (this.els.grid.children.length !== total) {
+                    this.els.grid.innerHTML = '';
+                    existing.clear();
+                }
 
-        function renderStatsContent() {
-            const container = document.getElementById('statsContent');
+                const frag = document.createDocumentFragment();
 
-            // Checkboxes
-            let html = '<div style="margin-bottom:1rem;display:flex;gap:10px;overflow-x:auto;">';
-            assignments.forEach(a => {
-                html += `<label><input type="checkbox" value="${a.id}" checked onchange="updStatSel()"> ${a.name}</label>`;
-            });
-            html += '</div>';
+                State.roster.forEach(line => {
+                    const [sid, ...nParts] = line.split(' ');
+                    const name = nParts.join(' ');
+                    const rec = asg.records[sid] || {};
 
-            // Calculations
-            const activeAsgs = assignments.filter(a => statsSelectedIds.includes(a.id));
-            const studentStats = {};
-            ROSTER.forEach(s => studentStats[getStudentId(s)] = { done: 0, name: getStudentName(s) });
-
-            let totalRecords = 0;
-            let totalDone = 0;
-            let scoreSum = 0;
-            let scoreCount = 0;
-
-            activeAsgs.forEach(a => {
-                ROSTER.forEach(s => {
-                    const id = getStudentId(s);
-                    const rec = a.records[id];
-                    totalRecords++;
-                    if (rec && rec.done) {
-                        totalDone++;
-                        studentStats[id].done++;
+                    let card = existing.get(sid);
+                    if (!card) {
+                        card = document.createElement('div');
+                        card.className = 'card';
+                        card.dataset.id = sid;
+                        card.dataset.name = name;
+                        card.innerHTML = `<div class="student-id">${sid}</div><div class="student-name">${name}</div>`;
+                        frag.appendChild(card);
                     }
-                    if (rec && rec.score !== null) {
-                        scoreSum += rec.score;
-                        scoreCount++;
+
+                    // Update State
+                    const isDone = !!rec.done;
+                    if (card.classList.contains('done') !== isDone) card.classList.toggle('done', isDone);
+
+                    // Score Badge
+                    let badge = card.querySelector('.score-tag');
+                    if (rec.score !== null && rec.score !== undefined) {
+                        if (!badge) { badge = document.createElement('div'); badge.className = 'score-tag'; card.appendChild(badge); }
+                        badge.textContent = rec.score;
+                    } else if (badge) {
+                        badge.remove();
                     }
                 });
-            });
 
-            const submitRate = totalRecords ? ((totalDone / totalRecords) * 100).toFixed(1) : 0;
-            const avgScore = scoreCount ? (scoreSum / scoreCount).toFixed(1) : '-';
+                if (frag.children.length > 0) this.els.grid.appendChild(frag);
+            }
+        };
 
-            html += `<div class="stats-summary">
-                <div class="stat-box"><h3>${submitRate}%</h3><small>提交率</small></div>
-                <div class="stat-box"><h3>${avgScore}</h3><small>平均分</small></div>
-            </div>`;
+        // --- Feature Actions ---
+        const Actions = {
+            async add() {
+                const name = await Notify.prompt('请输入任务名称:', '', '新建任务');
+                if (name) State.createAssignment(name);
+            },
 
-            // Table
-            let rows = Object.keys(studentStats).map(id => ({
-                id,
-                name: studentStats[id].name,
-                rate: activeAsgs.length ? (studentStats[id].done / activeAsgs.length) * 100 : 0
-            }));
+            async delete() {
+                if (await Notify.confirm('确定删除当前任务？此操作无法撤销。', '删除确认', true)) {
+                    State.deleteCurrent();
+                }
+            },
 
-            if (statsSort === 'rate') rows.sort((a, b) => b.rate - a.rate);
-            else rows.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+            async promptScore(sid, name) {
+                const rec = State.currentAsg.records[sid] || {};
+                const val = await Notify.prompt(`给 ${sid} ${name} 打分:`, rec.score || '');
+                if (val === false) return;
 
-            html += `<table><thead><tr>
-                <th onclick="togStatSort()">学生</th>
-                <th onclick="togStatSort()">完成率</th>
-            </tr></thead><tbody>`;
+                const score = val.trim() === '' ? null : parseInt(val);
+                if (score !== null && isNaN(score)) return Notify.alert('请输入有效数字');
 
-            rows.forEach(r => {
-                html += `<tr><td><b>${r.id}</b> ${r.name}</td><td>${Math.round(r.rate)}%</td></tr>`;
-            });
-            html += '</tbody></table>';
+                State.updateRecord(sid, { score, done: score !== null ? true : rec.done });
+            },
 
-            container.innerHTML = html;
-        }
+            // Sub-modules: Stats & Roster
+            stats() {
+                const d = UI.els.dialog;
+                UI.els.dialogTitle.textContent = '统计数据';
+                UI.els.dialogConfirm.style.display = 'none';
 
-        function updStatSel() {
-            statsSelectedIds = Array.from(document.querySelectorAll('#statsContent input:checked')).map(b => parseInt(b.value));
-            renderStatsContent();
-        }
+                // Calculate
+                const rows = State.roster.map(line => {
+                    const sid = line.split(' ')[0];
+                    const name = line.split(' ').slice(1).join(' ');
+                    const count = State.assignments.filter(a => a.records[sid]?.done).length;
+                    const rate = Math.round((count / State.assignments.length) * 100);
+                    return { sid, name, rate };
+                }).sort((a, b) => b.rate - a.rate);
 
-        function togStatSort() {
-            statsSort = statsSort === 'id' ? 'rate' : 'id';
-            renderStatsContent();
-        }
+                const avg = (rows.reduce((a, b) => a + b.rate, 0) / rows.length).toFixed(1);
 
-        // Start
-        init();
+                UI.els.dialogBody.innerHTML = `
+            <div class="stat-grid">
+                <div class="stat-card"><h3>${avg}%</h3><small>平均完成率</small></div>
+                <div class="stat-card"><h3>${State.assignments.length}</h3><small>总任务数</small></div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>学号 姓名</th><th>完成率</th></tr></thead>
+                <tbody>${rows.map(r => `<tr><td><b>${r.sid}</b> ${r.name}</td><td>${r.rate}%</td></tr>`).join('')}</tbody>
+            </table>
+        `;
+                d.showModal();
+            },
+
+            roster() {
+                const d = UI.els.dialog;
+                UI.els.dialogTitle.textContent = '编辑名单';
+                UI.els.dialogBody.innerHTML = `<textarea id="rosterEdit" class="code-editor">${State.roster.join('\n')}</textarea>`;
+                const btn = UI.els.dialogConfirm;
+                btn.style.display = 'block';
+                btn.onclick = async () => {
+                    const text = document.getElementById('rosterEdit').value;
+                    if (!text.trim()) return Notify.alert('名单不能为空');
+                    if (await Notify.confirm('确定更新名单？这将影响现有数据的显示。')) {
+                        State.roster = text.split('\n').map(s => s.trim()).filter(s => s);
+                        State.save();
+                        d.close();
+                    }
+                };
+                d.showModal();
+            },
+
+            export() {
+                const blob = new Blob([JSON.stringify({
+                    timestamp: Date.now(), roster: State.roster, assignments: State.assignments
+                }, null, 2)], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_${new Date().toISOString().slice(0, 10)}.json`;
+                link.click();
+            },
+
+            import() { document.getElementById('fileInput').click(); },
+
+            handleFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.assignments && await Notify.confirm('覆盖当前数据？', '导入确认', true)) {
+                            State.assignments = data.assignments;
+                            if (data.roster) State.roster = data.roster;
+                            State.currentId = null;
+                            State.save();
+                            location.reload();
+                        }
+                    } catch (err) { Notify.alert('文件格式错误'); }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // --- Utility: Notify ---
+        const Notify = {
+            el: null,
+            resolve: null,
+
+            init() {
+                this.el = document.getElementById('uiModal');
+                this.title = document.getElementById('uiTitle');
+                this.msg = document.getElementById('uiMessage');
+                this.input = document.getElementById('uiInput');
+
+                document.getElementById('uiBtnCancel').onclick = () => this.close(false);
+                document.getElementById('uiBtnConfirm').onclick = () => this.close(this.input.style.display !== 'none' ? this.input.value : true);
+                this.input.onkeyup = e => e.key === 'Enter' && document.getElementById('uiBtnConfirm').click();
+            },
+
+            show({ title, msg, type = 'alert', val = '', danger = false }) {
+                if (!this.el) this.init();
+                this.title.textContent = title;
+                this.msg.textContent = msg;
+                this.input.value = val;
+
+                this.input.style.display = type === 'prompt' ? 'block' : 'none';
+                document.getElementById('uiBtnCancel').style.display = type === 'alert' ? 'none' : 'block';
+                document.getElementById('uiBtnConfirm').className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+
+                this.el.classList.add('active');
+                if (type === 'prompt') setTimeout(() => this.input.focus(), 100);
+
+                return new Promise(res => this.resolve = res);
+            },
+
+            close(val) {
+                this.el.classList.remove('active');
+                if (this.resolve) this.resolve(val);
+                this.resolve = null;
+            },
+
+            alert(msg, t = '提示') { return this.show({ title: t, msg }); },
+            confirm(msg, t = '确认', danger = false) { return this.show({ title: t, msg, type: 'confirm', danger }); },
+            prompt(msg, val = '', t = '输入') { return this.show({ title: t, msg, type: 'prompt', val }); }
+        };
+
+        // Boot
+        UI.init();
     </script>
 </body>
 
