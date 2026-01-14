@@ -469,40 +469,40 @@
         dialog.dialog-full .dialog-content {
             flex-grow: 1;
             max-height: none;
-            /* Override default limit */
+            padding: 0.75rem;
         }
 
         .stats-toolbar {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
             align-items: center;
             flex-wrap: wrap;
             background: #f8f9fa;
-            padding: 0.75rem;
-            border-radius: 8px;
+            padding: 0.5rem;
+            border-radius: 6px;
         }
 
         .stats-control-group {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
+            gap: 0.6rem;
         }
 
         .filter-group {
             display: inline-flex;
             background: #e9ecef;
-            padding: 3px;
-            border-radius: 8px;
+            padding: 2px;
+            border-radius: 6px;
             gap: 2px;
         }
 
         .filter-btn {
             border: none;
             background: transparent;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
             cursor: pointer;
             color: var(--text-muted);
             font-weight: 500;
@@ -517,20 +517,20 @@
         .filter-btn.active {
             background: #fff;
             color: var(--primary);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             font-weight: 600;
         }
 
         .sort-btn {
             background: #fff;
             border: 1px solid var(--border);
-            padding: 5px 12px;
+            padding: 4px 10px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             color: var(--text-main);
             transition: all 0.2s;
         }
@@ -553,32 +553,37 @@
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
         }
 
         .stat-card {
             background: #f8f9fa;
-            padding: 1rem;
+            padding: 0.6rem;
             border-radius: 8px;
             text-align: center;
         }
 
         .stat-card h3 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             color: var(--primary);
+        }
+
+        .stat-card small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
         }
 
         table.data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         th,
         td {
-            padding: 0.75rem 0.5rem;
+            padding: 0.6rem 0.4rem;
             border-bottom: 1px solid var(--border);
             text-align: left;
         }
@@ -590,41 +595,63 @@
             user-select: none;
         }
 
-        th:hover {
-            color: var(--primary);
+        /* Overview Column Style */
+        .overview-dots {
+            display: flex;
+            gap: 3px;
+            overflow-x: auto;
+            max-width: 120px;
+            padding: 4px 0;
+            scrollbar-width: none;
+        }
+
+        .overview-dots::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #dee2e6;
+            flex-shrink: 0;
+        }
+
+        .dot.done {
+            background: var(--success);
         }
 
         /* --- Assignment Picker --- */
         .asg-picker-container {
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             background: #fff;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem;
+            border-radius: 8px;
+            padding: 0.6rem;
         }
 
         .asg-chip-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 0.5rem;
-            max-height: 120px;
+            gap: 6px;
+            margin-top: 0.4rem;
+            max-height: 80px;
             overflow-y: auto;
-            padding: 4px;
+            padding: 2px;
         }
 
         .asg-chip {
-            padding: 6px 12px;
+            padding: 4px 10px;
             background: #f1f3f5;
             border: 1px solid transparent;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             cursor: pointer;
             user-select: none;
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
 
         .asg-chip:hover {
@@ -643,8 +670,8 @@
         }
 
         .asg-chip-icon {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #adb5bd;
         }
@@ -1025,9 +1052,10 @@
                     let rows = State.roster.map(line => {
                         const sid = line.split(' ')[0];
                         const name = line.split(' ').slice(1).join(' ');
-                        const count = targetAsgs.filter(a => a.records[sid]?.done).length;
+                        const statuses = targetAsgs.map(a => !!a.records[sid]?.done);
+                        const count = statuses.filter(s => s).length;
                         const rate = targetAsgs.length ? Math.round((count / targetAsgs.length) * 100) : 0;
-                        return { sid, name, rate };
+                        return { sid, name, rate, statuses };
                     });
 
                     // Sort
@@ -1046,10 +1074,10 @@
                     UI.els.dialogBody.innerHTML = `
                        <div class="asg-picker-container">
                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                               <span style="font-weight:600; font-size:0.95rem;">选择作业项</span>
+                               <span style="font-weight:600; font-size:0.9rem;">统计项</span>
                                <div class="filter-group">
                                    <button class="filter-btn" id="selAll">全选</button>
-                                   <button class="filter-btn" id="selNone">全不选</button>
+                                   <button class="filter-btn" id="selNone">无</button>
                                    <button class="filter-btn" data-range="3">近3</button>
                                    <button class="filter-btn" data-range="5">近5</button>
                                    <button class="filter-btn" data-range="10">近10</button>
@@ -1067,26 +1095,47 @@
 
                        <div class="stats-toolbar">
                            <div class="stats-control-group">
-                               <span style="font-size:0.9rem;color:var(--text-muted);">排序:</span>
                                <button class="sort-btn ${state.sortField === 'sid' ? 'active' : ''}" data-sort="sid">
-                                   学号 ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
+                                   ID ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
                                </button>
                                <button class="sort-btn ${state.sortField === 'rate' ? 'active' : ''}" data-sort="rate">
                                    完成率 ${state.sortField === 'rate' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
                                </button>
                            </div>
-                           <div style="margin-left:auto; font-size:0.85rem; color:var(--text-muted)">
-                               已选: <b>${targetAsgs.length}</b> / ${State.assignments.length}
+                           <div style="margin-left:auto; display:flex; align-items:center; gap:8px">
+                               <div style="text-align:right">
+                                   <div style="font-weight:800; color:var(--primary); font-size:1.1rem; line-height:1">${avg}%</div>
+                                   <div style="font-size:0.7rem; color:var(--text-muted)">平均完成率</div>
+                               </div>
+                               <div style="width:1px; height:20px; background:var(--border)"></div>
+                               <div style="text-align:right">
+                                   <div style="font-weight:800; color:var(--text-main); font-size:1.1rem; line-height:1">${targetAsgs.length}</div>
+                                   <div style="font-size:0.7rem; color:var(--text-muted)">已选任务</div>
+                               </div>
                            </div>
                        </div>
 
-                       <div class="stat-grid">
-                           <div class="stat-card"><h3>${avg}%</h3><small>平均完成率</small></div>
-                           <div class="stat-card"><h3>${targetAsgs.length}</h3><small>纳入统计数</small></div>
-                       </div>
                        <table class="data-table">
-                           <thead><tr><th>学号 姓名</th><th>完成率</th></tr></thead>
-                           <tbody>${rows.map(r => `<tr><td><b>${r.sid}</b> ${r.name}</td><td>${r.rate}%</td></tr>`).join('')}</tbody>
+                           <thead>
+                               <tr>
+                                   <th>姓名</th>
+                                   <th style="width:100px">提交概览</th>
+                                   <th style="text-align:right">完成率</th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               ${rows.map(r => `
+                                   <tr>
+                                       <td><b>${r.sid}</b> ${r.name}</td>
+                                       <td>
+                                           <div class="overview-dots">
+                                               ${r.statuses.map(s => `<div class="dot ${s ? 'done' : ''}"></div>`).join('')}
+                                           </div>
+                                       </td>
+                                       <td style="text-align:right"><b>${r.rate}%</b></td>
+                                   </tr>
+                               `).join('')}
+                           </tbody>
                        </table>
                    `;
 
