@@ -50,6 +50,8 @@
             flex-shrink: 0;
             position: relative;
             z-index: 10;
+            /* 关键修复：裁剪内部溢出的进度条 */
+            overflow: hidden;
         }
 
         .select-wrapper {
@@ -269,9 +271,10 @@
 
         /* --- Menu & Modals --- */
         .dropdown {
-            position: absolute;
-            top: 110%;
-            right: 0;
+            /* 防止被 header 的 overflow: hidden 裁剪 */
+            position: fixed;
+            top: 62px;
+            right: 10px;
             background: #fff;
             border: 1px solid rgba(0, 0, 0, 0.05);
             border-radius: 12px;
