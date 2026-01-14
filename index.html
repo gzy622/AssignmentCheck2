@@ -594,6 +594,66 @@
             color: var(--primary);
         }
 
+        /* --- Assignment Picker --- */
+        .asg-picker-container {
+            margin-bottom: 1rem;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .asg-chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 0.5rem;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .asg-chip {
+            padding: 6px 12px;
+            background: #f1f3f5;
+            border: 1px solid transparent;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .asg-chip:hover {
+            background: #e9ecef;
+        }
+
+        .asg-chip.active {
+            background: var(--bg-active);
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .asg-chip input {
+            display: none;
+        }
+
+        .asg-chip-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #adb5bd;
+        }
+
+        .asg-chip.active .asg-chip-icon {
+            background: var(--primary);
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.2);
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -948,7 +1008,7 @@
 
                 // State for this view
                 let state = {
-                    range: 'all', // all, 3, 5, 10
+                    selectedIds: new Set(State.assignments.map(a => a.id)), // Default all
                     sortField: 'rate', // id, rate
                     sortDir: 'desc' // asc, desc
                 };
@@ -958,12 +1018,8 @@
                     UI.els.dialogTitle.textContent = '统计数据';
                     UI.els.dialogConfirm.style.display = 'none';
 
-                    // Filter Assignments
-                    let targetAsgs = State.assignments;
-                    if (state.range !== 'all') {
-                        const n = parseInt(state.range);
-                        targetAsgs = State.assignments.slice(-n);
-                    }
+                    // Get target assignments based on selection
+                    const targetAsgs = State.assignments.filter(a => state.selectedIds.has(a.id));
 
                     // Calculate Data
                     let rows = State.roster.map(line => {
@@ -978,12 +1034,9 @@
                     rows.sort((a, b) => {
                         let valA = a[state.sortField];
                         let valB = b[state.sortField];
-
-                        // For ID string comparison
                         if (state.sortField === 'sid') {
                             return state.sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                         }
-                        // For Rate number comparison
                         return state.sortDir === 'asc' ? valA - valB : valB - valA;
                     });
 
@@ -991,23 +1044,39 @@
 
                     // Render
                     UI.els.dialogBody.innerHTML = `
-                       <div class="stats-toolbar">
-                           <div class="stats-control-group">
-                               <span style="font-size:0.9rem;color:var(--text-muted);margin-right:4px">范围</span>
+                       <div class="asg-picker-container">
+                           <div style="display:flex; justify-content:space-between; align-items:center;">
+                               <span style="font-weight:600; font-size:0.95rem;">选择作业项</span>
                                <div class="filter-group">
-                                   <button class="filter-btn ${state.range === 'all' ? 'active' : ''}" data-range="all">全部</button>
-                                   <button class="filter-btn ${state.range === '3' ? 'active' : ''}" data-range="3">近3次</button>
-                                   <button class="filter-btn ${state.range === '5' ? 'active' : ''}" data-range="5">近5次</button>
-                                   <button class="filter-btn ${state.range === '10' ? 'active' : ''}" data-range="10">近10次</button>
+                                   <button class="filter-btn" id="selAll">全选</button>
+                                   <button class="filter-btn" id="selNone">全不选</button>
+                                   <button class="filter-btn" data-range="3">近3</button>
+                                   <button class="filter-btn" data-range="5">近5</button>
+                                   <button class="filter-btn" data-range="10">近10</button>
                                </div>
                            </div>
-                           <div class="stats-control-group" style="margin-left:auto">
+                           <div class="asg-chip-list">
+                               ${State.assignments.map(a => `
+                                   <div class="asg-chip ${state.selectedIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">
+                                       <span class="asg-chip-icon"></span>
+                                       <span>${a.name}</span>
+                                   </div>
+                               `).reverse().join('')}
+                           </div>
+                       </div>
+
+                       <div class="stats-toolbar">
+                           <div class="stats-control-group">
+                               <span style="font-size:0.9rem;color:var(--text-muted);">排序:</span>
                                <button class="sort-btn ${state.sortField === 'sid' ? 'active' : ''}" data-sort="sid">
                                    学号 ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
                                </button>
                                <button class="sort-btn ${state.sortField === 'rate' ? 'active' : ''}" data-sort="rate">
                                    完成率 ${state.sortField === 'rate' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
                                </button>
+                           </div>
+                           <div style="margin-left:auto; font-size:0.85rem; color:var(--text-muted)">
+                               已选: <b>${targetAsgs.length}</b> / ${State.assignments.length}
                            </div>
                        </div>
 
@@ -1022,22 +1091,39 @@
                    `;
 
                     // Bind Events
-                    document.querySelectorAll('.filter-btn').forEach(btn => {
-                        btn.onclick = () => {
-                            state.range = btn.dataset.range;
+                    // Chips
+                    document.querySelectorAll('.asg-chip').forEach(chip => {
+                        chip.onclick = () => {
+                            const id = parseInt(chip.dataset.id);
+                            if (state.selectedIds.has(id)) state.selectedIds.delete(id);
+                            else state.selectedIds.add(id);
                             updateView();
                         };
                     });
 
+                    // Shortcuts
+                    document.getElementById('selAll').onclick = () => {
+                        state.selectedIds = new Set(State.assignments.map(a => a.id));
+                        updateView();
+                    };
+                    document.getElementById('selNone').onclick = () => {
+                        state.selectedIds.clear();
+                        updateView();
+                    };
+                    document.querySelectorAll('.filter-btn[data-range]').forEach(btn => {
+                        btn.onclick = () => {
+                            const n = parseInt(btn.dataset.range);
+                            state.selectedIds = new Set(State.assignments.slice(-n).map(a => a.id));
+                            updateView();
+                        };
+                    });
+
+                    // Sorting
                     document.querySelectorAll('.sort-btn').forEach(btn => {
                         btn.onclick = () => {
                             const field = btn.dataset.sort;
-                            if (state.sortField === field) {
-                                state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
-                            } else {
-                                state.sortField = field;
-                                state.sortDir = 'desc'; // Default desc for new field
-                            }
+                            if (state.sortField === field) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                            else { state.sortField = field; state.sortDir = 'desc'; }
                             updateView();
                         };
                     });
@@ -1050,7 +1136,7 @@
                 // Cleanup on close
                 d.onclose = () => {
                     d.classList.remove('dialog-full');
-                    d.onclose = null; // reset
+                    d.onclose = null;
                 };
             },
 
