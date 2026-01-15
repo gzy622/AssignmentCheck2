@@ -516,12 +516,17 @@
                     if (long || State.scoring) Actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
-                $('grid').onmousedown = $('grid').ontouchstart = e => {
+                $('grid').onpointerdown = e => {
                     const c = e.target.closest('.card'); if (!c) return;
                     timer = setTimeout(() => { timer = null; handle(c, true); }, 600);
                 };
-                $('grid').onmouseup = $('grid').ontouchend = e => { if (timer) { clearTimeout(timer); const c = e.target.closest('.card'); if (c) handle(c, false); } };
-                $('grid').onmousemove = $('grid').ontouchmove = () => clearTimeout(timer);
+                $('grid').onpointerup = e => {
+                    if (timer) {
+                        clearTimeout(timer); timer = null;
+                        const c = e.target.closest('.card'); if (c) handle(c, false);
+                    }
+                };
+                $('grid').onpointermove = $('grid').onpointerleave = () => { clearTimeout(timer); timer = null; };
             },
             render() {
                 const asg = State.cur; if (!asg) return;
