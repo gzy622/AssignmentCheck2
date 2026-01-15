@@ -636,6 +636,7 @@
                 document.onclick = () => $('menu').classList.remove('show');
                 $('menu').onclick = e => { const act = e.target.getAttribute('act'); if (act && Actions[act]) Actions[act](); };
                 $('fileIn').onchange = Actions.handleFile;
+                this.setupGrid();
                 this.render();
             },
             openDlg(d) {
@@ -646,7 +647,7 @@
                 d.addEventListener('close', h);
             },
             setupGrid() {
-                let timer;
+                let timer, startPos = { x: 0, y: 0 };
                 const handle = (card, long) => {
                     const { id, name } = card.dataset;
                     if (long || State.scoring) Actions.score(id, name);
@@ -654,7 +655,8 @@
                 };
                 $('grid').onpointerdown = e => {
                     const c = e.target.closest('.card'); if (!c) return;
-                    timer = setTimeout(() => { timer = null; handle(c, true); }, 600);
+                    startPos = { x: e.clientX, y: e.clientY };
+                    timer = setTimeout(() => { timer = null; handle(c, true); }, 500);
                 };
                 $('grid').onpointerup = e => {
                     if (timer) {
@@ -662,7 +664,12 @@
                         const c = e.target.closest('.card'); if (c) handle(c, false);
                     }
                 };
-                $('grid').onpointermove = $('grid').onpointerleave = () => { clearTimeout(timer); timer = null; };
+                $('grid').onpointermove = e => {
+                    if (timer && (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 10)) {
+                        clearTimeout(timer); timer = null;
+                    }
+                };
+                $('grid').onpointerleave = () => { if (timer) { clearTimeout(timer); timer = null; } };
             },
             render() {
                 const asg = State.cur; if (!asg) return;
