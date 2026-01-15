@@ -324,23 +324,29 @@
             margin: 4px 0;
         }
 
-        /* Notification Modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
+        /* Notification Modal - Fix: Use Native Dialog */
+        dialog.modal-overlay {
+            border: none;
+            background: transparent;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            margin: 0;
             display: none;
+            /* Flex centering for the content box */
             align-items: center;
             justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.2s;
         }
 
-        .modal-overlay.active {
+        dialog.modal-overlay[open] {
             display: flex;
-            opacity: 1;
+        }
+
+        dialog.modal-overlay::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
         }
 
         .modal-box {
@@ -350,12 +356,7 @@
             border-radius: 16px;
             padding: 1.5rem;
             box-shadow: var(--shadow-lg);
-            transform: scale(0.95);
-            transition: transform 0.2s;
-        }
-
-        .modal-overlay.active .modal-box {
-            transform: scale(1);
+            /* Removed old transform logic */
         }
 
         .modal-title {
@@ -732,7 +733,7 @@
     <input type="file" id="fileInput" hidden accept=".json">
 
     <!-- Custom Notification/Input Modal -->
-    <div id="uiModal" class="modal-overlay">
+    <dialog id="uiModal" class="modal-overlay">
         <div class="modal-box">
             <h3 class="modal-title" id="uiTitle">提示</h3>
             <div class="modal-body" id="uiMessage"></div>
@@ -742,7 +743,7 @@
                 <button id="uiBtnConfirm" class="btn btn-primary">确定</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Generic Dialog (Reused for Stats & Roster) -->
     <dialog id="appDialog">
@@ -991,6 +992,12 @@
                     const isDone = !!rec.done;
                     if (card.classList.contains('done') !== isDone) card.classList.toggle('done', isDone);
 
+                    // Update Name
+                    if (card.dataset.name !== name) {
+                        card.dataset.name = name;
+                        card.querySelector('.student-name').textContent = name;
+                    }
+
                     // Score Badge
                     let badge = card.querySelector('.score-tag');
                     if (rec.score !== null && rec.score !== undefined) {
@@ -1096,7 +1103,7 @@
                        <div class="stats-toolbar">
                            <div class="stats-control-group">
                                <button class="sort-btn ${state.sortField === 'sid' ? 'active' : ''}" data-sort="sid">
-                                   ID ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
+                                   学号 ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
                                </button>
                                <button class="sort-btn ${state.sortField === 'rate' ? 'active' : ''}" data-sort="rate">
                                    完成率 ${state.sortField === 'rate' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
@@ -1118,7 +1125,7 @@
                        <table class="data-table">
                            <thead>
                                <tr>
-                                   <th>姓名</th>
+                                   <th>学号 姓名</th>
                                    <th style="width:100px">提交概览</th>
                                    <th style="text-align:right">完成率</th>
                                </tr>
@@ -1266,14 +1273,14 @@
                 document.getElementById('uiBtnCancel').style.display = type === 'alert' ? 'none' : 'block';
                 document.getElementById('uiBtnConfirm').className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
 
-                this.el.classList.add('active');
+                this.el.showModal();
                 if (type === 'prompt') setTimeout(() => this.input.focus(), 100);
 
                 return new Promise(res => this.resolve = res);
             },
 
             close(val) {
-                this.el.classList.remove('active');
+                this.el.close();
                 if (this.resolve) this.resolve(val);
                 this.resolve = null;
             },
