@@ -536,7 +536,6 @@
             font-weight: 700;
             font-size: 0.95rem;
         }
-        }
 
         @keyframes fadeIn {
             from {
@@ -629,6 +628,7 @@
 
         const UI = {
             init() {
+                window.onpopstate = () => { const d = document.querySelector('dialog[open]'); if (d) d.close(); };
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
                 $('btnScore').onclick = e => e.target.classList.toggle('active', State.scoring = !State.scoring);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
@@ -636,8 +636,14 @@
                 document.onclick = () => $('menu').classList.remove('show');
                 $('menu').onclick = e => { const act = e.target.getAttribute('act'); if (act && Actions[act]) Actions[act](); };
                 $('fileIn').onchange = Actions.handleFile;
-                this.setupGrid();
                 this.render();
+            },
+            openDlg(d) {
+                if (d.open) return;
+                history.pushState({ dlg: true }, '');
+                d.showModal();
+                const h = () => { if (history.state?.dlg) history.back(); d.removeEventListener('close', h); };
+                d.addEventListener('close', h);
             },
             setupGrid() {
                 let timer;
@@ -699,7 +705,7 @@
                 $('dlgBody').innerHTML = `<textarea id="rtEdit">${State.list.join('\n')}</textarea>`;
                 $('dlgFooter').style.display = 'flex';
                 $('dlgOk').onclick = () => { State.list = $('rtEdit').value.split('\n').map(s => s.trim()).filter(s => s); State.save(); $('dlgApp').close(); };
-                $('dlgApp').showModal();
+                UI.openDlg($('dlgApp'));
             },
             stats() {
                 const d = $('dlgApp'); d.classList.add('dialog-full');
@@ -746,8 +752,8 @@
                         const id = +c.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); draw();
                     });
                 };
-                draw(); d.showModal();
-                d.onclose = () => { d.classList.remove('dialog-full'); d.onclose = null; };
+                draw(); UI.openDlg(d);
+                d.addEventListener('close', () => { d.classList.remove('dialog-full'); }, { once: true });
             },
             exp() {
                 const blob = new Blob([JSON.stringify({ list: State.list, data: State.data })], { type: 'application/json' });
@@ -775,7 +781,7 @@
                 $('uiIn').inputMode = isNum ? 'numeric' : 'text';
 
                 $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
-                this.el.showModal();
+                UI.openDlg(this.el);
                 if (type === 'prompt') {
                     $('uiIn').select();
                     setTimeout(() => $('uiIn').focus(), 100);
