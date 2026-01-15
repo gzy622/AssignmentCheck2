@@ -4,120 +4,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>作业极速登记2</title>
+    <title>作业极速登记Pro</title>
     <style>
         :root {
             --primary: #0d6efd;
             --success: #198754;
             --danger: #dc3545;
-            --bg-body: #f0f2f5;
-            --bg-card: #ffffff;
-            --bg-active: #e7f1ff;
-            --text-main: #212529;
-            --text-muted: #6c757d;
+            --bg: #f0f2f5;
+            --card: #fff;
+            --muted: #6c757d;
             --border: #dee2e6;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-            --radius-md: 8px;
-            --radius-lg: 16px;
+            --radius: 12px;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg-body);
-            color: var(--text-main);
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
             margin: 0;
             padding: 10px;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
             overflow: hidden;
         }
 
-        /* --- Components: Header --- */
         header {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            padding: 0.5rem 1rem;
-            margin-bottom: 0.5rem;
+            background: var(--card);
+            border-radius: 16px;
+            padding: 8px 16px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-            height: 52px;
-            flex-shrink: 0;
+            gap: 12px;
+            height: 54px;
             position: relative;
             z-index: 10;
-            /* 关键修复：裁剪内部溢出的进度条 */
             overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .select-wrapper {
-            flex-grow: 1;
+            flex: 1;
             min-width: 0;
             max-width: 50%;
         }
 
         select {
             width: 100%;
-            padding: 0.5rem;
-            font-size: 1rem;
+            padding: 6px;
             font-weight: 600;
             border: 1px solid transparent;
-            border-radius: var(--radius-md);
+            border-radius: 8px;
             background: #f8f9fa;
-            color: var(--text-main);
             outline: none;
-            transition: all 0.2s;
             text-overflow: ellipsis;
-        }
-
-        select:hover,
-        select:focus {
-            background: #fff;
-            border-color: var(--border);
         }
 
         .toolbar {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 6px;
         }
 
         .badge {
-            background: linear-gradient(135deg, rgba(25, 135, 84, 0.05), rgba(25, 135, 84, 0.12));
+            background: rgba(25, 135, 84, 0.1);
             color: var(--success);
-            padding: 0.4rem 0.9rem;
+            padding: 5px 10px;
             border-radius: 10px;
-            font-family: inherit;
             font-variant-numeric: tabular-nums;
             font-weight: 800;
-            font-size: 0.95rem;
-            border: 1px solid rgba(25, 135, 84, 0.15);
-            white-space: nowrap;
-            letter-spacing: -0.01em;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.02);
-            display: flex;
-            align-items: center;
+            font-size: 0.9rem;
         }
 
         .btn-icon {
             border: none;
             background: transparent;
-            color: var(--text-muted);
-            padding: 0.5rem 0.75rem;
-            border-radius: var(--radius-md);
+            color: var(--muted);
+            padding: 6px 10px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.2s;
-            white-space: nowrap;
+            transition: 0.2s;
         }
 
         .btn-icon:hover {
             background: #f1f3f5;
-            color: var(--text-main);
+            color: #212529;
         }
 
         .btn-icon.active {
@@ -126,7 +105,6 @@
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
         }
 
-        /* Progress Bar */
         .progress-track {
             position: absolute;
             bottom: 0;
@@ -134,8 +112,6 @@
             right: 0;
             height: 4px;
             background: rgba(0, 0, 0, 0.05);
-            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-            overflow: hidden;
             pointer-events: none;
         }
 
@@ -143,67 +119,29 @@
             height: 100%;
             background: var(--success);
             width: 0%;
-            transition: width 0.4s ease;
+            transition: width 0.4s;
         }
 
-        /* --- Components: Grid --- */
         main {
-            flex-grow: 1;
+            flex: 1;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-            /* Responsive grid */
-            grid-auto-rows: min-content;
             gap: 6px;
             overflow-y: auto;
             align-content: start;
             padding: 2px;
-            /* Optimize touch scrolling */
-            -webkit-overflow-scrolling: touch;
         }
 
-        /* Mobile optimization: fixed 5 columns strict */
         @media (max-width: 600px) {
             main {
                 grid-template-columns: repeat(5, 1fr);
             }
         }
 
-        /* Mobile Header Fix for small screens */
-        @media (max-width: 420px) {
-            header {
-                padding: 0.5rem;
-                gap: 0.4rem;
-            }
-
-            .select-wrapper {
-                max-width: 38%;
-            }
-
-            select {
-                padding: 0.4rem 0.25rem;
-                font-size: 0.9rem;
-            }
-
-            .toolbar {
-                gap: 2px;
-            }
-
-            .btn-icon {
-                padding: 0.4rem 0.4rem;
-                font-size: 0.85rem;
-            }
-
-            .badge {
-                padding: 0.35rem 0.5rem;
-                font-size: 0.85rem;
-                border-radius: 8px;
-            }
-        }
-
         .card {
-            background: var(--bg-card);
+            background: var(--card);
             border: 1px solid var(--border);
-            border-radius: var(--radius-md);
+            border-radius: 10px;
             aspect-ratio: 1;
             display: flex;
             flex-direction: column;
@@ -212,13 +150,12 @@
             cursor: pointer;
             user-select: none;
             position: relative;
-            transition: all 0.1s;
+            transition: 0.1s;
             touch-action: manipulation;
-            /* Improves touch response */
         }
 
         .card:active {
-            transform: scale(0.96);
+            transform: scale(0.95);
         }
 
         .card.done {
@@ -227,25 +164,21 @@
             color: white;
         }
 
-        .card.done .student-id {
-            color: rgba(255, 255, 255, 0.95);
-        }
-
-        .card.done .student-name {
-            color: rgba(255, 255, 255, 0.9);
-        }
-
         .student-id {
             font-size: 1.4rem;
             font-weight: 700;
-            color: var(--text-muted);
-            line-height: 1;
+            color: var(--muted);
             pointer-events: none;
         }
 
         .student-name {
             display: none;
+            font-size: 0.75rem;
             pointer-events: none;
+        }
+
+        .card.done .student-id {
+            color: #fff;
         }
 
         .score-tag {
@@ -256,11 +189,10 @@
             padding: 2px 4px;
             border-radius: 4px;
             position: absolute;
-            top: 3px;
-            right: 3px;
+            top: 4px;
+            right: 4px;
         }
 
-        /* View Modes */
         body.mode-names .student-id {
             font-size: 0.9rem;
             margin-bottom: 2px;
@@ -268,47 +200,41 @@
 
         body.mode-names .student-name {
             display: block;
-            font-size: 0.7rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 95%;
-            font-weight: 500;
+            max-width: 90%;
         }
 
-        /* --- Menu & Modals --- */
+        /* Menu & Dialogs */
         .dropdown {
-            /* 防止被 header 的 overflow: hidden 裁剪 */
             position: fixed;
             top: 62px;
             right: 10px;
             background: #fff;
-            border: 1px solid rgba(0, 0, 0, 0.05);
             border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            padding: 0.5rem;
+            box-shadow: var(--shadow);
+            padding: 6px;
             display: none;
             flex-direction: column;
-            gap: 2px;
-            min-width: 180px;
+            min-width: 160px;
             z-index: 100;
         }
 
         .dropdown.show {
             display: flex;
-            animation: fadeIn 0.1s ease;
+            animation: fadeIn 0.1s;
         }
 
         .menu-item {
             text-align: left;
-            padding: 0.75rem 1rem;
+            padding: 10px 14px;
             background: none;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            transition: background 0.1s;
+            font-size: 0.9rem;
+            transition: 0.1s;
         }
 
         .menu-item:hover {
@@ -324,259 +250,145 @@
             margin: 4px 0;
         }
 
-        /* Notification Modal - Fix: Use Native Dialog */
-        dialog.modal-overlay {
-            border: none;
-            background: transparent;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            max-width: none;
-            max-height: none;
-            margin: 0;
-            display: none;
-            /* Flex centering for the content box */
-            align-items: center;
-            justify-content: center;
-        }
-
-        dialog.modal-overlay[open] {
-            display: flex;
-        }
-
-        dialog.modal-overlay::backdrop {
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-        }
-
-        .modal-box {
-            background: #fff;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow-lg);
-            /* Removed old transform logic */
-        }
-
-        .modal-title {
-            margin: 0 0 0.5rem;
-            font-size: 1.25rem;
-        }
-
-        .modal-body {
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
-        }
-
-        .modal-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid var(--bg-body);
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            outline: none;
-            background: #f8f9fa;
-            margin-bottom: 1rem;
-        }
-
-        .modal-input:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .btn {
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-cancel {
-            background: #f1f3f5;
-            color: var(--text-muted);
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: #fff;
-        }
-
-        /* Editor Modal (Dialog) */
         dialog {
             border: none;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
             padding: 0;
-            max-width: 600px;
             width: 90%;
+            max-width: 500px;
         }
 
         dialog::backdrop {
             background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
         }
 
-        .dialog-header {
-            padding: 1rem;
+        .dlg-h {
+            padding: 14px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .dialog-content {
-            padding: 1rem;
-            max-height: 60vh;
+        .dlg-b {
+            padding: 20px;
+            max-height: 70vh;
             overflow-y: auto;
         }
 
-        textarea.code-editor {
-            width: 100%;
-            height: 300px;
-            padding: 0.8rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: monospace;
-            box-sizing: border-box;
-            resize: vertical;
+        .dlg-f {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid var(--border);
         }
 
-        /* --- Stats Full Screen & Controls --- */
-        dialog.dialog-full {
+        textarea {
+            width: 100%;
+            height: 260px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: monospace;
+            resize: vertical;
+            outline: none;
+        }
+
+        .input-ui {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #f0f2f5;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .input-ui:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-p {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-c {
+            background: #f1f3f5;
+            color: var(--muted);
+        }
+
+        .btn-d {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        /* Stats Extension */
+        .dialog-full {
             width: 100%;
             height: 100%;
             max-width: none;
-            max-height: none;
             border-radius: 0;
             display: flex;
             flex-direction: column;
         }
 
-        dialog.dialog-full .dialog-content {
-            flex-grow: 1;
-            max-height: none;
-            padding: 0.75rem;
+        .dialog-full .dlg-b {
+            flex: 1;
+            padding: 10px;
         }
 
-        .stats-toolbar {
+        .asg-chips {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            align-items: center;
-            flex-wrap: wrap;
-            background: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 6px;
+            overflow-x: auto;
+            gap: 6px;
+            padding: 4px 0;
+            margin-bottom: 10px;
         }
 
-        .stats-control-group {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .filter-group {
-            display: inline-flex;
-            background: #e9ecef;
-            padding: 2px;
-            border-radius: 6px;
-            gap: 2px;
-        }
-
-        .filter-btn {
-            border: none;
-            background: transparent;
-            padding: 3px 8px;
-            border-radius: 4px;
+        .chip {
+            padding: 4px 12px;
+            background: #eee;
+            border-radius: 20px;
             font-size: 0.8rem;
             cursor: pointer;
-            color: var(--text-muted);
-            font-weight: 500;
-            transition: all 0.2s;
+            white-space: nowrap;
+            border: 1px solid transparent;
         }
 
-        .filter-btn:hover {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .filter-btn.active {
-            background: #fff;
+        .chip.active {
+            background: var(--bg-active);
+            border-color: var(--primary);
             color: var(--primary);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             font-weight: 600;
         }
 
-        .sort-btn {
-            background: #fff;
-            border: 1px solid var(--border);
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-main);
-            transition: all 0.2s;
-        }
-
-        .sort-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: var(--bg-active);
-        }
-
-        .sort-btn.active {
-            background: var(--bg-active);
-            border-color: var(--primary);
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-
-        /* Stats Table */
         .stat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .stat-card {
             background: #f8f9fa;
-            padding: 0.6rem;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 10px;
             text-align: center;
         }
 
-        .stat-card h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: var(--primary);
-        }
-
-        .stat-card small {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        table.data-table {
+        .data-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
@@ -584,102 +396,22 @@
 
         th,
         td {
-            padding: 0.6rem 0.4rem;
+            padding: 8px 4px;
             border-bottom: 1px solid var(--border);
             text-align: left;
-        }
-
-        th {
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            user-select: none;
-        }
-
-        /* Overview Column Style */
-        .overview-dots {
-            display: flex;
-            gap: 3px;
-            overflow-x: auto;
-            max-width: 120px;
-            padding: 4px 0;
-            scrollbar-width: none;
-        }
-
-        .overview-dots::-webkit-scrollbar {
-            display: none;
         }
 
         .dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #dee2e6;
-            flex-shrink: 0;
+            background: #ddd;
+            display: inline-block;
+            margin-right: 2px;
         }
 
         .dot.done {
             background: var(--success);
-        }
-
-        /* --- Assignment Picker --- */
-        .asg-picker-container {
-            margin-bottom: 0.5rem;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.6rem;
-        }
-
-        .asg-chip-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 0.4rem;
-            max-height: 80px;
-            overflow-y: auto;
-            padding: 2px;
-        }
-
-        .asg-chip {
-            padding: 4px 10px;
-            background: #f1f3f5;
-            border: 1px solid transparent;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .asg-chip:hover {
-            background: #e9ecef;
-        }
-
-        .asg-chip.active {
-            background: var(--bg-active);
-            border-color: var(--primary);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .asg-chip input {
-            display: none;
-        }
-
-        .asg-chip-icon {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #adb5bd;
-        }
-
-        .asg-chip.active .asg-chip-icon {
-            background: var(--primary);
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.2);
         }
 
         @keyframes fadeIn {
@@ -697,28 +429,22 @@
 </head>
 
 <body>
-
     <header>
-        <div class="select-wrapper">
-            <select id="asgSelect"></select>
-        </div>
-
+        <div class="select-wrapper"><select id="asgSelect"></select></div>
         <div class="toolbar">
             <div id="counter" class="badge">0/0</div>
-            <button id="btnScore" class="btn-icon" title="打分模式 (长按卡片)">打分</button>
-            <button id="btnView" class="btn-icon" title="切换视图">姓名</button>
-
+            <button id="btnScore" class="btn-icon">打分</button>
+            <button id="btnView" class="btn-icon">姓名</button>
             <div style="position: relative;">
                 <button id="btnMenu" class="btn-icon">选项</button>
-                <div id="menuDropdown" class="dropdown">
-                    <button class="menu-item" action="add">新建任务</button>
-                    <button class="menu-item" action="stats">统计数据</button>
-                    <button class="menu-item" action="roster">编辑学生名单</button>
+                <div id="menu" class="dropdown">
+                    <button class="menu-item" act="add">新建任务</button>
+                    <button class="menu-item" act="stats">统计数据</button>
+                    <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
-                    <button class="menu-item" action="export">导出备份</button>
-                    <button class="menu-item" action="import">导入备份</button>
-                    <div class="divider"></div>
-                    <button class="menu-item danger" action="delete">删除当前任务</button>
+                    <button class="menu-item" act="exp">导出备份</button>
+                    <button class="menu-item" act="imp">导入备份</button>
+                    <button class="menu-item danger" act="del">删除任务</button>
                 </div>
             </div>
         </div>
@@ -726,572 +452,173 @@
             <div id="progressFill" class="progress-fill"></div>
         </div>
     </header>
+    <main id="grid"></main>
+    <input type="file" id="fileIn" hidden accept=".json">
 
-    <main id="mainGrid"></main>
-
-    <!-- Hidden File Input -->
-    <input type="file" id="fileInput" hidden accept=".json">
-
-    <!-- Custom Notification/Input Modal -->
-    <dialog id="uiModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 class="modal-title" id="uiTitle">提示</h3>
-            <div class="modal-body" id="uiMessage"></div>
-            <input type="text" id="uiInput" class="modal-input" style="display:none">
-            <div class="modal-actions">
-                <button id="uiBtnCancel" class="btn btn-cancel">取消</button>
-                <button id="uiBtnConfirm" class="btn btn-primary">确定</button>
+    <!-- Modals -->
+    <dialog id="modalUI">
+        <div class="dlg-b">
+            <h3 id="uiTitle" style="margin:0 0 10px">提示</h3>
+            <div id="uiMsg" style="color:var(--muted);margin-bottom:15px"></div>
+            <input type="text" id="uiIn" class="input-ui" style="display:none">
+            <div style="display:flex;justify-content:flex-end;gap:10px">
+                <button id="uiCancel" class="btn btn-c">取消</button>
+                <button id="uiConfirm" class="btn btn-p">确定</button>
             </div>
         </div>
     </dialog>
 
-    <!-- Generic Dialog (Reused for Stats & Roster) -->
-    <dialog id="appDialog">
-        <div class="dialog-header">
-            <h3 id="dialogTitle" style="margin:0">标题</h3>
-            <button onclick="document.getElementById('appDialog').close()"
-                style="border:none;background:none;font-size:1.5rem;cursor:pointer">&times;</button>
+    <dialog id="dlgApp">
+        <div class="dlg-h">
+            <h3 id="dlgTitle" style="margin:0">标题</h3><button onclick="this.closest('dialog').close()"
+                style="border:0;background:0;font-size:1.5rem;cursor:pointer">&times;</button>
         </div>
-        <div id="dialogBody" class="dialog-content"></div>
-        <div class="dialog-header"
-            style="border-top: 1px solid var(--border); border-bottom: none; justify-content: flex-end; gap: 10px;">
-            <button class="btn btn-cancel" onclick="document.getElementById('appDialog').close()">关闭</button>
-            <button id="dialogConfirm" class="btn btn-primary" style="display:none">保存</button>
-        </div>
+        <div id="dlgBody" class="dlg-b"></div>
+        <div id="dlgFooter" class="dlg-f" style="display:none"><button class="btn btn-p" id="dlgOk">完成</button></div>
     </dialog>
 
     <script>
-        /**
-         * Assignment Check Pro - Clean & Optimized
-         */
+        const $ = id => document.getElementById(id);
+        const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
+        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster' };
 
-        // --- Constants ---
-        const STORAGE_KEYS = { DB: 'tracker_db', ROSTER: 'tracker_roster' };
-        const DEFAULT_ROSTER = Array.from({ length: 49 }, (_, i) =>
-            `${(i + 1).toString().padStart(2, '0')} Student${i + 1}`); // Simplified Default
-
-        // --- State Management (Reactive) ---
         const State = {
-            roster: [],
-            assignments: [],
-            currentId: null,
-            viewMode: 'id', // 'id' or 'name'
-            scoringMode: false,
-
-            // Observers
-            _listeners: [],
-            subscribe(fn) { this._listeners.push(fn); },
-            notify() { this._listeners.forEach(fn => fn(this)); },
-
-            // Actions
-            load() {
-                try {
-                    this.roster = JSON.parse(localStorage.getItem(STORAGE_KEYS.ROSTER) || JSON.stringify(DEFAULT_ROSTER));
-                    this.assignments = JSON.parse(localStorage.getItem(STORAGE_KEYS.DB) || '[]');
-                } catch (e) { console.error('Data corrupted, reset'); this.assignments = []; }
-
-                if (this.assignments.length === 0) this.createAssignment("任务 1");
-                if (!this.currentId && this.assignments.length) this.currentId = this.assignments[0].id;
-                this.notify();
+            list: [], data: [], curId: null, mode: 'id', scoring: false,
+            init() {
+                this.list = LS.get(KEYS.LIST, Array.from({ length: 49 }, (_, i) => `${(i + 1 + '').padStart(2, '0')} 学生${i + 1}`));
+                this.data = LS.get(KEYS.DATA, []);
+                if (!this.data.length) this.addAsg('任务 1');
+                this.curId = this.data[this.data.length - 1].id;
+                UI.init();
             },
-
-            save() {
-                localStorage.setItem(STORAGE_KEYS.DB, JSON.stringify(this.assignments));
-                localStorage.setItem(STORAGE_KEYS.ROSTER, JSON.stringify(this.roster));
-                this.notify();
-            },
-
-            get currentAsg() { return this.assignments.find(a => a.id === this.currentId); },
-
-            createAssignment(name) {
-                const newAsg = { id: Date.now(), name, records: {} };
-                this.assignments.push(newAsg);
-                this.currentId = newAsg.id;
-                this.save();
-            },
-
-            deleteCurrent() {
-                this.assignments = this.assignments.filter(a => a.id !== this.currentId);
-                if (!this.assignments.length) this.createAssignment('Default');
-                else this.currentId = this.assignments[this.assignments.length - 1].id;
-                this.save();
-            },
-
-            updateRecord(sid, payload) { // payload: { done: bool, score: int|null }
-                const asg = this.currentAsg;
-                if (!asg) return;
-                if (!asg.records[sid]) asg.records[sid] = { done: false, score: null };
-                Object.assign(asg.records[sid], payload);
-                this.save();
-            }
+            save() { LS.set(KEYS.DATA, this.data); LS.set(KEYS.LIST, this.list); UI.render(); },
+            get cur() { return this.data.find(a => a.id === this.curId) || this.data[0]; },
+            addAsg(n) { this.data.push({ id: Date.now(), name: n, records: {} }); this.curId = this.data[this.data.length - 1].id; this.save(); },
+            updRec(id, val) { const r = this.cur.records; r[id] = { ...(r[id] || { done: false }), ...val }; this.save(); }
         };
 
-        // --- UI Framework ---
         const UI = {
-            $: (id) => document.getElementById(id),
-
             init() {
-                // Cache DOM
-                this.els = {
-                    grid: this.$('mainGrid'),
-                    select: this.$('asgSelect'),
-                    counter: this.$('counter'),
-                    bar: this.$('progressFill'),
-                    menu: this.$('menuDropdown'),
-                    dialog: this.$('appDialog'),
-                    dialogTitle: this.$('dialogTitle'),
-                    dialogBody: this.$('dialogBody'),
-                    dialogConfirm: this.$('dialogConfirm')
-                };
-
-                // Bind Global Events
-                this.bindEvents();
-
-                // Subscribe to state changes
-                State.subscribe(() => this.render());
-
-                // Initial Render
-                State.load();
+                $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
+                $('btnScore').onclick = e => e.target.classList.toggle('active', State.scoring = !State.scoring);
+                $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
+                $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
+                document.onclick = () => $('menu').classList.remove('show');
+                $('menu').onclick = e => { const act = e.target.getAttribute('act'); if (act && Actions[act]) Actions[act](); };
+                $('fileIn').onchange = Actions.handleFile;
+                this.setupGrid();
+                this.render();
             },
-
-            bindEvents() {
-                // Toolbar
-                this.$('asgSelect').onchange = (e) => { State.currentId = parseInt(e.target.value); State.notify(); };
-
-                this.$('btnScore').onclick = (e) => {
-                    State.scoringMode = !State.scoringMode;
-                    e.target.classList.toggle('active', State.scoringMode);
+            setupGrid() {
+                let timer;
+                const handle = (card, long) => {
+                    const { id, name } = card.dataset;
+                    if (long || State.scoring) Actions.score(id, name);
+                    else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
-
-                this.$('btnView').onclick = (e) => {
-                    State.viewMode = State.viewMode === 'id' ? 'name' : 'id';
-                    document.body.className = State.viewMode === 'name' ? 'mode-names' : '';
-                    e.target.classList.toggle('active', State.viewMode === 'name');
+                $('grid').onmousedown = $('grid').ontouchstart = e => {
+                    const c = e.target.closest('.card'); if (!c) return;
+                    timer = setTimeout(() => { timer = null; handle(c, true); }, 600);
                 };
-
-                // Menu Toggle
-                this.$('btnMenu').onclick = (e) => {
-                    e.stopPropagation();
-                    this.els.menu.classList.toggle('show');
-                };
-                document.onclick = () => this.els.menu.classList.remove('show');
-
-                // Menu Actions
-                this.els.menu.onclick = (e) => {
-                    const action = e.target.getAttribute('action');
-                    if (action && Actions[action]) Actions[action]();
-                };
-
-                // Grid Interaction (Delegation)
-                this.setupGridInteractions();
-
-                // File Import
-                this.$('fileInput').onchange = Actions.handleFile;
+                $('grid').onmouseup = $('grid').ontouchend = e => { if (timer) { clearTimeout(timer); const c = e.target.closest('.card'); if (c) handle(c, false); } };
+                $('grid').onmousemove = $('grid').ontouchmove = () => clearTimeout(timer);
             },
-
-            setupGridInteractions() {
-                let timer = null;
-                const grid = this.els.grid;
-
-                // Helper to find card
-                const getCard = (el) => el.closest('.card');
-
-                // Logic
-                const handleTap = (card) => {
-                    const sid = card.dataset.id;
-                    const name = card.dataset.name;
-                    if (State.scoringMode) Actions.promptScore(sid, name);
-                    else {
-                        const rec = State.currentAsg.records[sid] || {};
-                        State.updateRecord(sid, { done: !rec.done });
-                    }
-                };
-
-                const handleLongPress = (card) => {
-                    Actions.promptScore(card.dataset.id, card.dataset.name);
-                };
-
-                // Mouse
-                grid.addEventListener('mousedown', e => {
-                    const card = getCard(e.target);
-                    if (!card || e.button !== 0) return;
-                    timer = setTimeout(() => { timer = null; handleLongPress(card); }, 500);
-                });
-                grid.addEventListener('mouseup', e => {
-                    const card = getCard(e.target);
-                    if (timer && card) { clearTimeout(timer); handleTap(card); }
-                    timer = null;
-                });
-                grid.addEventListener('mouseleave', () => clearTimeout(timer));
-
-                // Touch (Simple Implementation)
-                grid.addEventListener('touchstart', e => {
-                    const card = getCard(e.target);
-                    if (!card) return;
-                    timer = setTimeout(() => { timer = null; handleLongPress(card); }, 600);
-                }, { passive: true });
-
-                grid.addEventListener('touchend', e => {
-                    const card = getCard(e.target);
-                    if (timer && card) { clearTimeout(timer); timer = null; handleTap(card); }
-                    else clearTimeout(timer); // Moved or Long pressed already
-                });
-                grid.addEventListener('touchmove', () => clearTimeout(timer));
-            },
-
             render() {
-                const asg = State.currentAsg;
-                if (!asg) return;
+                const asg = State.cur; if (!asg) return;
+                const sel = $('asgSelect');
+                if (sel.length !== State.data.length) sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                sel.value = State.curId;
 
-                // 1. Header Select
-                const sel = this.els.select;
-                if (sel.children.length !== State.assignments.length || sel.value != asg.id) {
-                    sel.innerHTML = State.assignments.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                    sel.value = asg.id;
-                }
-
-                // 2. Stats
-                let done = 0;
-                const total = State.roster.length;
-                State.roster.forEach(s => {
-                    if (asg.records[s.split(' ')[0]]?.done) done++;
-                });
-                this.els.counter.textContent = `${done}/${total}`;
-                this.els.bar.style.width = total ? `${(done / total) * 100}%` : '0%';
-
-                // 3. Grid
-                // Diffing Strategy: Create map of existing elements to avoid full redraw
-                const existing = new Map();
-                Array.from(this.els.grid.children).forEach(el => existing.set(el.dataset.id, el));
-
-                // We will just re-apply classes/content to existing cards or create new ones
-                // If roster length changes effectively clear grid first for simplicity in this version
-                if (this.els.grid.children.length !== total) {
-                    this.els.grid.innerHTML = '';
-                    existing.clear();
-                }
-
-                const frag = document.createDocumentFragment();
-
-                State.roster.forEach(line => {
-                    const [sid, ...nParts] = line.split(' ');
-                    const name = nParts.join(' ');
-                    const rec = asg.records[sid] || {};
-
-                    let card = existing.get(sid);
+                const nodes = Array.from($('grid').children);
+                const doneCount = State.list.filter((line, i) => {
+                    const sid = line.split(' ')[0], name = line.split(' ').slice(1).join(' '), rec = asg.records[sid] || {};
+                    let card = nodes[i];
                     if (!card) {
-                        card = document.createElement('div');
-                        card.className = 'card';
-                        card.dataset.id = sid;
-                        card.dataset.name = name;
-                        card.innerHTML = `<div class="student-id">${sid}</div><div class="student-name">${name}</div>`;
-                        frag.appendChild(card);
+                        card = document.createElement('div'); card.className = 'card'; card.dataset.id = sid;
+                        card.innerHTML = `<span class="student-id">${sid}</span><span class="student-name"></span>`;
+                        $('grid').appendChild(card);
                     }
+                    card.dataset.name = name;
+                    card.querySelector('.student-name').textContent = name;
+                    card.classList.toggle('done', !!rec.done);
+                    let tag = card.querySelector('.score-tag');
+                    if (rec.score != null) { if (!tag) { tag = document.createElement('div'); tag.className = 'score-tag'; card.appendChild(tag); } tag.textContent = rec.score; }
+                    else if (tag) tag.remove();
+                    return !!rec.done;
+                }).length;
 
-                    // Update State
-                    const isDone = !!rec.done;
-                    if (card.classList.contains('done') !== isDone) card.classList.toggle('done', isDone);
-
-                    // Update Name
-                    if (card.dataset.name !== name) {
-                        card.dataset.name = name;
-                        card.querySelector('.student-name').textContent = name;
-                    }
-
-                    // Score Badge
-                    let badge = card.querySelector('.score-tag');
-                    if (rec.score !== null && rec.score !== undefined) {
-                        if (!badge) { badge = document.createElement('div'); badge.className = 'score-tag'; card.appendChild(badge); }
-                        badge.textContent = rec.score;
-                    } else if (badge) {
-                        badge.remove();
-                    }
-                });
-
-                if (frag.children.length > 0) this.els.grid.appendChild(frag);
+                $('counter').textContent = `${doneCount}/${State.list.length}`;
+                $('progressFill').style.width = `${(doneCount / State.list.length) * 100}%`;
             }
         };
 
-        // --- Feature Actions ---
         const Actions = {
-            async add() {
-                const name = await Notify.prompt('请输入任务名称:', '', '新建任务');
-                if (name) State.createAssignment(name);
+            async add() { const n = await Pop.prompt('任务名称'); if (n) State.addAsg(n); },
+            async del() { if (State.data.length > 1 && await Pop.confirm('删除此任务？')) { State.data = State.data.filter(a => a.id !== State.curId); State.curId = State.data[0].id; State.save(); } },
+            async score(id, name) {
+                const s = await Pop.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '');
+                if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
             },
-
-            async delete() {
-                if (await Notify.confirm('确定删除当前任务？此操作无法撤销。', '删除确认', true)) {
-                    State.deleteCurrent();
-                }
-            },
-
-            async promptScore(sid, name) {
-                const rec = State.currentAsg.records[sid] || {};
-                const val = await Notify.prompt(`给 ${sid} ${name} 打分:`, rec.score || '');
-                if (val === false) return;
-
-                const score = val.trim() === '' ? null : parseInt(val);
-                if (score !== null && isNaN(score)) return Notify.alert('请输入有效数字');
-
-                State.updateRecord(sid, { score, done: score !== null ? true : rec.done });
-            },
-
-            // Sub-modules: Stats & Roster
-            stats() {
-                const d = UI.els.dialog;
-
-                // State for this view
-                let state = {
-                    selectedIds: new Set(State.assignments.map(a => a.id)), // Default all
-                    sortField: 'rate', // id, rate
-                    sortDir: 'desc' // asc, desc
-                };
-
-                const updateView = () => {
-                    d.classList.add('dialog-full'); // Full screen
-                    UI.els.dialogTitle.textContent = '统计数据';
-                    UI.els.dialogConfirm.style.display = 'none';
-
-                    // Get target assignments based on selection
-                    const targetAsgs = State.assignments.filter(a => state.selectedIds.has(a.id));
-
-                    // Calculate Data
-                    let rows = State.roster.map(line => {
-                        const sid = line.split(' ')[0];
-                        const name = line.split(' ').slice(1).join(' ');
-                        const statuses = targetAsgs.map(a => !!a.records[sid]?.done);
-                        const count = statuses.filter(s => s).length;
-                        const rate = targetAsgs.length ? Math.round((count / targetAsgs.length) * 100) : 0;
-                        return { sid, name, rate, statuses };
-                    });
-
-                    // Sort
-                    rows.sort((a, b) => {
-                        let valA = a[state.sortField];
-                        let valB = b[state.sortField];
-                        if (state.sortField === 'sid') {
-                            return state.sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                        }
-                        return state.sortDir === 'asc' ? valA - valB : valB - valA;
-                    });
-
-                    const avg = targetAsgs.length ? (rows.reduce((a, b) => a + b.rate, 0) / rows.length).toFixed(1) : 0;
-
-                    // Render
-                    UI.els.dialogBody.innerHTML = `
-                       <div class="asg-picker-container">
-                           <div style="display:flex; justify-content:space-between; align-items:center;">
-                               <span style="font-weight:600; font-size:0.9rem;">统计项</span>
-                               <div class="filter-group">
-                                   <button class="filter-btn" id="selAll">全选</button>
-                                   <button class="filter-btn" id="selNone">无</button>
-                                   <button class="filter-btn" data-range="3">近3</button>
-                                   <button class="filter-btn" data-range="5">近5</button>
-                                   <button class="filter-btn" data-range="10">近10</button>
-                               </div>
-                           </div>
-                           <div class="asg-chip-list">
-                               ${State.assignments.map(a => `
-                                   <div class="asg-chip ${state.selectedIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">
-                                       <span class="asg-chip-icon"></span>
-                                       <span>${a.name}</span>
-                                   </div>
-                               `).reverse().join('')}
-                           </div>
-                       </div>
-
-                       <div class="stats-toolbar">
-                           <div class="stats-control-group">
-                               <button class="sort-btn ${state.sortField === 'sid' ? 'active' : ''}" data-sort="sid">
-                                   学号 ${state.sortField === 'sid' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
-                               </button>
-                               <button class="sort-btn ${state.sortField === 'rate' ? 'active' : ''}" data-sort="rate">
-                                   完成率 ${state.sortField === 'rate' ? (state.sortDir === 'asc' ? '↑' : '↓') : ''}
-                               </button>
-                           </div>
-                           <div style="margin-left:auto; display:flex; align-items:center; gap:8px">
-                               <div style="text-align:right">
-                                   <div style="font-weight:800; color:var(--primary); font-size:1.1rem; line-height:1">${avg}%</div>
-                                   <div style="font-size:0.7rem; color:var(--text-muted)">平均完成率</div>
-                               </div>
-                               <div style="width:1px; height:20px; background:var(--border)"></div>
-                               <div style="text-align:right">
-                                   <div style="font-weight:800; color:var(--text-main); font-size:1.1rem; line-height:1">${targetAsgs.length}</div>
-                                   <div style="font-size:0.7rem; color:var(--text-muted)">已选任务</div>
-                               </div>
-                           </div>
-                       </div>
-
-                       <table class="data-table">
-                           <thead>
-                               <tr>
-                                   <th>学号 姓名</th>
-                                   <th style="width:100px">提交概览</th>
-                                   <th style="text-align:right">完成率</th>
-                               </tr>
-                           </thead>
-                           <tbody>
-                               ${rows.map(r => `
-                                   <tr>
-                                       <td><b>${r.sid}</b> ${r.name}</td>
-                                       <td>
-                                           <div class="overview-dots">
-                                               ${r.statuses.map(s => `<div class="dot ${s ? 'done' : ''}"></div>`).join('')}
-                                           </div>
-                                       </td>
-                                       <td style="text-align:right"><b>${r.rate}%</b></td>
-                                   </tr>
-                               `).join('')}
-                           </tbody>
-                       </table>
-                   `;
-
-                    // Bind Events
-                    // Chips
-                    document.querySelectorAll('.asg-chip').forEach(chip => {
-                        chip.onclick = () => {
-                            const id = parseInt(chip.dataset.id);
-                            if (state.selectedIds.has(id)) state.selectedIds.delete(id);
-                            else state.selectedIds.add(id);
-                            updateView();
-                        };
-                    });
-
-                    // Shortcuts
-                    document.getElementById('selAll').onclick = () => {
-                        state.selectedIds = new Set(State.assignments.map(a => a.id));
-                        updateView();
-                    };
-                    document.getElementById('selNone').onclick = () => {
-                        state.selectedIds.clear();
-                        updateView();
-                    };
-                    document.querySelectorAll('.filter-btn[data-range]').forEach(btn => {
-                        btn.onclick = () => {
-                            const n = parseInt(btn.dataset.range);
-                            state.selectedIds = new Set(State.assignments.slice(-n).map(a => a.id));
-                            updateView();
-                        };
-                    });
-
-                    // Sorting
-                    document.querySelectorAll('.sort-btn').forEach(btn => {
-                        btn.onclick = () => {
-                            const field = btn.dataset.sort;
-                            if (state.sortField === field) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
-                            else { state.sortField = field; state.sortDir = 'desc'; }
-                            updateView();
-                        };
-                    });
-                };
-
-                // Initial Render
-                updateView();
-                d.showModal();
-
-                // Cleanup on close
-                d.onclose = () => {
-                    d.classList.remove('dialog-full');
-                    d.onclose = null;
-                };
-            },
-
             roster() {
-                const d = UI.els.dialog;
-                UI.els.dialogTitle.textContent = '编辑名单';
-                UI.els.dialogBody.innerHTML = `<textarea id="rosterEdit" class="code-editor">${State.roster.join('\n')}</textarea>`;
-                const btn = UI.els.dialogConfirm;
-                btn.style.display = 'block';
-                btn.onclick = async () => {
-                    const text = document.getElementById('rosterEdit').value;
-                    if (!text.trim()) return Notify.alert('名单不能为空');
-                    if (await Notify.confirm('确定更新名单？这将影响现有数据的显示。')) {
-                        State.roster = text.split('\n').map(s => s.trim()).filter(s => s);
-                        State.save();
-                        d.close();
-                    }
+                $('dlgTitle').textContent = '编辑名单';
+                $('dlgBody').innerHTML = `<textarea id="rtEdit">${State.list.join('\n')}</textarea>`;
+                $('dlgFooter').style.display = 'flex';
+                $('dlgOk').onclick = () => { State.list = $('rtEdit').value.split('\n').map(s => s.trim()).filter(s => s); State.save(); $('dlgApp').close(); };
+                $('dlgApp').showModal();
+            },
+            stats() {
+                const d = $('dlgApp'); d.classList.add('dialog-full');
+                $('dlgTitle').textContent = '统计概览'; $('dlgFooter').style.display = 'none';
+                let selIds = new Set(State.data.map(a => a.id));
+                const draw = () => {
+                    const targets = State.data.filter(a => selIds.has(a.id));
+                    const rows = State.list.map(l => {
+                        const id = l.split(' ')[0], name = l.split(' ').slice(1).join(' ');
+                        const dones = targets.map(t => !!t.records[id]?.done);
+                        const rate = Math.round(dones.filter(v => v).length / targets.length * 100) || 0;
+                        return { id, name, dones, rate };
+                    }).sort((a, b) => b.rate - a.rate);
+                    $('dlgBody').innerHTML = `
+                        <div class="asg-chips">${State.data.map(a => `<div class="chip ${selIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`).reverse().join('')}</div>
+                        <table class="data-table">${rows.map(r => `<tr><td><b>${r.id}</b> ${r.name}</td><td>${r.dones.map(v => `<span class="dot ${v ? 'done' : ''}"></span>`).join('')}</td><td align="right"><b>${r.rate}%</b></td></tr>`).join('')}</table>
+                    `;
+                    document.querySelectorAll('.chip').forEach(c => c.onclick = () => { const id = +c.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); draw(); });
                 };
-                d.showModal();
+                draw(); d.showModal();
+                d.onclose = () => { d.classList.remove('dialog-full'); d.onclose = null; };
             },
-
-            export() {
-                const blob = new Blob([JSON.stringify({
-                    timestamp: Date.now(), roster: State.roster, assignments: State.assignments
-                }, null, 2)], { type: 'application/json' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `backup_${new Date().toISOString().slice(0, 10)}.json`;
-                link.click();
+            exp() {
+                const blob = new Blob([JSON.stringify({ list: State.list, data: State.data })], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup.json'; a.click();
             },
-
-            import() { document.getElementById('fileInput').click(); },
-
+            imp() { $('fileIn').click(); },
             handleFile(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    try {
-                        const data = JSON.parse(ev.target.result);
-                        if (data.assignments && await Notify.confirm('覆盖当前数据？', '导入确认', true)) {
-                            State.assignments = data.assignments;
-                            if (data.roster) State.roster = data.roster;
-                            State.currentId = null;
-                            State.save();
-                            location.reload();
-                        }
-                    } catch (err) { Notify.alert('文件格式错误'); }
-                    e.target.value = '';
-                };
-                reader.readAsText(file);
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader(); r.onload = async ev => {
+                    try { const d = JSON.parse(ev.target.result); if (await Pop.confirm('覆盖现有数据？')) { State.list = d.list; State.data = d.data; State.curId = State.data[0].id; State.save(); location.reload(); } }
+                    catch (err) { Pop.alert('格式错误'); }
+                }; r.readAsText(f);
             }
         };
 
-        // --- Utility: Notify ---
-        const Notify = {
-            el: null,
-            resolve: null,
-
+        const Pop = {
+            el: $('modalUI'), cb: null,
+            show(t, m, type, v) {
+                $('uiTitle').textContent = t; $('uiMsg').textContent = m;
+                $('uiIn').value = v || ''; $('uiIn').style.display = type === 'prompt' ? 'block' : 'none';
+                $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
+                this.el.showModal(); if (type === 'prompt') setTimeout(() => $('uiIn').focus(), 50);
+                return new Promise(r => this.cb = r);
+            },
             init() {
-                this.el = document.getElementById('uiModal');
-                this.title = document.getElementById('uiTitle');
-                this.msg = document.getElementById('uiMessage');
-                this.input = document.getElementById('uiInput');
-
-                document.getElementById('uiBtnCancel').onclick = () => this.close(false);
-                document.getElementById('uiBtnConfirm').onclick = () => this.close(this.input.style.display !== 'none' ? this.input.value : true);
-                this.input.onkeyup = e => e.key === 'Enter' && document.getElementById('uiBtnConfirm').click();
+                $('uiCancel').onclick = () => { this.el.close(); this.cb(false); };
+                $('uiConfirm').onclick = () => { const v = $('uiIn').value; this.el.close(); this.cb($('uiIn').style.display === 'block' ? v : true); };
             },
-
-            show({ title, msg, type = 'alert', val = '', danger = false }) {
-                if (!this.el) this.init();
-                this.title.textContent = title;
-                this.msg.textContent = msg;
-                this.input.value = val;
-
-                this.input.style.display = type === 'prompt' ? 'block' : 'none';
-                document.getElementById('uiBtnCancel').style.display = type === 'alert' ? 'none' : 'block';
-                document.getElementById('uiBtnConfirm').className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
-
-                this.el.showModal();
-                if (type === 'prompt') setTimeout(() => this.input.focus(), 100);
-
-                return new Promise(res => this.resolve = res);
-            },
-
-            close(val) {
-                this.el.close();
-                if (this.resolve) this.resolve(val);
-                this.resolve = null;
-            },
-
-            alert(msg, t = '提示') { return this.show({ title: t, msg }); },
-            confirm(msg, t = '确认', danger = false) { return this.show({ title: t, msg, type: 'confirm', danger }); },
-            prompt(msg, val = '', t = '输入') { return this.show({ title: t, msg, type: 'prompt', val }); }
+            alert(m) { return this.show('提示', m, 'alert'); },
+            confirm(m) { return this.show('确认', m, 'confirm'); },
+            prompt(m, v) { return this.show('输入', m, 'prompt', v); }
         };
-
-        // Boot
-        UI.init();
+        Pop.init(); State.init();
     </script>
 </body>
 
