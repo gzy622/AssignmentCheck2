@@ -460,7 +460,7 @@
         <div class="dlg-b">
             <h3 id="uiTitle" style="margin:0 0 10px">提示</h3>
             <div id="uiMsg" style="color:var(--muted);margin-bottom:15px"></div>
-            <input type="text" id="uiIn" class="input-ui" style="display:none">
+            <input type="number" id="uiIn" class="input-ui" style="display:none" inputmode="numeric">
             <div style="display:flex;justify-content:flex-end;gap:10px">
                 <button id="uiCancel" class="btn btn-c">取消</button>
                 <button id="uiConfirm" class="btn btn-p">确定</button>
@@ -611,13 +611,25 @@
             show(t, m, type, v) {
                 $('uiTitle').textContent = t; $('uiMsg').textContent = m;
                 $('uiIn').value = v || ''; $('uiIn').style.display = type === 'prompt' ? 'block' : 'none';
+
+                // Dynamic type based on content
+                const isNum = m.includes('分') || m.includes('成绩');
+                $('uiIn').type = isNum ? 'number' : 'text';
+                $('uiIn').inputMode = isNum ? 'numeric' : 'text';
+
                 $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
-                this.el.showModal(); if (type === 'prompt') setTimeout(() => $('uiIn').focus(), 50);
+                this.el.showModal();
+                if (type === 'prompt') {
+                    $('uiIn').select();
+                    setTimeout(() => $('uiIn').focus(), 100);
+                }
                 return new Promise(r => this.cb = r);
             },
             init() {
                 $('uiCancel').onclick = () => { this.el.close(); this.cb(false); };
-                $('uiConfirm').onclick = () => { const v = $('uiIn').value; this.el.close(); this.cb($('uiIn').style.display === 'block' ? v : true); };
+                const confirm = () => { const v = $('uiIn').value; this.el.close(); this.cb($('uiIn').style.display === 'block' ? v : true); };
+                $('uiConfirm').onclick = confirm;
+                $('uiIn').onkeyup = e => e.key === 'Enter' && confirm();
             },
             alert(m) { return this.show('提示', m, 'alert'); },
             confirm(m) { return this.show('确认', m, 'confirm'); },
