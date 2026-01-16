@@ -678,15 +678,23 @@
                 sel.value = State.curId;
 
                 const nodes = Array.from($('grid').children);
+                // Remove extra nodes if list is shorter
+                while ($('grid').children.length > State.list.length) {
+                    $('grid').lastElementChild.remove();
+                }
+
                 const doneCount = State.list.filter((line, i) => {
-                    const sid = line.split(' ')[0], name = line.split(' ').slice(1).join(' '), rec = asg.records[sid] || {};
+                    const parts = line.split(' ');
+                    const sid = parts[0], name = parts.slice(1).join(' '), rec = asg.records[sid] || {};
                     let card = nodes[i];
                     if (!card) {
-                        card = document.createElement('div'); card.className = 'card'; card.dataset.id = sid;
-                        card.innerHTML = `<span class="student-id">${sid}</span><span class="student-name"></span>`;
+                        card = document.createElement('div'); card.className = 'card';
+                        card.innerHTML = `<span class="student-id"></span><span class="student-name"></span>`;
                         $('grid').appendChild(card);
                     }
+                    card.dataset.id = sid;
                     card.dataset.name = name;
+                    card.querySelector('.student-id').textContent = sid;
                     card.querySelector('.student-name').textContent = name;
                     card.classList.toggle('done', !!rec.done);
                     let tag = card.querySelector('.score-tag');
