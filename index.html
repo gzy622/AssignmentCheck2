@@ -821,15 +821,53 @@
 
                 $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
                 UI.openDlg(this.el);
+                
+                // Add close event listener to remove resize listener
+                const handleClose = () => {
+                    window.removeEventListener('resize', this.adjustPosition);
+                    this.el.removeEventListener('close', handleClose);
+                };
+                this.el.addEventListener('close', handleClose);
+                
                 if (type === 'prompt') {
                     $('uiIn').select();
-                    setTimeout(() => $('uiIn').focus(), 100);
+                    setTimeout(() => {
+                        $('uiIn').focus();
+                        // Adjust dialog position when keyboard is shown
+                        this.adjustPosition();
+                        // Add resize listener to handle keyboard changes
+                        window.addEventListener('resize', this.adjustPosition);
+                    }, 100);
                 }
                 return new Promise(r => this.cb = r);
             },
+            adjustPosition() {
+                const dialog = this.el;
+                if (!dialog.open) return;
+                
+                // Get viewport dimensions
+                const viewportHeight = window.innerHeight;
+                const dialogHeight = dialog.offsetHeight;
+                
+                // Calculate ideal position to avoid keyboard overlap
+                const maxDialogTop = viewportHeight * 0.8 - dialogHeight;
+                
+                // Set dialog position to avoid keyboard overlap
+                dialog.style.top = `${Math.max(0, maxDialogTop)}px`;
+                dialog.style.transform = 'translate(-50%, 0)';
+                dialog.style.left = '50%';
+                dialog.style.position = 'fixed';
+            },
             init() {
-                $('uiCancel').onclick = () => { this.el.close(); this.cb(false); };
-                const confirm = () => { const v = $('uiIn').value; this.el.close(); this.cb($('uiIn').style.display === 'block' ? v : true); };
+                $('uiCancel').onclick = () => { 
+                    this.el.close(); 
+                    this.cb(false); 
+                };
+                const confirm = () => { 
+                    const v = $('uiIn').value; 
+                    this.el.close(); 
+                    this.cb($('uiIn').style.display === 'block' ? v : true); 
+                };
                 $('uiConfirm').onclick = confirm;
                 $('uiIn').onkeyup = e => e.key === 'Enter' && confirm();
             },
