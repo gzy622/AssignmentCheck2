@@ -249,6 +249,14 @@
             margin: 4px 0;
         }
 
+        .menu-version {
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-align: center;
+            font-family: monospace;
+        }
+
         dialog {
             border: none;
             border-radius: 16px;
@@ -573,6 +581,8 @@
                     <button class="menu-item" act="exp">导出备份</button>
                     <button class="menu-item" act="imp">导入备份</button>
                     <button class="menu-item danger" act="del">删除任务</button>
+                    <div class="divider"></div>
+                    <div class="menu-version" id="versionInfo"></div>
                 </div>
             </div>
         </div>
@@ -637,6 +647,21 @@
                 $('fileIn').onchange = Actions.handleFile;
                 this.setupGrid();
                 this.render();
+                this.updateVersion();
+            },
+            updateVersion() {
+                const now = new Date();
+                const version = now.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                const codeVersion = 'v1.0.0';
+                $('versionInfo').innerHTML = `版本: ${version}<br>代码: ${codeVersion}`;
             },
             openDlg(d) {
                 if (d.open) return;
