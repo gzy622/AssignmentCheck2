@@ -621,13 +621,20 @@
         const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster' };
 
         const State = {
-            list: [], data: [], curId: null, mode: 'id', scoring: false,
+            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false,
             init() {
                 this.list = LS.get(KEYS.LIST, Array.from({ length: 49 }, (_, i) => `${(i + 1 + '').padStart(2, '0')} 学生${i + 1}`));
+                this.parseRoster();
                 this.data = LS.get(KEYS.DATA, []);
                 if (!this.data.length) this.addAsg('任务 1');
                 this.curId = this.data[this.data.length - 1].id;
                 UI.init();
+            },
+            parseRoster() {
+                this.roster = this.list.map(l => {
+                    const i = l.indexOf(' ');
+                    return i === -1 ? { id: l, name: '' } : { id: l.slice(0, i), name: l.slice(i + 1) };
+                });
             },
             save() { LS.set(KEYS.DATA, this.data); LS.set(KEYS.LIST, this.list); UI.render(); },
             get cur() { return this.data.find(a => a.id === this.curId) || this.data[0]; },
@@ -660,7 +667,7 @@
                     second: '2-digit',
                     hour12: false
                 });
-                const codeVersion = 'v1.0.0';
+                const codeVersion = 'v1.1.0-opt';
                 $('versionInfo').innerHTML = `版本: ${version}<br>代码: ${codeVersion}`;
             },
             openDlg(d) {
@@ -698,37 +705,52 @@
             render() {
                 const asg = State.cur; if (!asg) return;
                 const sel = $('asgSelect');
-                if (sel.length !== State.data.length) sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                sel.value = State.curId;
-
-                const nodes = Array.from($('grid').children);
-                // Remove extra nodes if list is shorter
-                while ($('grid').children.length > State.list.length) {
-                    $('grid').lastElementChild.remove();
+                if (sel.children.length !== State.data.length) {
+                    sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                 }
+                if (sel.value != State.curId) sel.value = State.curId;
 
-                const doneCount = State.list.filter((line, i) => {
-                    const parts = line.split(' ');
-                    const sid = parts[0], name = parts.slice(1).join(' '), rec = asg.records[sid] || {};
-                    let card = nodes[i];
+                const grid = $('grid');
+                const existing = grid.children;
+                while (existing.length > State.roster.length) grid.lastElementChild.remove();
+
+                let doneCount = 0;
+                State.roster.forEach((stu, i) => {
+                    let card = existing[i];
                     if (!card) {
                         card = document.createElement('div'); card.className = 'card';
                         card.innerHTML = `<span class="student-id"></span><span class="student-name"></span>`;
-                        $('grid').appendChild(card);
+                        grid.appendChild(card);
                     }
-                    card.dataset.id = sid;
-                    card.dataset.name = name;
-                    card.querySelector('.student-id').textContent = sid;
-                    card.querySelector('.student-name').textContent = name;
-                    card.classList.toggle('done', !!rec.done);
-                    let tag = card.querySelector('.score-tag');
-                    if (rec.score != null) { if (!tag) { tag = document.createElement('div'); tag.className = 'score-tag'; card.appendChild(tag); } tag.textContent = rec.score; }
-                    else if (tag) tag.remove();
-                    return !!rec.done;
-                }).length;
 
-                $('counter').textContent = `${doneCount}/${State.list.length}`;
-                $('progressFill').style.width = `${(doneCount / State.list.length) * 100}%`;
+                    const rec = asg.records[stu.id] || {};
+                    if (rec.done) doneCount++;
+
+                    // Optimized updates using diffing
+                    if (card.dataset.id !== stu.id) card.dataset.id = stu.id;
+                    if (card.dataset.name !== stu.name) card.dataset.name = stu.name;
+
+                    const idEl = card.firstElementChild;
+                    if (idEl.textContent !== stu.id) idEl.textContent = stu.id;
+
+                    const nameEl = idEl.nextElementSibling;
+                    if (nameEl.textContent !== stu.name) nameEl.textContent = stu.name;
+
+                    const isDone = !!rec.done;
+                    if (card.classList.contains('done') !== isDone) card.classList.toggle('done', isDone);
+
+                    let tag = card.lastElementChild;
+                    if (!tag.classList.contains('score-tag')) tag = null;
+
+                    if (rec.score != null) {
+                        if (!tag) { tag = document.createElement('div'); tag.className = 'score-tag'; card.appendChild(tag); }
+                        if (tag.textContent != rec.score) tag.textContent = rec.score;
+                    }
+                    else if (tag) tag.remove();
+                });
+
+                $('counter').textContent = `${doneCount}/${State.roster.length}`;
+                $('progressFill').style.width = `${(doneCount / State.roster.length) * 100}%`;
             }
         };
 
@@ -743,55 +765,72 @@
                 $('dlgTitle').textContent = '编辑名单';
                 $('dlgBody').innerHTML = `<textarea id="rtEdit">${State.list.join('\n')}</textarea>`;
                 $('dlgFooter').style.display = 'flex';
-                $('dlgOk').onclick = () => { State.list = $('rtEdit').value.split('\n').map(s => s.trim()).filter(s => s); State.save(); $('dlgApp').close(); };
+                $('dlgOk').onclick = () => {
+                    State.list = $('rtEdit').value.split('\n').map(s => s.trim()).filter(s => s);
+                    State.parseRoster();
+                    State.save();
+                    $('dlgApp').close();
+                };
                 UI.openDlg($('dlgApp'));
             },
             stats() {
                 const d = $('dlgApp'); d.classList.add('dialog-full');
                 let selIds = new Set(State.data.map(a => a.id));
-                const draw = () => {
+
+                // Static structure
+                $('dlgBody').innerHTML = `
+                    <div class="st-nav">
+                        <h2 class="st-title">统计概览</h2>
+                        <button class="st-close" onclick="$('dlgApp').close()">&times;</button>
+                    </div>
+                    <div class="st-scroll-area">
+                        <div class="st-summary" id="stSum"></div>
+                        <div class="st-filters" id="stFil"></div>
+                        <div class="st-card-table" id="stTab"></div>
+                    </div>
+                `;
+
+                const update = () => {
                     const targets = State.data.filter(a => selIds.has(a.id));
-                    const rows = State.list.map((l, i) => {
-                        const id = l.split(' ')[0], name = l.split(' ').slice(1).join(' ');
-                        const dones = targets.map(t => !!t.records[id]?.done);
+                    const rows = State.roster.map((stu, i) => {
+                        const dones = targets.map(t => !!t.records[stu.id]?.done);
                         const rate = Math.round(dones.filter(v => v).length / targets.length * 100) || 0;
-                        return { id, name, dones, rate, index: i };
+                        return { ...stu, dones, rate, index: i };
                     }).sort((a, b) => (b.rate - a.rate) || (a.index - b.index));
 
                     const avg = Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0;
 
-                    $('dlgBody').innerHTML = `
-                        <div class="st-nav">
-                            <h2 class="st-title">统计概览</h2>
-                            <button class="st-close" onclick="$('dlgApp').close()">&times;</button>
-                        </div>
-                        <div class="st-scroll-area">
-                            <div class="st-summary">
-                                <div class="st-metric"><div class="st-val">${avg}%</div><div class="st-label">平均完成率</div></div>
-                                <div class="st-metric"><div class="st-val">${targets.length}</div><div class="st-label">统计任务数</div></div>
-                            </div>
-                            <div class="st-filters">
-                                ${State.data.map(a => `<div class="st-chip ${selIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`).reverse().join('')}
-                            </div>
-                            <div class="st-card-table">
-                                <div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>
-                                ${rows.map(r => `
-                                    <div class="st-row">
-                                        <div class="st-user"><span class="st-name">${r.name}</span><span class="st-id">${r.id}</span></div>
-                                        <div class="st-visual">
-                                            ${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}
-                                        </div>
-                                        <div class="st-rate" style="color:${r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit'}">${r.rate}%</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
+                    // Update contents
+                    $('stSum').innerHTML = `
+                        <div class="st-metric"><div class="st-val">${avg}%</div><div class="st-label">平均完成率</div></div>
+                        <div class="st-metric"><div class="st-val">${targets.length}</div><div class="st-label">统计任务数</div></div>
                     `;
-                    $('dlgBody').querySelectorAll('.st-chip').forEach(c => c.onclick = () => {
-                        const id = +c.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); draw();
-                    });
+
+                    const filHtml = State.data.map(a =>
+                        `<div class="st-chip ${selIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`
+                    ).reverse().join('');
+                    if ($('stFil').innerHTML !== filHtml) {
+                        $('stFil').innerHTML = filHtml;
+                        $('stFil').querySelectorAll('.st-chip').forEach(c => c.onclick = () => {
+                            const id = +c.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); update();
+                        });
+                    }
+
+                    $('stTab').innerHTML = `
+                        <div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>
+                        ${rows.map(r => `
+                            <div class="st-row">
+                                <div class="st-user"><span class="st-name">${r.name}</span><span class="st-id">${r.id}</span></div>
+                                <div class="st-visual">
+                                    ${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}
+                                </div>
+                                <div class="st-rate" style="color:${r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit'}">${r.rate}%</div>
+                            </div>
+                        `).join('')}
+                    `;
                 };
-                draw(); UI.openDlg(d);
+                update();
+                UI.openDlg(d);
                 d.addEventListener('close', () => { d.classList.remove('dialog-full'); }, { once: true });
             },
             exp() {
@@ -802,9 +841,22 @@
             handleFile(e) {
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader(); r.onload = async ev => {
-                    try { const d = JSON.parse(ev.target.result); if (await Pop.confirm('覆盖现有数据？')) { State.list = d.list; State.data = d.data; State.curId = State.data[0].id; State.save(); location.reload(); } }
-                    catch (err) { Pop.alert('格式错误'); }
+                    try {
+                        const d = JSON.parse(ev.target.result);
+                        if (await Pop.confirm('覆盖现有数据？')) {
+                            State.list = d.list;
+                            State.parseRoster();
+                            State.data = d.data;
+                            State.curId = State.data[0].id;
+                            State.save();
+                            UI.render(); // Re-render without reload
+                            UI.updateVersion();
+                            Pop.alert('导入成功');
+                        }
+                    }
+                    catch (err) { Pop.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f);
+                e.target.value = ''; // Reset input to allow re-importing same file
             }
         };
 
@@ -821,14 +873,14 @@
 
                 $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
                 UI.openDlg(this.el);
-                
+
                 // Add close event listener to remove resize listener
                 const handleClose = () => {
                     window.removeEventListener('resize', this.adjustPosition);
                     this.el.removeEventListener('close', handleClose);
                 };
                 this.el.addEventListener('close', handleClose);
-                
+
                 if (type === 'prompt') {
                     $('uiIn').select();
                     setTimeout(() => {
@@ -844,14 +896,14 @@
             adjustPosition() {
                 const dialog = this.el;
                 if (!dialog.open) return;
-                
+
                 // Get viewport dimensions
                 const viewportHeight = window.innerHeight;
                 const dialogHeight = dialog.offsetHeight;
-                
+
                 // Calculate ideal position to avoid keyboard overlap
                 const maxDialogTop = viewportHeight * 0.8 - dialogHeight;
-                
+
                 // Set dialog position to avoid keyboard overlap
                 dialog.style.top = `${Math.max(0, maxDialogTop)}px`;
                 dialog.style.transform = 'translate(-50%, 0)';
@@ -859,14 +911,14 @@
                 dialog.style.position = 'fixed';
             },
             init() {
-                $('uiCancel').onclick = () => { 
-                    this.el.close(); 
-                    this.cb(false); 
+                $('uiCancel').onclick = () => {
+                    this.el.close();
+                    this.cb(false);
                 };
-                const confirm = () => { 
-                    const v = $('uiIn').value; 
-                    this.el.close(); 
-                    this.cb($('uiIn').style.display === 'block' ? v : true); 
+                const confirm = () => {
+                    const v = $('uiIn').value;
+                    this.el.close();
+                    this.cb($('uiIn').style.display === 'block' ? v : true);
                 };
                 $('uiConfirm').onclick = confirm;
                 $('uiIn').onkeyup = e => e.key === 'Enter' && confirm();
