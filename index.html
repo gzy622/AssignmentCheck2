@@ -861,35 +861,31 @@
         };
 
         const Pop = {
-            el: $('modalUI'), cb: null,
+            el: $('modalUI'), cb: null, lastHeight: window.innerHeight,
             show(t, m, type, v) {
                 $('uiTitle').textContent = t; $('uiMsg').textContent = m;
                 $('uiIn').value = v || ''; $('uiIn').style.display = type === 'prompt' ? 'block' : 'none';
 
-                // Dynamic type based on content
                 const isNum = m.includes('分') || m.includes('成绩');
                 $('uiIn').type = isNum ? 'number' : 'text';
                 $('uiIn').inputMode = isNum ? 'numeric' : 'text';
 
                 $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
+
+                this.lastHeight = window.innerHeight;
+                this.adjustPosition();
                 UI.openDlg(this.el);
 
-                // Add close event listener to remove resize listener
                 const handleClose = () => {
-                    window.removeEventListener('resize', this.adjustPosition);
+                    window.removeEventListener('resize', this.onResize);
                     this.el.removeEventListener('close', handleClose);
                 };
                 this.el.addEventListener('close', handleClose);
 
                 if (type === 'prompt') {
                     $('uiIn').select();
-                    setTimeout(() => {
-                        $('uiIn').focus();
-                        // Adjust dialog position when keyboard is shown
-                        this.adjustPosition();
-                        // Add resize listener to handle keyboard changes
-                        window.addEventListener('resize', this.adjustPosition);
-                    }, 100);
+                    $('uiIn').focus();
+                    window.addEventListener('resize', this.onResize = () => this.adjustPosition());
                 }
                 return new Promise(r => this.cb = r);
             },
@@ -897,18 +893,24 @@
                 const dialog = this.el;
                 if (!dialog.open) return;
 
-                // Get viewport dimensions
-                const viewportHeight = window.innerHeight;
-                const dialogHeight = dialog.offsetHeight;
+                const curHeight = window.innerHeight;
+                const dialogHeight = dialog.offsetHeight || 200;
+                const viewportHeight = curHeight;
 
-                // Calculate ideal position to avoid keyboard overlap
-                const maxDialogTop = viewportHeight * 0.8 - dialogHeight;
+                let top;
+                if (this.lastHeight > curHeight + 50) {
+                    const maxTop = viewportHeight * 0.7 - dialogHeight;
+                    top = Math.max(0, maxTop);
+                } else {
+                    top = Math.max(0, (viewportHeight - dialogHeight) / 2);
+                }
 
-                // Set dialog position to avoid keyboard overlap
-                dialog.style.top = `${Math.max(0, maxDialogTop)}px`;
+                dialog.style.top = `${top}px`;
                 dialog.style.transform = 'translate(-50%, 0)';
                 dialog.style.left = '50%';
                 dialog.style.position = 'fixed';
+
+                this.lastHeight = curHeight;
             },
             init() {
                 $('uiCancel').onclick = () => {
