@@ -257,62 +257,154 @@
             font-family: monospace;
         }
 
+        /* Modal System */
         dialog {
             border: none;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+            background: transparent;
             padding: 0;
-            width: 90%;
-            max-width: 500px;
-            margin: auto;
-            transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease, display 0.3s allow-discrete, overlay 0.3s allow-discrete;
-        }
-
-        dialog::backdrop {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
         }
 
-        .dlg-h {
-            padding: 14px 20px;
+        dialog[open] {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            max-height: 85vh;
+        }
+
+        dialog[open] .modal-card {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: #fff;
+            flex-shrink: 0;
         }
 
-        .dlg-b {
+        .modal-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f1f3f5;
+            color: #000;
+        }
+
+        .modal-body {
             padding: 20px;
-            max-height: 70vh;
             overflow-y: auto;
+            font-size: 0.95rem;
+            color: #495057;
+            line-height: 1.5;
+            flex: 1;
+            background: #fff;
         }
 
-        .dlg-f {
-            padding: 12px 20px;
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid var(--border);
+            gap: 12px;
+            background: #f8f9fa;
+            flex-shrink: 0;
         }
 
-        textarea {
+        /* Fullscreen variant for stats */
+        dialog.full .modal-card {
+            max-width: 100%;
             width: 100%;
-            height: 260px;
-            padding: 10px;
+            height: 100%;
+            border-radius: 0;
+            max-height: 100%;
+        }
+
+        dialog.full .modal-body {
+            background: var(--bg);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Form Elements in Modal */
+        textarea.st-editor {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-family: monospace;
             resize: vertical;
             outline: none;
+            font-size: 0.9rem;
         }
+
+        textarea.st-editor:focus {
+            border-color: var(--primary);
+        }
+
 
         .input-ui {
             width: 100%;
             padding: 10px;
             border: 2px solid #f0f2f5;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 0;
             outline: none;
+            font-family: inherit;
         }
 
         .input-ui:focus {
@@ -326,6 +418,11 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 0.9rem;
+            transition: 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
         }
 
         .btn-p {
@@ -338,28 +435,13 @@
             color: var(--muted);
         }
 
+        .btn-c:hover {
+            background: #e9ecef;
+        }
+
         .btn-d {
             background: var(--danger);
             color: #fff;
-        }
-
-        /* Stats Dashboard 2.0 */
-        .dialog-full {
-            background: var(--bg);
-        }
-
-        .dialog-full .dlg-h,
-        .dialog-full .dlg-f {
-            display: none !important;
-        }
-
-        .dialog-full .dlg-b {
-            padding: 0;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg);
-            max-height: none;
         }
 
         .st-nav {
@@ -596,25 +678,16 @@
     <input type="file" id="fileIn" hidden accept=".json">
 
     <!-- Modals -->
-    <dialog id="modalUI">
-        <div class="dlg-b">
-            <h3 id="uiTitle" style="margin:0 0 10px">提示</h3>
-            <div id="uiMsg" style="color:var(--muted);margin-bottom:15px"></div>
-            <input type="number" id="uiIn" class="input-ui" style="display:none" inputmode="numeric">
-            <div style="display:flex;justify-content:flex-end;gap:10px">
-                <button id="uiCancel" class="btn btn-c">取消</button>
-                <button id="uiConfirm" class="btn btn-p">确定</button>
+    <!-- Unified Modal -->
+    <dialog id="modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title"></h3>
+                <button class="modal-close">&times;</button>
             </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer"></div>
         </div>
-    </dialog>
-
-    <dialog id="dlgApp">
-        <div class="dlg-h">
-            <h3 id="dlgTitle" style="margin:0">标题</h3><button onclick="this.closest('dialog').close()"
-                style="border:0;background:0;font-size:1.5rem;cursor:pointer">&times;</button>
-        </div>
-        <div id="dlgBody" class="dlg-b"></div>
-        <div id="dlgFooter" class="dlg-f" style="display:none"><button class="btn btn-p" id="dlgOk">完成</button></div>
     </dialog>
 
     <script>
@@ -646,7 +719,7 @@
 
         const UI = {
             init() {
-                window.onpopstate = () => { const d = document.querySelector('dialog[open]'); if (d) d.close(); };
+                window.onpopstate = () => { const d = document.querySelector('dialog[open]'); if (d) Modal.close(); };
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
                 $('btnScore').onclick = e => e.target.classList.toggle('active', State.scoring = !State.scoring);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
@@ -657,48 +730,13 @@
                 this.setupGrid();
                 this.render();
                 this.updateVersion();
-
-                if (window.visualViewport) {
-                    const adj = () => {
-                        const d = document.querySelector('dialog[open]');
-                        if (!d) return;
-                        const vh = window.visualViewport.height;
-                        const wh = window.innerHeight;
-                        // Avoid shifting if change is minimal, but for keyboard (significant diff on iOS), shift up.
-                        // Native centering is at wh/2. We want vh/2.
-                        // Delta = (vh - wh) / 2.
-                        // If wh shrinks (Android resize), delta is 0, margin:auto handles it.
-                        // If wh static (iOS overlay), delta is negative, moving dialog up.
-                        const offset = (Math.abs(vh - wh) > 100) ? (vh - wh) / 2 : 0;
-                        d.style.transform = offset ? `translateY(${offset}px)` : '';
-                    };
-                    window.visualViewport.addEventListener('resize', adj);
-                    window.visualViewport.addEventListener('scroll', adj);
-                    // Hook into existing show/close? The resize event will trigger if keyboard animates.
-                    // But if keyboard is ALREADY open, we need to trigger once.
-                    window.addEventListener('resize', adj);
-                }
             },
             updateVersion() {
                 const now = new Date();
                 const version = now.toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
+                    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                const codeVersion = 'v1.1.2-antigravity';
-                $('versionInfo').innerHTML = `版本: ${version}<br>代码: ${codeVersion}`;
-            },
-            openDlg(d) {
-                if (d.open) return;
-                history.pushState({ dlg: true }, '');
-                d.showModal();
-                const h = () => { if (history.state?.dlg) history.back(); d.removeEventListener('close', h); };
-                d.addEventListener('close', h);
+                $('versionInfo').innerHTML = `版本: ${version}<br>代码: v2.0.0-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -713,24 +751,17 @@
                     timer = setTimeout(() => { timer = null; handle(c, true); }, 500);
                 };
                 $('grid').onpointerup = e => {
-                    if (timer) {
-                        clearTimeout(timer); timer = null;
-                        const c = e.target.closest('.card'); if (c) handle(c, false);
-                    }
+                    if (timer) { clearTimeout(timer); timer = null; const c = e.target.closest('.card'); if (c) handle(c, false); }
                 };
                 $('grid').onpointermove = e => {
-                    if (timer && (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 10)) {
-                        clearTimeout(timer); timer = null;
-                    }
+                    if (timer && (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 10)) { clearTimeout(timer); timer = null; }
                 };
                 $('grid').onpointerleave = () => { if (timer) { clearTimeout(timer); timer = null; } };
             },
             render() {
                 const asg = State.cur; if (!asg) return;
                 const sel = $('asgSelect');
-                if (sel.children.length !== State.data.length) {
-                    sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                }
+                if (sel.children.length !== State.data.length) sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                 if (sel.value != State.curId) sel.value = State.curId;
 
                 const grid = $('grid');
@@ -745,73 +776,131 @@
                         card.innerHTML = `<span class="student-id"></span><span class="student-name"></span>`;
                         grid.appendChild(card);
                     }
-
                     const rec = asg.records[stu.id] || {};
                     if (rec.done) doneCount++;
 
-                    // Optimized updates using diffing
                     if (card.dataset.id !== stu.id) card.dataset.id = stu.id;
                     if (card.dataset.name !== stu.name) card.dataset.name = stu.name;
+                    if (card.firstElementChild.textContent !== stu.id) card.firstElementChild.textContent = stu.id;
+                    if (card.firstElementChild.nextElementSibling.textContent !== stu.name) card.firstElementChild.nextElementSibling.textContent = stu.name;
 
-                    const idEl = card.firstElementChild;
-                    if (idEl.textContent !== stu.id) idEl.textContent = stu.id;
-
-                    const nameEl = idEl.nextElementSibling;
-                    if (nameEl.textContent !== stu.name) nameEl.textContent = stu.name;
-
-                    const isDone = !!rec.done;
-                    if (card.classList.contains('done') !== isDone) card.classList.toggle('done', isDone);
+                    card.classList.toggle('done', !!rec.done);
 
                     let tag = card.lastElementChild;
                     if (!tag.classList.contains('score-tag')) tag = null;
-
                     if (rec.score != null) {
                         if (!tag) { tag = document.createElement('div'); tag.className = 'score-tag'; card.appendChild(tag); }
                         if (tag.textContent != rec.score) tag.textContent = rec.score;
-                    }
-                    else if (tag) tag.remove();
+                    } else if (tag) tag.remove();
                 });
-
                 $('counter').textContent = `${doneCount}/${State.roster.length}`;
                 $('progressFill').style.width = `${(doneCount / State.roster.length) * 100}%`;
             }
         };
 
+        const Modal = {
+            el: $('modal'),
+            card: $('modal').querySelector('.modal-card'),
+            title: $('modal').querySelector('.modal-title'),
+            body: $('modal').querySelector('.modal-body'),
+            footer: $('modal').querySelector('.modal-footer'),
+            closeBtn: $('modal').querySelector('.modal-close'),
+            header: $('modal').querySelector('.modal-header'),
+            resolve: null,
+
+            init() {
+                this.closeBtn.onclick = () => this.close(false);
+                this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
+                this.el.addEventListener('close', () => { if (this.resolve) this.resolve(false); this.resolve = null; });
+            },
+
+            show({ title, content, type = 'normal', btns = [] }) {
+                this.title.textContent = title || '';
+                this.body.innerHTML = '';
+                if (typeof content === 'string') this.body.innerHTML = content;
+                else this.body.appendChild(content);
+
+                this.el.className = ''; // Reset class
+                if (type === 'full') this.el.classList.add('full');
+                this.header.style.display = type === 'full' ? 'none' : 'flex';
+
+                this.footer.innerHTML = '';
+                this.footer.style.display = btns.length ? 'flex' : 'none';
+
+                btns.forEach(b => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn ${b.type || 'btn-c'}`;
+                    btn.textContent = b.text;
+                    btn.onclick = () => { if (b.onClick) b.onClick(); else this.close(b.val); };
+                    this.footer.appendChild(btn);
+                });
+
+                this.el.showModal();
+                return new Promise(r => this.resolve = r);
+            },
+
+            close(val) {
+                this.el.close();
+                if (this.resolve) { this.resolve(val); this.resolve = null; }
+            },
+
+            alert(msg) { return this.show({ title: '提示', content: msg, btns: [{ text: '确定', type: 'btn-p', val: true }] }); },
+            confirm(msg) { return this.show({ title: '确认', content: msg, btns: [{ text: '取消', type: 'btn-c', val: false }, { text: '确定', type: 'btn-p', val: true }] }); },
+            prompt(title, val = '', type = 'text') {
+                const input = document.createElement('input');
+                input.className = 'input-ui';
+                input.value = val;
+                if (type === 'number') { input.type = 'number'; input.inputMode = 'numeric'; }
+                setTimeout(() => input.focus(), 100);
+                return this.show({
+                    title, content: input,
+                    btns: [
+                        { text: '取消', type: 'btn-c', val: false },
+                        { text: '确定', type: 'btn-p', onClick: () => this.close(input.value) }
+                    ]
+                });
+            }
+        };
+
         const Actions = {
-            async add() { const n = await Pop.prompt('任务名称'); if (n) State.addAsg(n); },
-            async del() { if (State.data.length > 1 && await Pop.confirm('删除此任务？')) { State.data = State.data.filter(a => a.id !== State.curId); State.curId = State.data[0].id; State.save(); } },
+            async add() { const n = await Modal.prompt('任务名称'); if (n) State.addAsg(n); },
+            async del() { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) { State.data = State.data.filter(a => a.id !== State.curId); State.curId = State.data[0].id; State.save(); } else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); },
             async score(id, name) {
-                const s = await Pop.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '');
+                const s = await Modal.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '', 'number');
                 if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
             },
             roster() {
-                $('dlgTitle').textContent = '编辑名单';
-                $('dlgBody').innerHTML = `<textarea id="rtEdit">${State.list.join('\n')}</textarea>`;
-                $('dlgFooter').style.display = 'flex';
-                $('dlgOk').onclick = () => {
-                    State.list = $('rtEdit').value.split('\n').map(s => s.trim()).filter(s => s);
-                    State.parseRoster();
-                    State.save();
-                    $('dlgApp').close();
-                };
-                UI.openDlg($('dlgApp'));
+                const ta = document.createElement('textarea');
+                ta.className = 'st-editor';
+                ta.id = 'rtEdit';
+                ta.value = State.list.join('\n');
+                Modal.show({
+                    title: '编辑名单', content: ta,
+                    btns: [
+                        { text: '取消', type: 'btn-c', val: false },
+                        {
+                            text: '保存', type: 'btn-p', onClick: () => {
+                                State.list = ta.value.split('\n').map(s => s.trim()).filter(s => s);
+                                State.parseRoster(); State.save(); Modal.close();
+                            }
+                        }
+                    ]
+                });
             },
             stats() {
-                const d = $('dlgApp'); d.classList.add('dialog-full');
                 let selIds = new Set(State.data.map(a => a.id));
-
-                // Static structure
-                $('dlgBody').innerHTML = `
+                const c = document.createElement('div');
+                c.className = 'st-layout';
+                c.innerHTML = `
                     <div class="st-nav">
                         <h2 class="st-title">统计概览</h2>
-                        <button class="st-close" onclick="$('dlgApp').close()">&times;</button>
+                        <button class="st-close" onclick="Modal.close()">&times;</button>
                     </div>
                     <div class="st-scroll-area">
                         <div class="st-summary" id="stSum"></div>
                         <div class="st-filters" id="stFil"></div>
                         <div class="st-card-table" id="stTab"></div>
-                    </div>
-                `;
+                    </div>`;
 
                 const update = () => {
                     const targets = State.data.filter(a => selIds.has(a.id));
@@ -822,9 +911,7 @@
                     }).sort((a, b) => (b.rate - a.rate) || (a.index - b.index));
 
                     const avg = Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0;
-
-                    // Update contents
-                    $('stSum').innerHTML = `
+                    c.querySelector('#stSum').innerHTML = `
                         <div class="st-metric"><div class="st-val">${avg}%</div><div class="st-label">平均完成率</div></div>
                         <div class="st-metric"><div class="st-val">${targets.length}</div><div class="st-label">统计任务数</div></div>
                     `;
@@ -832,29 +919,26 @@
                     const filHtml = State.data.map(a =>
                         `<div class="st-chip ${selIds.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`
                     ).reverse().join('');
-                    if ($('stFil').innerHTML !== filHtml) {
-                        $('stFil').innerHTML = filHtml;
-                        $('stFil').querySelectorAll('.st-chip').forEach(c => c.onclick = () => {
-                            const id = +c.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); update();
+                    const filEl = c.querySelector('#stFil');
+                    if (filEl.innerHTML !== filHtml) {
+                        filEl.innerHTML = filHtml;
+                        filEl.querySelectorAll('.st-chip').forEach(el => el.onclick = () => {
+                            const id = +el.dataset.id; selIds.has(id) ? selIds.delete(id) : selIds.add(id); update();
                         });
                     }
 
-                    $('stTab').innerHTML = `
+                    c.querySelector('#stTab').innerHTML = `
                         <div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>
                         ${rows.map(r => `
                             <div class="st-row">
                                 <div class="st-user"><span class="st-name">${r.name}</span><span class="st-id">${r.id}</span></div>
-                                <div class="st-visual">
-                                    ${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}
-                                </div>
+                                <div class="st-visual">${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}</div>
                                 <div class="st-rate" style="color:${r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit'}">${r.rate}%</div>
-                            </div>
-                        `).join('')}
+                            </div>`).join('')}
                     `;
                 };
                 update();
-                UI.openDlg(d);
-                d.addEventListener('close', () => { d.classList.remove('dialog-full'); }, { once: true });
+                Modal.show({ title: '', content: c, type: 'full', btns: [] });
             },
             exp() {
                 const blob = new Blob([JSON.stringify({ list: State.list, data: State.data })], { type: 'application/json' });
@@ -866,91 +950,16 @@
                 const r = new FileReader(); r.onload = async ev => {
                     try {
                         const d = JSON.parse(ev.target.result);
-                        if (await Pop.confirm('覆盖现有数据？')) {
-                            State.list = d.list;
-                            State.parseRoster();
-                            State.data = d.data;
-                            State.curId = State.data[0].id;
-                            State.save();
-                            UI.render(); // Re-render without reload
-                            UI.updateVersion();
-                            Pop.alert('导入成功');
+                        if (await Modal.confirm('覆盖现有数据？')) {
+                            State.list = d.list; State.parseRoster(); State.data = d.data; State.curId = State.data[0].id;
+                            State.save(); UI.render(); UI.updateVersion(); Modal.alert('导入成功');
                         }
-                    }
-                    catch (err) { Pop.alert('格式错误: ' + err.message); }
-                }; r.readAsText(f);
-                e.target.value = ''; // Reset input to allow re-importing same file
+                    } catch (err) { Modal.alert('格式错误: ' + err.message); }
+                }; r.readAsText(f); e.target.value = '';
             }
         };
 
-        const Pop = {
-            el: $('modalUI'), cb: null,
-            show(t, m, type, v) {
-                $('uiTitle').textContent = t; $('uiMsg').textContent = m;
-                $('uiIn').value = v || ''; $('uiIn').style.display = type === 'prompt' ? 'block' : 'none';
-
-                // Dynamic type based on content
-                const isNum = m.includes('分') || m.includes('成绩');
-                $('uiIn').type = isNum ? 'number' : 'text';
-                $('uiIn').inputMode = isNum ? 'numeric' : 'text';
-
-                $('uiCancel').style.display = type === 'alert' ? 'none' : 'block';
-                UI.openDlg(this.el);
-
-                // Add close event listener to remove resize listener
-                const handleClose = () => {
-                    window.removeEventListener('resize', this.adjustPosition);
-                    this.el.removeEventListener('close', handleClose);
-                };
-                this.el.addEventListener('close', handleClose);
-
-                if (type === 'prompt') {
-                    $('uiIn').select();
-                    setTimeout(() => {
-                        $('uiIn').focus();
-                        // Adjust dialog position when keyboard is shown
-                        this.adjustPosition();
-                        // Add resize listener to handle keyboard changes
-                        window.addEventListener('resize', this.adjustPosition);
-                    }, 100);
-                }
-                return new Promise(r => this.cb = r);
-            },
-            adjustPosition() {
-                const dialog = this.el;
-                if (!dialog.open) return;
-
-                // Get viewport dimensions
-                const viewportHeight = window.innerHeight;
-                const dialogHeight = dialog.offsetHeight;
-
-                // Calculate ideal position to avoid keyboard overlap
-                const maxDialogTop = viewportHeight * 0.8 - dialogHeight;
-
-                // Set dialog position to avoid keyboard overlap
-                dialog.style.top = `${Math.max(0, maxDialogTop)}px`;
-                dialog.style.transform = 'translate(-50%, 0)';
-                dialog.style.left = '50%';
-                dialog.style.position = 'fixed';
-            },
-            init() {
-                $('uiCancel').onclick = () => {
-                    this.el.close();
-                    this.cb(false);
-                };
-                const confirm = () => {
-                    const v = $('uiIn').value;
-                    this.el.close();
-                    this.cb($('uiIn').style.display === 'block' ? v : true);
-                };
-                $('uiConfirm').onclick = confirm;
-                $('uiIn').onkeyup = e => e.key === 'Enter' && confirm();
-            },
-            alert(m) { return this.show('提示', m, 'alert'); },
-            confirm(m) { return this.show('确认', m, 'confirm'); },
-            prompt(m, v) { return this.show('输入', m, 'prompt', v); }
-        };
-        Pop.init(); State.init();
+        Modal.init(); State.init();
     </script>
 </body>
 
