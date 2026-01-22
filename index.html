@@ -264,6 +264,8 @@
             padding: 0;
             width: 90%;
             max-width: 500px;
+            margin: auto;
+            transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease, display 0.3s allow-discrete, overlay 0.3s allow-discrete;
         }
 
         dialog::backdrop {
@@ -655,6 +657,27 @@
                 this.setupGrid();
                 this.render();
                 this.updateVersion();
+
+                if (window.visualViewport) {
+                    const adj = () => {
+                        const d = document.querySelector('dialog[open]');
+                        if (!d) return;
+                        const vh = window.visualViewport.height;
+                        const wh = window.innerHeight;
+                        // Avoid shifting if change is minimal, but for keyboard (significant diff on iOS), shift up.
+                        // Native centering is at wh/2. We want vh/2.
+                        // Delta = (vh - wh) / 2.
+                        // If wh shrinks (Android resize), delta is 0, margin:auto handles it.
+                        // If wh static (iOS overlay), delta is negative, moving dialog up.
+                        const offset = (Math.abs(vh - wh) > 100) ? (vh - wh) / 2 : 0;
+                        d.style.transform = offset ? `translateY(${offset}px)` : '';
+                    };
+                    window.visualViewport.addEventListener('resize', adj);
+                    window.visualViewport.addEventListener('scroll', adj);
+                    // Hook into existing show/close? The resize event will trigger if keyboard animates.
+                    // But if keyboard is ALREADY open, we need to trigger once.
+                    window.addEventListener('resize', adj);
+                }
             },
             updateVersion() {
                 const now = new Date();
@@ -667,7 +690,7 @@
                     second: '2-digit',
                     hour12: false
                 });
-                const codeVersion = 'v1.1.1-AssignmentCheckForAntigravity';
+                const codeVersion = 'v1.1.2-antigravity';
                 $('versionInfo').innerHTML = `版本: ${version}<br>代码: ${codeVersion}`;
             },
             openDlg(d) {
