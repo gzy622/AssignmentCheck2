@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>作业极速登记Pro</title>
     <style>
         :root {
@@ -264,13 +265,13 @@
             padding: 0;
             margin: 0;
             width: 100%;
-            height: 100%;
+            height: 100dvh;
             max-width: none;
             max-height: none;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(4px);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             opacity: 0;
             pointer-events: none;
@@ -279,6 +280,7 @@
             top: 0;
             left: 0;
             z-index: 1000;
+            overflow-y: auto;
         }
 
         dialog[open] {
@@ -294,10 +296,14 @@
             max-width: 400px;
             display: flex;
             flex-direction: column;
+            margin: auto;
+            margin-bottom: auto;
+            /* ensure bottom space */
             transform: scale(0.95) translateY(10px);
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             overflow: hidden;
-            max-height: 85vh;
+            flex-shrink: 0;
+            /* Prevent squishing */
         }
 
         dialog[open] .modal-card {
@@ -736,7 +742,7 @@
                 const version = now.toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `版本: ${version}<br>代码: v2.0.0-antigravity`;
+                $('versionInfo').innerHTML = `版本: ${version}<br>代码: v2.1.0-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
