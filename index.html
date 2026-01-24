@@ -261,7 +261,6 @@
         /* Modal System */
         dialog {
             border: none;
-            background: transparent;
             padding: 0;
             margin: 0;
             width: 100%;
@@ -270,22 +269,36 @@
             max-height: none;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(4px);
-            display: flex;
+            display: none;
             align-items: flex-start;
             justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
             position: fixed;
             top: 0;
             left: 0;
             z-index: 1000;
             overflow-y: auto;
+            opacity: 0;
         }
 
-        dialog[open] {
+        dialog::backdrop {
+            background: transparent;
+        }
+
+        /* Active State */
+        dialog[open],
+        dialog.is-closing {
+            display: flex;
             opacity: 1;
-            pointer-events: auto;
+        }
+
+        /* Entry Animation */
+        dialog[open] {
+            animation: fade-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+
+        dialog.is-closing {
+            animation: fade-out 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+            pointer-events: none;
         }
 
         .modal-card {
@@ -299,15 +312,67 @@
             margin: auto;
             margin-bottom: auto;
             /* ensure bottom space */
+            /* Transform Base */
             transform: scale(0.95) translateY(10px);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            transition: none;
+            /* Managed by keyframes */
             overflow: hidden;
             flex-shrink: 0;
             /* Prevent squishing */
         }
 
         dialog[open] .modal-card {
-            transform: scale(1) translateY(0);
+            animation: zoom-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) 0.05s forwards;
+        }
+
+        dialog.is-closing .modal-card {
+            animation: zoom-out 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+
+        /* Keyframes */
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes zoom-in {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes zoom-out {
+            from {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
         }
 
         .modal-header {
@@ -846,8 +911,22 @@
             },
 
             close(val) {
-                this.el.close();
-                if (this.resolve) { this.resolve(val); this.resolve = null; }
+                if (this.el.classList.contains('is-closing')) return;
+                this.el.classList.add('is-closing');
+
+                const cleanup = () => {
+                    this.el.classList.remove('is-closing');
+                    this.el.close();
+                    if (this.resolve) { this.resolve(val); this.resolve = null; }
+                };
+
+                // Wait for animation
+                const anim = this.el.getAnimations()[0];
+                if (anim && anim.finished) {
+                    anim.finished.then(cleanup);
+                } else {
+                    setTimeout(cleanup, 200); // Fallback
+                }
             },
 
             alert(msg) { return this.show({ title: '提示', content: msg, btns: [{ text: '确定', type: 'btn-p', val: true }] }); },
