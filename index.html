@@ -807,7 +807,7 @@
                 const version = now.toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `版本: ${version}<br>代码: v2.1.0-antigravity`;
+                $('versionInfo').innerHTML = `数据版本: ${version}<br>代码版本: v2.1.1-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -955,12 +955,23 @@
                 if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
             },
             roster() {
-                const ta = document.createElement('textarea');
-                ta.className = 'st-editor';
-                ta.id = 'rtEdit';
+                const c = document.createElement('div');
+                c.className = 'st-layout';
+                c.style.display = 'flex';
+                c.style.flexDirection = 'column';
+                c.style.height = '100%';
+                c.innerHTML = `
+                    <div class="st-nav">
+                        <h2 class="st-title">编辑名单</h2>
+                        <button class="st-close" onclick="Modal.close()">&times;</button>
+                    </div>
+                    <div class="st-scroll-area" style="padding: 16px; flex: 1; display: flex;">
+                        <textarea class="st-editor" id="rtEdit" style="flex: 1; height: 100%; min-height: 200px;"></textarea>
+                    </div>`;
+                const ta = c.querySelector('#rtEdit');
                 ta.value = State.list.join('\n');
                 Modal.show({
-                    title: '编辑名单', content: ta,
+                    title: '', content: c, type: 'full',
                     btns: [
                         { text: '取消', type: 'btn-c', val: false },
                         {
