@@ -807,7 +807,7 @@
                 const version = now.toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `数据版本: ${version}<br>代码版本: v2.1.1-antigravity`;
+                $('versionInfo').innerHTML = `载入时间: ${version}<br>代码版本: v2.1.2-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -948,7 +948,44 @@
         };
 
         const Actions = {
-            async add() { const n = await Modal.prompt('任务名称'); if (n) State.addAsg(n); },
+            async add() {
+                const now = new Date();
+                const m = (now.getMonth() + 1).toString().padStart(2, '0');
+                const d = now.getDate().toString().padStart(2, '0');
+                const def = `${m}${d}作业`;
+                const alt = `${m}${d}小测`;
+
+                const c = document.createElement('div');
+                const inp = document.createElement('input');
+                inp.className = 'input-ui';
+                inp.value = def;
+
+                const acts = document.createElement('div');
+                acts.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+
+                const mkBtn = (t, v) => {
+                    const b = document.createElement('button');
+                    b.className = 'btn btn-c';
+                    b.style.cssText = 'padding:4px 10px;font-size:0.85rem';
+                    b.textContent = t;
+                    b.onclick = () => { inp.value = v; inp.focus(); };
+                    return b;
+                };
+
+                acts.append(mkBtn('清空', ''), mkBtn(alt, alt));
+                c.append(inp, acts);
+                setTimeout(() => inp.focus(), 50);
+
+                const n = await Modal.show({
+                    title: '新建任务',
+                    content: c,
+                    btns: [
+                        { text: '取消', type: 'btn-c', val: false },
+                        { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }
+                    ]
+                });
+                if (n) State.addAsg(n);
+            },
             async del() { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) { State.data = State.data.filter(a => a.id !== State.curId); State.curId = State.data[0].id; State.save(); } else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); },
             async score(id, name) {
                 const s = await Modal.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '', 'number');
