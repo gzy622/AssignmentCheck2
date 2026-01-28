@@ -24,6 +24,16 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        body.no-animations * {
+            animation: none !important;
+            transition: none !important;
+        }
+
+        body.no-animations .modal-card {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background: var(--bg);
@@ -733,6 +743,7 @@
                     <button class="menu-item" act="stats">统计数据</button>
                     <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
+                    <button class="menu-item" act="toggleAnim" id="btnAnim">显示动画: 开</button>
                     <button class="menu-item" act="exp">导出备份</button>
                     <button class="menu-item" act="imp">导入备份</button>
                     <button class="menu-item danger" act="del">删除任务</button>
@@ -764,16 +775,18 @@
     <script>
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster' };
+        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
 
         const State = {
-            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false,
+            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
             init() {
                 this.list = LS.get(KEYS.LIST, Array.from({ length: 49 }, (_, i) => `${(i + 1 + '').padStart(2, '0')} 学生${i + 1}`));
                 this.parseRoster();
                 this.data = LS.get(KEYS.DATA, []);
+                this.animations = LS.get(KEYS.ANIM, true);
                 if (!this.data.length) this.addAsg('任务 1');
                 this.curId = this.data[this.data.length - 1].id;
+                this.applyAnim();
                 UI.init();
             },
             parseRoster() {
@@ -783,9 +796,14 @@
                 });
             },
             save() { LS.set(KEYS.DATA, this.data); LS.set(KEYS.LIST, this.list); UI.render(); },
+            saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
+            applyAnim() {
+                document.body.classList.toggle('no-animations', !this.animations);
+                $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
+            },
             get cur() { return this.data.find(a => a.id === this.curId) || this.data[0]; },
             addAsg(n) { this.data.push({ id: Date.now(), name: n, records: {} }); this.curId = this.data[this.data.length - 1].id; this.save(); },
-            updRec(id, val) { const r = this.cur.records; r[id] = { ...(r[id] || { done: false }), ...val }; this.save(); }
+            updRec(id, val) { const r = this.cur.records; r[id] = { ...r[id], ...val }; this.save(); }
         };
 
         const UI = {
@@ -806,7 +824,7 @@
                 const now = new Date().toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.1.3-antigravity`;
+                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.0-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -920,6 +938,7 @@
                 };
 
                 // Wait for animation
+                if (!State.animations) return cleanup();
                 const anim = this.el.getAnimations()[0];
                 if (anim && anim.finished) {
                     anim.finished.then(cleanup);
@@ -947,15 +966,16 @@
         };
 
         const Actions = {
+            toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
             async add() {
                 const d = new Date(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0');
                 const def = `${m}${dd}作业`, alt = `${m}${dd}小测`;
                 const c = document.createElement('div');
                 c.innerHTML = `<input class="input-ui" value="${def}"><div style="display:flex;gap:8px;margin-top:8px">
-                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" v="">清空</button>
-                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" v="${alt}">${alt}</button></div>`;
+                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="">清空</button>
+                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="${alt}">${alt}</button></div>`;
                 const inp = c.firstChild;
-                c.onclick = e => { const v = e.target.getAttribute('v'); if (v != null) { inp.value = v; inp.focus(); } };
+                c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
                 setTimeout(() => inp.focus(), 50);
                 const n = await Modal.show({ title: '新建任务', content: c, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
                 if (n) State.addAsg(n);
@@ -980,19 +1000,29 @@
                 });
             },
             stats() {
-                const sel = new Set(State.data.map(a => a.id)), c = document.createElement('div'); c.className = 'st-layout';
+                const sel = new Set(State.data.map(a => a.id)), c = document.createElement('div');
+                c.className = 'st-layout';
                 c.innerHTML = `<div class="st-nav"><h2 class="st-title">统计概览</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
                     <div class="st-scroll-area"><div class="st-summary" id="stSum"></div><div class="st-filters" id="stFil"></div><div class="st-card-table" id="stTab"></div></div>`;
+
+                const ui = { sum: c.querySelector('#stSum'), fil: c.querySelector('#stFil'), tab: c.querySelector('#stTab') };
+                ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
+
                 const upd = () => {
-                    const tgs = State.data.filter(a => sel.has(a.id)), rows = State.roster.map((s, i) => {
-                        const dones = tgs.map(t => !!t.records[s.id]?.done), rate = Math.round(dones.filter(Boolean).length / tgs.length * 100) || 0;
+                    const tgs = State.data.filter(a => sel.has(a.id));
+                    const rows = State.roster.map((s, i) => {
+                        const dones = tgs.map(t => !!t.records[s.id]?.done);
+                        const rate = Math.round(dones.filter(Boolean).length / tgs.length * 100) || 0;
                         return { ...s, dones, rate, i };
                     }).sort((a, b) => b.rate - a.rate || a.i - b.i);
-                    c.querySelector('#stSum').innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
+
+                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
                         <div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
-                    const fil = c.querySelector('#stFil'), h = State.data.map(a => `<div class="st-chip ${sel.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`).reverse().join('');
-                    if (fil.innerHTML !== h) { fil.innerHTML = h; fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } } };
-                    c.querySelector('#stTab').innerHTML = `<div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>` +
+
+                    const h = State.data.map(a => `<div class="st-chip ${sel.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`).reverse().join('');
+                    if (ui.fil.innerHTML !== h) ui.fil.innerHTML = h;
+
+                    ui.tab.innerHTML = `<div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>` +
                         rows.map(r => `<div class="st-row"><div class="st-user"><span class="st-name">${r.name}</span><span class="st-id">${r.id}</span></div>
                             <div class="st-visual">${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}</div>
                             <div class="st-rate" style="color:${r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit'}">${r.rate}%</div></div>`).join('');
@@ -1010,8 +1040,8 @@
                     try {
                         const d = JSON.parse(ev.target.result);
                         if (await Modal.confirm('覆盖现有数据？')) {
-                            State.list = d.list; State.parseRoster(); State.data = d.data; State.curId = State.data[0].id;
-                            State.save(); UI.render(); UI.updateVersion(); Modal.alert('导入成功');
+                            Object.assign(State, { list: d.list, data: d.data, curId: d.data[0].id });
+                            State.parseRoster(); State.save(); UI.render(); UI.updateVersion(); Modal.alert('导入成功');
                         }
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
