@@ -204,16 +204,23 @@
         }
 
         body.mode-names .student-id {
-            font-size: 0.9rem;
-            margin-bottom: 2px;
+            position: absolute;
+            top: 4px;
+            left: 5px;
+            font-size: 0.85rem;
+            margin: 0;
+            line-height: 1;
         }
 
         body.mode-names .student-name {
             display: block;
+            width: 100%;
+            padding: 0 4px;
+            text-align: center;
+            font-size: 1rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 90%;
         }
 
         /* Menu & Dialogs */
@@ -824,7 +831,7 @@
                 const now = new Date().toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.0-antigravity`;
+                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.1-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
