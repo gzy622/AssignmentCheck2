@@ -340,7 +340,7 @@
         }
 
         dialog[open] .modal-card {
-            animation: zoom-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) 0.05s forwards;
+            animation: zoom-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
 
         dialog.is-closing .modal-card {
@@ -831,7 +831,7 @@
                 const now = new Date().toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.1-antigravity`;
+                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.2-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -961,7 +961,7 @@
                 input.className = 'input-ui';
                 input.value = val;
                 if (type === 'number') { input.type = 'number'; input.inputMode = 'numeric'; }
-                setTimeout(() => input.focus(), 100);
+                setTimeout(() => input.focus(), 400);
                 return this.show({
                     title, content: input,
                     btns: [
@@ -983,7 +983,7 @@
                     <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="${alt}">${alt}</button></div>`;
                 const inp = c.firstChild;
                 c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
-                setTimeout(() => inp.focus(), 50);
+                setTimeout(() => inp.focus(), 400);
                 const n = await Modal.show({ title: '新建任务', content: c, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
                 if (n) State.addAsg(n);
             },
