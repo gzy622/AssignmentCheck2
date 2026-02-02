@@ -135,7 +135,7 @@
         main {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
             gap: 10px;
             overflow-y: auto;
             align-content: start;
@@ -144,7 +144,7 @@
 
         @media (max-width: 600px) {
             main {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(4, 1fr);
             }
         }
 
@@ -219,7 +219,7 @@
             width: 100%;
             padding: 0 4px;
             text-align: center;
-            font-size: 1rem;
+            font-size: 0.85rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -833,7 +833,7 @@
                 const now = new Date().toLocaleString('zh-CN', {
                     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 });
-                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.5-antigravity`;
+                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.6-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
