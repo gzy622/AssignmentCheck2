@@ -45,6 +45,14 @@
             overflow: hidden;
         }
 
+        body.modal-open {
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100%;
+            overflow: hidden;
+        }
+
         header {
             background: var(--card);
             border-radius: 0 0 16px 16px;
@@ -135,94 +143,113 @@
         main {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-            gap: 10px;
-            overflow-y: auto;
-            align-content: start;
-            padding: 10px;
-        }
-
-        @media (max-width: 600px) {
-            main {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            grid-template-columns: repeat(var(--grid-cols, 7), minmax(0, var(--cell-size, 72px)));
+            grid-template-rows: repeat(var(--grid-rows, 7), minmax(0, var(--cell-size, 72px)));
+            gap: var(--grid-gap, 8px);
             justify-content: center;
+            align-content: center;
+            overflow: hidden;
+            padding: 8px;
+            min-height: 0;
+        }
+
+        .student-card {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius, 10px);
+            background: linear-gradient(160deg, #ffffff, #f8fafc);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+            display: grid;
+            grid-template-rows: 1fr;
+            gap: 2px;
+            place-items: center;
+            padding: var(--card-pad, 6px);
+            position: relative;
             cursor: pointer;
             user-select: none;
-            position: relative;
-            transition: 0.1s;
             touch-action: manipulation;
             min-width: 0;
             overflow: hidden;
+            transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
         }
 
-        .card:active {
-            transform: scale(0.95);
+        .student-card:active {
+            transform: scale(0.96);
         }
 
-        .card.done {
-            background: var(--success);
-            border-color: #146c43;
-            color: white;
+        .student-card.done {
+            background: linear-gradient(160deg, #2f9c6a, #1f8254);
+            border-color: #1a7449;
+            box-shadow: 0 3px 10px rgba(47, 156, 106, 0.3);
         }
 
-        .student-id {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--muted);
-            pointer-events: none;
-        }
-
-        .student-name {
-            display: none;
-            font-size: 0.75rem;
-            pointer-events: none;
-        }
-
-        .card.done .student-id {
-            color: #fff;
-        }
-
-        .score-tag {
-            background: #ffc107;
-            color: #000;
-            font-size: 0.65rem;
+        .card-id {
+            font-size: var(--id-size, 1.4rem);
             font-weight: 800;
-            padding: 2px 4px;
-            border-radius: 4px;
-            position: absolute;
-            top: 4px;
-            right: 4px;
-        }
-
-        body.mode-names .student-id {
-            position: absolute;
-            top: 4px;
-            left: 5px;
-            font-size: 0.85rem;
-            margin: 0;
+            color: #495057;
             line-height: 1;
+            font-variant-numeric: tabular-nums;
+            pointer-events: none;
+            letter-spacing: -0.02em;
+            text-align: center;
+            width: 100%;
         }
 
-        body.mode-names .student-name {
-            display: block;
+        .card-name {
+            display: none;
             width: 100%;
-            padding: 0 4px;
             text-align: center;
-            font-size: 0.85rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: #5c6670;
+            font-size: var(--name-size, 0.75rem);
+            font-weight: 600;
+            pointer-events: none;
+            padding: 0 2px;
+        }
+
+        .student-card.done .card-id,
+        .student-card.done .card-name {
+            color: #fff;
+        }
+
+        .card-score {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            min-width: 18px;
+            text-align: center;
+            background: #ffc107;
+            color: #111;
+            font-size: var(--tag-size, 0.65rem);
+            font-weight: 800;
+            line-height: 1;
+            padding: 3px 5px;
+            border-radius: 999px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+        }
+
+        .card-score[hidden] {
+            display: none;
+        }
+
+        body.mode-names .card-id {
+            justify-self: start;
+            align-self: start;
+            font-size: var(--id-corner-size, 0.85rem);
+        }
+
+        body.mode-names .student-card {
+            grid-template-rows: auto 1fr;
+        }
+
+        body.mode-names .card-name {
+            display: block;
+            align-self: center;
+            font-size: calc(var(--name-size, 0.85rem) * 1.25);
         }
 
         /* Menu & Dialogs */
@@ -269,21 +296,13 @@
             margin: 4px 0;
         }
 
-        .menu-version {
-            padding: 8px 14px;
-            font-size: 0.75rem;
-            color: var(--muted);
-            text-align: center;
-            font-family: monospace;
-        }
-
         /* Modal System */
         dialog {
             border: none;
             padding: 0;
             margin: 0;
-            width: 100%;
-            height: 100dvh;
+            width: 100vw;
+            height: var(--modal-vh, 100dvh);
             max-width: none;
             max-height: none;
             background: rgba(0, 0, 0, 0.4);
@@ -295,23 +314,20 @@
             top: 0;
             left: 0;
             z-index: 1000;
-            overflow-y: auto;
+            overflow: hidden auto;
             opacity: 0;
+            pointer-events: none;
+            padding: var(--modal-top-gap, 16px) 0 var(--modal-bottom-gap, 16px);
         }
 
-        dialog::backdrop {
-            background: transparent;
-        }
-
-        /* Active State */
-        dialog[open],
+        dialog.is-open,
         dialog.is-closing {
             display: flex;
             opacity: 1;
+            pointer-events: auto;
         }
 
-        /* Entry Animation */
-        dialog[open] {
+        dialog.is-open {
             animation: fade-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
 
@@ -328,20 +344,16 @@
             max-width: 400px;
             display: flex;
             flex-direction: column;
-            margin: auto;
-            margin-bottom: auto;
-            /* ensure bottom space */
-            /* Transform Base */
+            margin: 0 auto;
             transform: scale(0.95) translateY(10px);
             opacity: 0;
             transition: none;
-            /* Managed by keyframes */
             overflow: hidden;
             flex-shrink: 0;
-            /* Prevent squishing */
+            max-height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 16px) - var(--modal-bottom-gap, 16px));
         }
 
-        dialog[open] .modal-card {
+        dialog.is-open .modal-card {
             animation: zoom-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
 
@@ -457,9 +469,9 @@
         dialog.full .modal-card {
             max-width: 100%;
             width: 100%;
-            height: 100%;
+            height: var(--modal-vh, 100dvh);
             border-radius: 0;
-            max-height: 100%;
+            max-height: var(--modal-vh, 100dvh);
         }
 
         dialog.full .modal-body {
@@ -756,8 +768,6 @@
                     <button class="menu-item" act="exp">导出备份</button>
                     <button class="menu-item" act="imp">导入备份</button>
                     <button class="menu-item danger" act="del">删除任务</button>
-                    <div class="divider"></div>
-                    <div class="menu-version" id="versionInfo"></div>
                 </div>
             </div>
         </div>
@@ -789,7 +799,7 @@
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
             init() {
-                this.list = LS.get(KEYS.LIST, Array.from({ length: 49 }, (_, i) => `${(i + 1 + '').padStart(2, '0')} 学生${i + 1}`));
+                this.list = LS.get(KEYS.LIST, Array.from({ length: 50 }, (_, i) => `${(i + 1 + '').padStart(2, '0')} 学生${i + 1}`));
                 this.parseRoster();
                 this.data = LS.get(KEYS.DATA, []);
                 this.animations = LS.get(KEYS.ANIM, true);
@@ -817,7 +827,7 @@
 
         const UI = {
             init() {
-                window.onpopstate = () => { const d = document.querySelector('dialog[open]'); if (d) Modal.close(); };
+                window.onpopstate = () => { if (Modal.isOpen) Modal.close(false); };
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
                 $('btnScore').onclick = e => e.target.classList.toggle('active', State.scoring = !State.scoring);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
@@ -826,14 +836,8 @@
                 $('menu').onclick = e => { const act = e.target.getAttribute('act'); if (act && Actions[act]) Actions[act](); };
                 $('fileIn').onchange = Actions.handleFile;
                 this.setupGrid();
+                this.setupGridSizing();
                 this.render();
-                this.updateVersion();
-            },
-            updateVersion() {
-                const now = new Date().toLocaleString('zh-CN', {
-                    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                });
-                $('versionInfo').innerHTML = `载入时间: ${now}<br>代码版本: v2.2.6-antigravity`;
             },
             setupGrid() {
                 let timer, startPos = { x: 0, y: 0 };
@@ -843,17 +847,120 @@
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
                 $('grid').onpointerdown = e => {
-                    const c = e.target.closest('.card'); if (!c) return;
+                    const c = e.target.closest('.student-card'); if (!c) return;
                     startPos = { x: e.clientX, y: e.clientY };
                     timer = setTimeout(() => { timer = null; handle(c, true); }, 500);
                 };
                 $('grid').onpointerup = e => {
-                    if (timer) { clearTimeout(timer); timer = null; const c = e.target.closest('.card'); if (c) handle(c, false); }
+                    if (timer) { clearTimeout(timer); timer = null; const c = e.target.closest('.student-card'); if (c) handle(c, false); }
                 };
                 $('grid').onpointermove = e => {
                     if (timer && (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 10)) { clearTimeout(timer); timer = null; }
                 };
                 $('grid').onpointerleave = () => { if (timer) { clearTimeout(timer); timer = null; } };
+            },
+            setupGridSizing() {
+                const grid = $('grid');
+                const refresh = () => this.scheduleGridLayout();
+                this._gridResizeObserver = new ResizeObserver(refresh);
+                this._gridResizeObserver.observe(grid);
+                window.addEventListener('resize', refresh, { passive: true });
+                if (window.visualViewport) window.visualViewport.addEventListener('resize', refresh, { passive: true });
+                this.scheduleGridLayout();
+            },
+            scheduleGridLayout() {
+                cancelAnimationFrame(this._gridLayoutRaf || 0);
+                this._gridLayoutRaf = requestAnimationFrame(() => this.updateGridMetrics());
+            },
+            calcGridLayout(count, width, height) {
+                const safeCount = Math.max(1, count || 1);
+                const cols = 5;
+                const rows = Math.ceil(safeCount / cols);
+                const baseGap = Math.max(4, Math.min(10, Math.round(Math.min(width, height) / 95)));
+                const calcCell = gap => Math.floor(Math.min((width - gap * (cols - 1)) / cols, (height - gap * (rows - 1)) / rows));
+                let gap = baseGap;
+                let cell = calcCell(gap);
+                if (cell < 24) {
+                    gap = 2;
+                    cell = calcCell(gap);
+                }
+                cell = Math.max(18, cell);
+
+                return {
+                    cols,
+                    rows,
+                    gap,
+                    cell,
+                    idSize: Math.max(12, Math.min(44, Math.round(cell * 0.34))),
+                    idCornerSize: Math.max(9, Math.min(16, Math.round(cell * 0.2))),
+                    nameSize: Math.max(9, Math.min(18, Math.round(cell * 0.16))),
+                    tagSize: Math.max(8, Math.min(13, Math.round(cell * 0.12))),
+                    cardPad: Math.max(3, Math.min(8, Math.round(cell * 0.08))),
+                    cardRadius: Math.max(8, Math.min(16, Math.round(cell * 0.15)))
+                };
+            },
+            updateGridMetrics() {
+                const grid = $('grid');
+                const count = Math.max(1, State.roster.length || 1);
+                const style = getComputedStyle(grid);
+                const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+                const width = Math.max(0, grid.clientWidth - paddingX);
+                const height = Math.max(0, grid.clientHeight - paddingY);
+                if (!width || !height) return;
+
+                const metrics = this.calcGridLayout(count, width, height);
+                grid.style.setProperty('--grid-cols', metrics.cols);
+                grid.style.setProperty('--grid-rows', metrics.rows);
+                grid.style.setProperty('--grid-gap', `${metrics.gap}px`);
+                grid.style.setProperty('--cell-size', `${metrics.cell}px`);
+                grid.style.setProperty('--id-size', `${metrics.idSize}px`);
+                grid.style.setProperty('--id-corner-size', `${metrics.idCornerSize}px`);
+                grid.style.setProperty('--name-size', `${metrics.nameSize}px`);
+                grid.style.setProperty('--tag-size', `${metrics.tagSize}px`);
+                grid.style.setProperty('--card-pad', `${metrics.cardPad}px`);
+                grid.style.setProperty('--card-radius', `${metrics.cardRadius}px`);
+            },
+            createCard() {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'student-card';
+                card.innerHTML = `<span class="card-id"></span><span class="card-name"></span><span class="card-score" hidden></span>`;
+                return card;
+            },
+            syncCardPool() {
+                const grid = $('grid');
+                const target = State.roster.length;
+                while (grid.children.length < target) grid.appendChild(this.createCard());
+                while (grid.children.length > target) grid.lastElementChild.remove();
+            },
+            renderCard(card, stu, rec) {
+                if (card.dataset.id !== stu.id) card.dataset.id = stu.id;
+                if (card.dataset.name !== stu.name) card.dataset.name = stu.name;
+
+                const idEl = card.children[0];
+                const nameEl = card.children[1];
+                const scoreEl = card.children[2];
+
+                if (idEl.textContent !== stu.id) idEl.textContent = stu.id;
+                if (nameEl.textContent !== stu.name) nameEl.textContent = stu.name;
+
+                const done = !!rec.done;
+                card.classList.toggle('done', done);
+
+                if (rec.score != null && rec.score !== '') {
+                    if (scoreEl.hidden) scoreEl.hidden = false;
+                    const scoreText = String(rec.score);
+                    if (scoreEl.textContent !== scoreText) scoreEl.textContent = scoreText;
+                } else if (!scoreEl.hidden) {
+                    scoreEl.hidden = true;
+                    scoreEl.textContent = '';
+                }
+            },
+            renderProgress(doneCount) {
+                const total = State.roster.length;
+                $('counter').textContent = `${doneCount}/${total}`;
+                $('progressFill').style.width = total ? `${(doneCount / total) * 100}%` : '0%';
             },
             render() {
                 const asg = State.cur; if (!asg) return;
@@ -861,37 +968,17 @@
                 if (sel.children.length !== State.data.length) sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                 if (sel.value != State.curId) sel.value = State.curId;
 
-                const grid = $('grid');
-                const existing = grid.children;
-                while (existing.length > State.roster.length) grid.lastElementChild.remove();
+                this.syncCardPool();
+                const cards = $('grid').children;
 
                 let doneCount = 0;
                 State.roster.forEach((stu, i) => {
-                    let card = existing[i];
-                    if (!card) {
-                        card = document.createElement('div'); card.className = 'card';
-                        card.innerHTML = `<span class="student-id"></span><span class="student-name"></span>`;
-                        grid.appendChild(card);
-                    }
                     const rec = asg.records[stu.id] || {};
                     if (rec.done) doneCount++;
-
-                    if (card.dataset.id !== stu.id) card.dataset.id = stu.id;
-                    if (card.dataset.name !== stu.name) card.dataset.name = stu.name;
-                    if (card.firstElementChild.textContent !== stu.id) card.firstElementChild.textContent = stu.id;
-                    if (card.firstElementChild.nextElementSibling.textContent !== stu.name) card.firstElementChild.nextElementSibling.textContent = stu.name;
-
-                    card.classList.toggle('done', !!rec.done);
-
-                    let tag = card.lastElementChild;
-                    if (!tag.classList.contains('score-tag')) tag = null;
-                    if (rec.score != null) {
-                        if (!tag) { tag = document.createElement('div'); tag.className = 'score-tag'; card.appendChild(tag); }
-                        if (tag.textContent != rec.score) tag.textContent = rec.score;
-                    } else if (tag) tag.remove();
+                    this.renderCard(cards[i], stu, rec);
                 });
-                $('counter').textContent = `${doneCount}/${State.roster.length}`;
-                $('progressFill').style.width = `${(doneCount / State.roster.length) * 100}%`;
+                this.renderProgress(doneCount);
+                this.scheduleGridLayout();
             }
         };
 
@@ -903,22 +990,95 @@
             footer: $('modal').querySelector('.modal-footer'),
             closeBtn: $('modal').querySelector('.modal-close'),
             header: $('modal').querySelector('.modal-header'),
+            isOpen: false,
+            isClosing: false,
+            isFull: false,
             resolve: null,
+            _scrollY: 0,
+            _layoutRaf: 0,
+            _viewportHandler: null,
+            _focusHandler: null,
 
             init() {
                 this.closeBtn.onclick = () => this.close(false);
                 this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
-                this.el.addEventListener('close', () => { if (this.resolve) this.resolve(false); this.resolve = null; });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) this.close(false);
+                });
+            },
+
+            lockBody() {
+                this._scrollY = window.scrollY || 0;
+                document.body.classList.add('modal-open');
+                document.body.style.top = `-${this._scrollY}px`;
+            },
+
+            unlockBody() {
+                document.body.classList.remove('modal-open');
+                document.body.style.top = '';
+                window.scrollTo(0, this._scrollY || 0);
+            },
+
+            bindViewport() {
+                this.unbindViewport();
+                this._viewportHandler = () => this.scheduleLayout();
+                this._focusHandler = () => this.scheduleLayout();
+                window.addEventListener('resize', this._viewportHandler, { passive: true });
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', this._viewportHandler, { passive: true });
+                    window.visualViewport.addEventListener('scroll', this._viewportHandler, { passive: true });
+                }
+                document.addEventListener('focusin', this._focusHandler);
+            },
+
+            unbindViewport() {
+                if (this._viewportHandler) {
+                    window.removeEventListener('resize', this._viewportHandler);
+                    if (window.visualViewport) {
+                        window.visualViewport.removeEventListener('resize', this._viewportHandler);
+                        window.visualViewport.removeEventListener('scroll', this._viewportHandler);
+                    }
+                    this._viewportHandler = null;
+                }
+                if (this._focusHandler) {
+                    document.removeEventListener('focusin', this._focusHandler);
+                    this._focusHandler = null;
+                }
+                cancelAnimationFrame(this._layoutRaf || 0);
+                this._layoutRaf = 0;
+            },
+
+            scheduleLayout() {
+                if (!this.isOpen) return;
+                cancelAnimationFrame(this._layoutRaf || 0);
+                this._layoutRaf = requestAnimationFrame(() => this.updateLayout());
+            },
+
+            updateLayout() {
+                if (!this.isOpen) return;
+                const vv = window.visualViewport;
+                const vpH = Math.round(vv ? vv.height : window.innerHeight);
+                const vpTop = Math.round(vv ? vv.offsetTop : 0);
+                const keyboardInset = Math.max(0, Math.round(window.innerHeight - (vv ? vv.height + vv.offsetTop : window.innerHeight)));
+
+                const topGap = this.isFull ? 0 : Math.max(10, vpTop + 12);
+                const bottomGap = this.isFull ? 0 : Math.max(10, keyboardInset + 12);
+
+                this.el.style.setProperty('--modal-vh', `${vpH}px`);
+                this.el.style.setProperty('--modal-top-gap', `${topGap}px`);
+                this.el.style.setProperty('--modal-bottom-gap', `${bottomGap}px`);
             },
 
             show({ title, content, type = 'normal', btns = [] }) {
+                if (this.isOpen) this.forceClose(false);
                 this.title.textContent = title || '';
                 this.body.innerHTML = '';
                 if (typeof content === 'string') this.body.innerHTML = content;
                 else this.body.appendChild(content);
 
                 this.el.className = ''; // Reset class
-                if (type === 'full') this.el.classList.add('full');
+                this.isFull = type === 'full';
+                if (this.isFull) this.el.classList.add('full');
                 this.header.style.display = type === 'full' ? 'none' : 'flex';
 
                 this.footer.innerHTML = '';
@@ -932,28 +1092,55 @@
                     this.footer.appendChild(btn);
                 });
 
-                this.el.showModal();
+                this.isOpen = true;
+                this.isClosing = false;
+                this.el.classList.add('is-open');
+                this.lockBody();
+                this.bindViewport();
+                this.scheduleLayout();
                 return new Promise(r => this.resolve = r);
             },
 
             close(val) {
-                if (this.el.classList.contains('is-closing')) return;
+                if (!this.isOpen || this.isClosing) return;
+                this.isClosing = true;
                 this.el.classList.add('is-closing');
+                this.el.classList.remove('is-open');
 
                 const cleanup = () => {
                     this.el.classList.remove('is-closing');
-                    this.el.close();
-                    if (this.resolve) { this.resolve(val); this.resolve = null; }
+                    this.el.classList.remove('full');
+                    this.isOpen = false;
+                    this.isClosing = false;
+                    this.isFull = false;
+                    this.unbindViewport();
+                    this.unlockBody();
+                    this.el.style.removeProperty('--modal-vh');
+                    this.el.style.removeProperty('--modal-top-gap');
+                    this.el.style.removeProperty('--modal-bottom-gap');
+                    const resolver = this.resolve;
+                    this.resolve = null;
+                    if (resolver) resolver(val);
                 };
 
-                // Wait for animation
                 if (!State.animations) return cleanup();
-                const anim = this.el.getAnimations()[0];
-                if (anim && anim.finished) {
-                    anim.finished.then(cleanup);
-                } else {
-                    setTimeout(cleanup, 200); // Fallback
-                }
+                setTimeout(cleanup, 220);
+            },
+
+            forceClose(val = false) {
+                if (!this.isOpen) return;
+                this.el.classList.remove('is-open', 'is-closing', 'full');
+                this.isOpen = false;
+                this.isClosing = false;
+                this.isFull = false;
+                this.unbindViewport();
+                this.unlockBody();
+                this.el.style.removeProperty('--modal-vh');
+                this.el.style.removeProperty('--modal-top-gap');
+                this.el.style.removeProperty('--modal-bottom-gap');
+                const resolver = this.resolve;
+                this.resolve = null;
+                if (resolver) resolver(val);
             },
 
             alert(msg) { return this.show({ title: '提示', content: msg, btns: [{ text: '确定', type: 'btn-p', val: true }] }); },
@@ -1050,7 +1237,7 @@
                         const d = JSON.parse(ev.target.result);
                         if (await Modal.confirm('覆盖现有数据？')) {
                             Object.assign(State, { list: d.list, data: d.data, curId: d.data[0].id });
-                            State.parseRoster(); State.save(); UI.render(); UI.updateVersion(); Modal.alert('导入成功');
+                            State.parseRoster(); State.save(); UI.render(); Modal.alert('导入成功');
                         }
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
