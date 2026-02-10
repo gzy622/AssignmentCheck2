@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=overlays-content">
     <title>作业极速登记Pro</title>
     <style>
         :root {
@@ -50,6 +50,7 @@
             left: 0;
             right: 0;
             width: 100%;
+            height: var(--locked-body-height, 100vh);
             overflow: hidden;
         }
 
@@ -1026,6 +1027,7 @@
 
             lockBody() {
                 this._scrollY = window.scrollY || 0;
+                document.body.style.setProperty('--locked-body-height', `${window.innerHeight}px`);
                 document.body.classList.add('modal-open');
                 document.body.style.top = `-${this._scrollY}px`;
             },
@@ -1033,6 +1035,7 @@
             unlockBody() {
                 document.body.classList.remove('modal-open');
                 document.body.style.top = '';
+                document.body.style.removeProperty('--locked-body-height');
                 window.scrollTo(0, this._scrollY || 0);
             },
 
