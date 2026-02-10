@@ -1173,6 +1173,13 @@
                 input.className = 'input-ui';
                 input.value = val;
                 if (type === 'number') { input.type = 'number'; input.inputMode = 'numeric'; }
+                input.enterKeyHint = 'done';
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.isComposing) {
+                        e.preventDefault();
+                        this.close(input.value);
+                    }
+                });
                 setTimeout(() => input.focus({ preventScroll: true }), 50);
                 return this.show({
                     title, content: input,
