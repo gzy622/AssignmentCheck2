@@ -143,13 +143,13 @@
         main {
             flex: 1;
             display: grid;
-            grid-template-columns: repeat(var(--grid-cols, 7), minmax(0, var(--cell-size, 72px)));
-            grid-template-rows: repeat(var(--grid-rows, 7), minmax(0, var(--cell-size, 72px)));
+            grid-template-columns: repeat(var(--grid-cols, 5), minmax(0, var(--cell-w, 72px)));
+            grid-template-rows: repeat(var(--grid-rows, 10), minmax(0, var(--cell-h, 72px)));
             gap: var(--grid-gap, 8px);
-            justify-content: center;
-            align-content: center;
+            justify-content: stretch;
+            align-content: stretch;
             overflow: hidden;
-            padding: 8px;
+            padding: 4px;
             min-height: 0;
         }
 
@@ -237,19 +237,23 @@
         }
 
         body.mode-names .card-id {
-            justify-self: start;
-            align-self: start;
+            position: absolute;
+            top: 4px;
+            left: 5px;
             font-size: var(--id-corner-size, 0.85rem);
-        }
-
-        body.mode-names .student-card {
-            grid-template-rows: auto 1fr;
+            width: auto;
+            text-align: left;
         }
 
         body.mode-names .card-name {
             display: block;
-            align-self: center;
+            position: absolute;
+            left: 50%;
+            top: 60%;
+            transform: translate(-50%, -50%);
+            width: calc(100% - 10px);
             font-size: calc(var(--name-size, 0.85rem) * 1.25);
+            text-align: center;
         }
 
         /* Menu & Dialogs */
@@ -877,26 +881,32 @@
                 const cols = 5;
                 const rows = Math.ceil(safeCount / cols);
                 const baseGap = Math.max(4, Math.min(10, Math.round(Math.min(width, height) / 95)));
-                const calcCell = gap => Math.floor(Math.min((width - gap * (cols - 1)) / cols, (height - gap * (rows - 1)) / rows));
+                const calcSize = gap => ({
+                    cellW: (width - gap * (cols - 1)) / cols,
+                    cellH: (height - gap * (rows - 1)) / rows
+                });
                 let gap = baseGap;
-                let cell = calcCell(gap);
-                if (cell < 24) {
+                let size = calcSize(gap);
+                let base = Math.min(size.cellW, size.cellH);
+                if (base < 24) {
                     gap = 2;
-                    cell = calcCell(gap);
+                    size = calcSize(gap);
+                    base = Math.min(size.cellW, size.cellH);
                 }
-                cell = Math.max(18, cell);
+                base = Math.max(18, base);
 
                 return {
                     cols,
                     rows,
                     gap,
-                    cell,
-                    idSize: Math.max(12, Math.min(44, Math.round(cell * 0.34))),
-                    idCornerSize: Math.max(9, Math.min(16, Math.round(cell * 0.2))),
-                    nameSize: Math.max(9, Math.min(18, Math.round(cell * 0.16))),
-                    tagSize: Math.max(8, Math.min(13, Math.round(cell * 0.12))),
-                    cardPad: Math.max(3, Math.min(8, Math.round(cell * 0.08))),
-                    cardRadius: Math.max(8, Math.min(16, Math.round(cell * 0.15)))
+                    cellW: Math.max(18, size.cellW),
+                    cellH: Math.max(18, size.cellH),
+                    idSize: Math.max(12, Math.min(44, Math.round(base * 0.34))),
+                    idCornerSize: Math.max(9, Math.min(16, Math.round(base * 0.2))),
+                    nameSize: Math.max(9, Math.min(20, Math.round(base * 0.18))),
+                    tagSize: Math.max(8, Math.min(13, Math.round(base * 0.12))),
+                    cardPad: Math.max(3, Math.min(8, Math.round(base * 0.08))),
+                    cardRadius: Math.max(8, Math.min(16, Math.round(base * 0.15)))
                 };
             },
             updateGridMetrics() {
@@ -913,7 +923,8 @@
                 grid.style.setProperty('--grid-cols', metrics.cols);
                 grid.style.setProperty('--grid-rows', metrics.rows);
                 grid.style.setProperty('--grid-gap', `${metrics.gap}px`);
-                grid.style.setProperty('--cell-size', `${metrics.cell}px`);
+                grid.style.setProperty('--cell-w', `${metrics.cellW}px`);
+                grid.style.setProperty('--cell-h', `${metrics.cellH}px`);
                 grid.style.setProperty('--id-size', `${metrics.idSize}px`);
                 grid.style.setProperty('--id-corner-size', `${metrics.idCornerSize}px`);
                 grid.style.setProperty('--name-size', `${metrics.nameSize}px`);
