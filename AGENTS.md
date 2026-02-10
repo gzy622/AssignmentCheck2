@@ -53,7 +53,7 @@ If any rule here conflicts with higher-priority instructions (system/developer/u
 - Reference files using clickable inline paths like `src/app.ts:42`.
 - Keep summaries short and actionable.
 - Provide next steps only when they are natural and useful.
-- After completing requested code changes, include a summary in git commit message style (subject line + optional bullet list body).
+- After completing requested code changes, include a summary in git commit message style (subject line + optional bullet list body), and output that git message inside a code block.
 
 ## Security and Safety
 - Never expose secrets from environment variables, config, or local files.
