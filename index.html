@@ -830,6 +830,7 @@
         };
 
         const UI = {
+            _gridFrozen: false,
             init() {
                 window.onpopstate = () => { if (Modal.isOpen) Modal.close(false); };
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
@@ -872,7 +873,12 @@
                 if (window.visualViewport) window.visualViewport.addEventListener('resize', refresh, { passive: true });
                 this.scheduleGridLayout();
             },
+            setGridFrozen(frozen) {
+                this._gridFrozen = !!frozen;
+                if (!this._gridFrozen) this.scheduleGridLayout();
+            },
             scheduleGridLayout() {
+                if (this._gridFrozen) return;
                 cancelAnimationFrame(this._gridLayoutRaf || 0);
                 this._gridLayoutRaf = requestAnimationFrame(() => this.updateGridMetrics());
             },
@@ -1082,6 +1088,7 @@
 
             show({ title, content, type = 'normal', btns = [] }) {
                 if (this.isOpen) this.forceClose(false);
+                UI.setGridFrozen(true);
                 this.title.textContent = title || '';
                 this.body.innerHTML = '';
                 if (typeof content === 'string') this.body.innerHTML = content;
@@ -1126,6 +1133,7 @@
                     this.isFull = false;
                     this.unbindViewport();
                     this.unlockBody();
+                    UI.setGridFrozen(false);
                     this.el.style.removeProperty('--modal-vh');
                     this.el.style.removeProperty('--modal-top-gap');
                     this.el.style.removeProperty('--modal-bottom-gap');
@@ -1146,6 +1154,7 @@
                 this.isFull = false;
                 this.unbindViewport();
                 this.unlockBody();
+                UI.setGridFrozen(false);
                 this.el.style.removeProperty('--modal-vh');
                 this.el.style.removeProperty('--modal-top-gap');
                 this.el.style.removeProperty('--modal-bottom-gap');
