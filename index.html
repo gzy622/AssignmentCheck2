@@ -476,9 +476,9 @@
         dialog.full .modal-card {
             max-width: 100%;
             width: 100%;
-            height: var(--modal-vh, 100dvh);
+            height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 0px) - var(--modal-bottom-gap, 0px));
             border-radius: 0;
-            max-height: var(--modal-vh, 100dvh);
+            max-height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 0px) - var(--modal-bottom-gap, 0px));
         }
 
         dialog.full .modal-body {
@@ -1175,8 +1175,8 @@
                 const vpTop = Math.round(vv ? vv.offsetTop : 0);
                 const keyboardInset = Math.max(0, Math.round(window.innerHeight - (vv ? vv.height + vv.offsetTop : window.innerHeight)));
 
-                const topGap = this.isFull ? 0 : Math.max(10, vpTop + 12);
-                const bottomGap = this.isFull ? 0 : Math.max(10, keyboardInset + 12);
+                const topGap = this.isFull ? vpTop : Math.max(10, vpTop + 12);
+                const bottomGap = this.isFull ? keyboardInset : Math.max(10, keyboardInset + 12);
 
                 this.el.style.setProperty('--modal-vh', `${vpH}px`);
                 this.el.style.setProperty('--modal-top-gap', `${topGap}px`);
