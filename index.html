@@ -89,7 +89,8 @@
         .toolbar {
             display: flex;
             align-items: center;
-            gap: 4px;
+            margin-left: auto;
+            gap: 2px;
         }
 
         .badge {
@@ -106,11 +107,12 @@
             border: none;
             background: transparent;
             color: var(--muted);
-            padding: 6px 8px;
+            padding: 6px 6px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             transition: 0.2s;
+            flex-shrink: 0;
         }
 
         .btn-icon:hover {
@@ -735,6 +737,56 @@
             font-size: 0.95rem;
         }
 
+        .asg-row-view {
+            grid-template-columns: minmax(0, 1fr) 74px 60px;
+        }
+
+        .asg-row-btn {
+            width: 100%;
+            border: none;
+            background: #fff;
+            appearance: none;
+            text-align: left;
+        }
+
+        .asg-row-btn:focus-visible {
+            outline: 2px solid #d0e2ff;
+            outline-offset: -2px;
+        }
+
+        .asg-rate {
+            text-align: right;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .asg-edit-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #f8f9fa;
+            align-items: center;
+        }
+
+        .asg-edit-row:last-child {
+            border-bottom: none;
+        }
+
+        .asg-edit-name {
+            margin: 0;
+        }
+
+        .asg-edit-tools {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-xs {
+            padding: 6px 10px;
+            font-size: 0.78rem;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -757,7 +809,7 @@
             <button id="btnScore" class="btn-icon">打分</button>
             <button id="btnView" class="btn-icon">姓名</button>
             <div style="position: relative;">
-                <button id="btnMenu" class="btn-icon" style="display:flex;padding:6px" title="选项">
+                <button id="btnMenu" class="btn-icon" style="display:flex;padding:6px 4px" title="选项">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                         <circle cx="12" cy="5" r="2" />
                         <circle cx="12" cy="12" r="2" />
@@ -767,6 +819,8 @@
                 <div id="menu" class="dropdown">
                     <button class="menu-item" act="add">新建任务</button>
                     <button class="menu-item" act="stats">统计数据</button>
+                    <button class="menu-item" act="asgView">作业项目展示</button>
+                    <button class="menu-item" act="asgEdit">作业项目编辑</button>
                     <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
                     <button class="menu-item" act="toggleAnim" id="btnAnim">显示动画: 开</button>
@@ -826,7 +880,41 @@
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
             },
             get cur() { return this.data.find(a => a.id === this.curId) || this.data[0]; },
-            addAsg(n) { this.data.push({ id: Date.now(), name: n, records: {} }); this.curId = this.data[this.data.length - 1].id; this.save(); },
+            addAsg(n) {
+                let id = Date.now();
+                while (this.data.some(a => a.id === id)) id++;
+                this.data.push({ id, name: n, records: {} });
+                this.curId = id;
+                this.save();
+            },
+            selectAsg(id) {
+                if (!this.data.some(a => a.id === id)) return;
+                this.curId = id;
+                UI.render();
+            },
+            renameAsg(id, name) {
+                const asg = this.data.find(a => a.id === id);
+                const safeName = (name || '').trim();
+                if (!asg || !safeName) return false;
+                asg.name = safeName;
+                this.save();
+                return true;
+            },
+            removeAsg(id) {
+                if (this.data.length <= 1) return false;
+                const idx = this.data.findIndex(a => a.id === id);
+                if (idx === -1) return false;
+                this.data.splice(idx, 1);
+                if (this.curId === id) {
+                    const fallback = this.data[Math.max(0, idx - 1)] || this.data[0];
+                    this.curId = fallback.id;
+                }
+                this.save();
+                return true;
+            },
+            getAsgDoneCount(asg) {
+                return this.roster.reduce((n, stu) => n + (asg.records?.[stu.id]?.done ? 1 : 0), 0);
+            },
             updRec(id, val) { const r = this.cur.records; r[id] = { ...r[id], ...val }; this.save(); }
         };
 
@@ -839,7 +927,12 @@
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
-                $('menu').onclick = e => { const act = e.target.getAttribute('act'); if (act && Actions[act]) Actions[act](); };
+                $('menu').onclick = e => {
+                    const act = e.target.getAttribute('act');
+                    if (!act || !Actions[act]) return;
+                    $('menu').classList.remove('show');
+                    Actions[act]();
+                };
                 $('fileIn').onchange = Actions.handleFile;
                 this.setupGrid();
                 this.setupGridSizing();
@@ -983,7 +1076,8 @@
             render() {
                 const asg = State.cur; if (!asg) return;
                 const sel = $('asgSelect');
-                if (sel.children.length !== State.data.length) sel.innerHTML = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                if (sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
                 if (sel.value != State.curId) sel.value = State.curId;
 
                 this.syncCardPool();
@@ -1193,6 +1287,14 @@
 
         const Actions = {
             toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
+            buildAsgLayout(title) {
+                const c = document.createElement('div');
+                c.className = 'st-layout';
+                c.style.cssText = 'display:flex;flex-direction:column;height:100%';
+                c.innerHTML = `<div class="st-nav"><h2 class="st-title">${title}</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
+                    <div class="st-scroll-area"></div>`;
+                return { root: c, body: c.querySelector('.st-scroll-area') };
+            },
             async add() {
                 const d = new Date(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0');
                 const def = `${m}${dd}作业`, alt = `${m}${dd}小测`;
@@ -1206,10 +1308,99 @@
                 const n = await Modal.show({ title: '新建任务', content: c, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
                 if (n) State.addAsg(n);
             },
-            async del() { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) { State.data = State.data.filter(a => a.id !== State.curId); State.curId = State.data[0].id; State.save(); } else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); },
+            async del() {
+                if (State.data.length <= 1) return Modal.alert('至少保留一个任务');
+                if (await Modal.confirm('删除此任务？')) State.removeAsg(State.curId);
+            },
             async score(id, name) {
                 const s = await Modal.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '', 'number');
                 if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
+            },
+            asgView() {
+                const { root, body } = this.buildAsgLayout('作业项目展示');
+                const table = document.createElement('div');
+                table.className = 'st-card-table';
+                table.innerHTML = `<div class="st-row st-head asg-row-view"><div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div></div>`;
+
+                State.data.slice().reverse().forEach(asg => {
+                    const total = State.roster.length || 1;
+                    const done = State.getAsgDoneCount(asg);
+                    const rate = Math.round(done / total * 100);
+                    const row = document.createElement('button');
+                    row.type = 'button';
+                    row.className = 'st-row asg-row-view asg-row-btn';
+                    row.style.cursor = 'pointer';
+                    row.dataset.id = String(asg.id);
+                    row.innerHTML = `<div class="st-user"><span class="st-name"></span><span class="st-id"></span></div>
+                        <div class="st-rate"></div>
+                        <div class="asg-rate"></div>`;
+                    row.querySelector('.st-name').textContent = asg.name;
+                    row.querySelector('.st-id').textContent = asg.id === State.curId ? '当前任务' : `ID ${asg.id}`;
+                    row.querySelector('.st-rate').textContent = `${done}/${State.roster.length}`;
+                    const rateEl = row.querySelector('.asg-rate');
+                    rateEl.textContent = `${rate}%`;
+                    rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
+                    table.appendChild(row);
+                });
+
+                table.onclick = e => {
+                    const row = e.target.closest('[data-id]');
+                    if (!row) return;
+                    State.selectAsg(+row.dataset.id);
+                    Modal.close();
+                };
+                body.appendChild(table);
+                Modal.show({ title: '', content: root, type: 'full', btns: [] });
+            },
+            asgEdit() {
+                const { root, body } = this.buildAsgLayout('作业项目编辑');
+                const table = document.createElement('div');
+                table.className = 'st-card-table';
+
+                const renderRows = () => {
+                    table.innerHTML = '';
+                    State.data.slice().reverse().forEach(asg => {
+                        const row = document.createElement('div');
+                        row.className = 'asg-edit-row';
+                        row.dataset.id = String(asg.id);
+                        row.innerHTML = `<div class="asg-edit-tools">
+                                <button class="btn btn-c btn-xs" type="button" data-act="pick">切换</button>
+                                <button class="btn btn-p btn-xs" type="button" data-act="save">保存</button>
+                                <button class="btn btn-d btn-xs" type="button" data-act="del">删除</button>
+                            </div>`;
+                        const input = document.createElement('input');
+                        input.className = 'input-ui asg-edit-name';
+                        input.value = asg.name;
+                        row.prepend(input);
+                        table.appendChild(row);
+                    });
+                };
+
+                table.onclick = async e => {
+                    const btn = e.target.closest('[data-act]');
+                    if (!btn) return;
+                    const row = btn.closest('[data-id]');
+                    if (!row) return;
+                    const id = +row.dataset.id;
+                    const act = btn.dataset.act;
+                    if (act === 'pick') return State.selectAsg(id);
+                    if (act === 'save') {
+                        const input = row.querySelector('.asg-edit-name');
+                        if (!State.renameAsg(id, input.value)) Modal.alert('名称不能为空');
+                        return;
+                    }
+                    if (act === 'del') {
+                        if (State.data.length <= 1) return Modal.alert('至少保留一个任务');
+                        if (await Modal.confirm('删除该作业项目？')) {
+                            State.removeAsg(id);
+                            renderRows();
+                        }
+                    }
+                };
+
+                renderRows();
+                body.appendChild(table);
+                Modal.show({ title: '', content: root, type: 'full', btns: [] });
             },
             roster() {
                 const c = document.createElement('div'); c.className = 'st-layout'; c.style.cssText = 'display:flex;flex-direction:column;height:100%';
