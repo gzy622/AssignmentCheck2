@@ -939,24 +939,49 @@
                 this.render();
             },
             setupGrid() {
-                let timer, startPos = { x: 0, y: 0 };
+                let timer = null, pressCard = null, longPressed = false, startPos = { x: 0, y: 0 };
+                const cancelTimer = () => {
+                    if (!timer) return;
+                    clearTimeout(timer);
+                    timer = null;
+                };
                 const handle = (card, long) => {
                     const { id, name } = card.dataset;
                     if (long || State.scoring) Actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
                 $('grid').onpointerdown = e => {
-                    const c = e.target.closest('.student-card'); if (!c) return;
+                    const c = e.target.closest('.student-card');
+                    if (!c) return;
+                    pressCard = c;
+                    longPressed = false;
                     startPos = { x: e.clientX, y: e.clientY };
-                    timer = setTimeout(() => { timer = null; handle(c, true); }, 500);
+                    cancelTimer();
+                    timer = setTimeout(() => {
+                        timer = null;
+                        longPressed = true;
+                        handle(c, true);
+                    }, 500);
                 };
-                $('grid').onpointerup = e => {
-                    if (timer) { clearTimeout(timer); timer = null; const c = e.target.closest('.student-card'); if (c) handle(c, false); }
+                $('grid').onpointerup = () => {
+                    const c = pressCard;
+                    const wasLongPressed = longPressed;
+                    cancelTimer();
+                    pressCard = null;
+                    longPressed = false;
+                    if (!c || wasLongPressed) return;
+                    handle(c, false);
                 };
                 $('grid').onpointermove = e => {
-                    if (timer && (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 10)) { clearTimeout(timer); timer = null; }
+                    if (!timer) return;
+                    if (Math.abs(e.clientX - startPos.x) > 16 || Math.abs(e.clientY - startPos.y) > 16) cancelTimer();
                 };
-                $('grid').onpointerleave = () => { if (timer) { clearTimeout(timer); timer = null; } };
+                $('grid').onpointercancel = () => {
+                    cancelTimer();
+                    pressCard = null;
+                    longPressed = false;
+                };
+                $('grid').onpointerleave = () => cancelTimer();
             },
             setupGridSizing() {
                 const grid = $('grid');
@@ -1407,6 +1432,22 @@
                 c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
                     <div class="st-scroll-area" style="padding:16px;flex:1"><textarea class="st-editor" style="height:100%"></textarea></div>`;
                 const ta = c.querySelector('textarea'); ta.value = State.list.join('\n');
+                const ensureVisible = () => {
+                    requestAnimationFrame(() => {
+                        if (!Modal.isOpen || document.activeElement !== ta) return;
+                        Modal.scheduleLayout();
+                        ta.scrollIntoView({ block: 'center' });
+                    });
+                };
+                const onViewportResize = () => ensureVisible();
+                ta.addEventListener('focus', () => {
+                    ensureVisible();
+                    if (window.visualViewport) window.visualViewport.addEventListener('resize', onViewportResize, { passive: true });
+                });
+                ta.addEventListener('blur', () => {
+                    if (window.visualViewport) window.visualViewport.removeEventListener('resize', onViewportResize);
+                });
+                ta.addEventListener('input', ensureVisible);
                 Modal.show({
                     title: '', content: c, type: 'full', btns: [{ text: '取消', val: false }, {
                         text: '保存', type: 'btn-p', onClick: () => {
