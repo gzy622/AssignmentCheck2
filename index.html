@@ -819,8 +819,7 @@
                 <div id="menu" class="dropdown">
                     <button class="menu-item" act="add">新建任务</button>
                     <button class="menu-item" act="stats">统计数据</button>
-                    <button class="menu-item" act="asgView">作业项目展示</button>
-                    <button class="menu-item" act="asgEdit">作业项目编辑</button>
+                    <button class="menu-item" act="asgManage">作业项目管理</button>
                     <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
                     <button class="menu-item" act="toggleAnim" id="btnAnim">显示动画: 开</button>
@@ -1392,50 +1391,34 @@
                 const s = await Modal.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '', 'number');
                 if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
             },
-            asgView() {
-                const { root, body } = this.buildAsgLayout('作业项目展示');
-                const table = document.createElement('div');
-                table.className = 'st-card-table';
-                table.innerHTML = `<div class="st-row st-head asg-row-view"><div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div></div>`;
-
-                State.data.slice().reverse().forEach(asg => {
-                    const total = State.roster.length || 1;
-                    const done = State.getAsgDoneCount(asg);
-                    const rate = Math.round(done / total * 100);
-                    const row = document.createElement('button');
-                    row.type = 'button';
-                    row.className = 'st-row asg-row-view asg-row-btn';
-                    row.style.cursor = 'pointer';
-                    row.dataset.id = String(asg.id);
-                    row.innerHTML = `<div class="st-user"><span class="st-name"></span><span class="st-id"></span></div>
-                        <div class="st-rate"></div>
-                        <div class="asg-rate"></div>`;
-                    row.querySelector('.st-name').textContent = asg.name;
-                    row.querySelector('.st-id').textContent = asg.id === State.curId ? '当前任务' : `ID ${asg.id}`;
-                    row.querySelector('.st-rate').textContent = `${done}/${State.roster.length}`;
-                    const rateEl = row.querySelector('.asg-rate');
-                    rateEl.textContent = `${rate}%`;
-                    rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
-                    table.appendChild(row);
-                });
-
-                table.onclick = e => {
-                    const row = e.target.closest('[data-id]');
-                    if (!row) return;
-                    State.selectAsg(+row.dataset.id);
-                    Modal.close();
-                };
-                body.appendChild(table);
-                Modal.show({ title: '', content: root, type: 'full', btns: [] });
-            },
-            asgEdit() {
-                const { root, body } = this.buildAsgLayout('作业项目编辑');
+            asgManage() {
+                const { root, body } = this.buildAsgLayout('作业项目管理');
                 const table = document.createElement('div');
                 table.className = 'st-card-table';
 
                 const renderRows = () => {
-                    table.innerHTML = '';
+                    table.innerHTML = `<div class="st-row st-head asg-row-view"><div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div></div>`;
                     State.data.slice().reverse().forEach(asg => {
+                        const total = State.roster.length || 1;
+                        const done = State.getAsgDoneCount(asg);
+                        const rate = Math.round(done / total * 100);
+                        const viewRow = document.createElement('button');
+                        viewRow.type = 'button';
+                        viewRow.className = 'st-row asg-row-view asg-row-btn';
+                        viewRow.style.cursor = 'pointer';
+                        viewRow.dataset.id = String(asg.id);
+                        if (asg.id === State.curId) viewRow.style.background = '#f4f9ff';
+                        viewRow.innerHTML = `<div class="st-user"><span class="st-name"></span><span class="st-id"></span></div>
+                            <div class="st-rate"></div>
+                            <div class="asg-rate"></div>`;
+                        viewRow.querySelector('.st-name').textContent = asg.name;
+                        viewRow.querySelector('.st-id').textContent = asg.id === State.curId ? '当前任务' : `ID ${asg.id}`;
+                        viewRow.querySelector('.st-rate').textContent = `${done}/${State.roster.length}`;
+                        const rateEl = viewRow.querySelector('.asg-rate');
+                        rateEl.textContent = `${rate}%`;
+                        rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
+                        table.appendChild(viewRow);
+
                         const row = document.createElement('div');
                         row.className = 'asg-edit-row';
                         row.dataset.id = String(asg.id);
@@ -1447,6 +1430,7 @@
                         const input = document.createElement('input');
                         input.className = 'input-ui asg-edit-name';
                         input.value = asg.name;
+                        input.placeholder = '作业项目名称';
                         row.prepend(input);
                         table.appendChild(row);
                     });
@@ -1454,30 +1438,47 @@
 
                 table.onclick = async e => {
                     const btn = e.target.closest('[data-act]');
-                    if (!btn) return;
-                    const row = btn.closest('[data-id]');
-                    if (!row) return;
-                    const id = +row.dataset.id;
-                    const act = btn.dataset.act;
-                    if (act === 'pick') return State.selectAsg(id);
-                    if (act === 'save') {
-                        const input = row.querySelector('.asg-edit-name');
-                        if (!State.renameAsg(id, input.value)) Modal.alert('名称不能为空');
+                    if (btn) {
+                        const row = btn.closest('.asg-edit-row[data-id]');
+                        if (!row) return;
+                        const id = +row.dataset.id;
+                        const act = btn.dataset.act;
+                        if (act === 'pick') {
+                            State.selectAsg(id);
+                            renderRows();
+                            return;
+                        }
+                        if (act === 'save') {
+                            const input = row.querySelector('.asg-edit-name');
+                            if (!State.renameAsg(id, input.value)) {
+                                Modal.alert('名称不能为空');
+                                return;
+                            }
+                            renderRows();
+                            return;
+                        }
+                        if (act === 'del') {
+                            if (State.data.length <= 1) return Modal.alert('至少保留一个任务');
+                            if (await Modal.confirm('删除该作业项目？')) {
+                                State.removeAsg(id);
+                                renderRows();
+                            }
+                        }
                         return;
                     }
-                    if (act === 'del') {
-                        if (State.data.length <= 1) return Modal.alert('至少保留一个任务');
-                        if (await Modal.confirm('删除该作业项目？')) {
-                            State.removeAsg(id);
-                            renderRows();
-                        }
-                    }
+
+                    const viewRow = e.target.closest('.asg-row-btn[data-id]');
+                    if (!viewRow) return;
+                    State.selectAsg(+viewRow.dataset.id);
+                    renderRows();
                 };
 
                 renderRows();
                 body.appendChild(table);
                 Modal.show({ title: '', content: root, type: 'full', btns: [] });
             },
+            asgView() { this.asgManage(); },
+            asgEdit() { this.asgManage(); },
             roster() {
                 const c = document.createElement('div'); c.className = 'st-layout'; c.style.cssText = 'display:flex;flex-direction:column;height:100%';
                 c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
