@@ -218,6 +218,17 @@
             color: #fff;
         }
 
+        .student-card.excluded {
+            opacity: 0.45;
+            filter: grayscale(0.2);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .student-card.excluded:active {
+            transform: none;
+        }
+
         .card-score {
             position: absolute;
             top: 4px;
@@ -919,9 +930,11 @@
             },
             parseRoster() {
                 this.roster = this.list.map(l => {
-                    const i = l.indexOf(' ');
-                    return i === -1 ? { id: l, name: '' } : { id: l.slice(0, i), name: l.slice(i + 1) };
-                });
+                    const noEnglish = /\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i.test(l);
+                    const line = l.replace(/\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i, '').trim();
+                    const i = line.indexOf(' ');
+                    return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
+                }).filter(s => s.id);
             },
             save() { LS.set(KEYS.DATA, this.data); LS.set(KEYS.LIST, this.list); UI.render(); },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
@@ -962,8 +975,11 @@
                 this.save();
                 return true;
             },
+            isEnglishAsg(asg) { return /英语/.test(asg?.name || ''); },
+            isStuIncluded(asg, stu) { return !(this.isEnglishAsg(asg) && stu.noEnglish); },
+            getAsgTotalCount(asg) { return this.roster.reduce((n, stu) => n + (this.isStuIncluded(asg, stu) ? 1 : 0), 0); },
             getAsgDoneCount(asg) {
-                return this.roster.reduce((n, stu) => n + (asg.records?.[stu.id]?.done ? 1 : 0), 0);
+                return this.roster.reduce((n, stu) => n + (this.isStuIncluded(asg, stu) && asg.records?.[stu.id]?.done ? 1 : 0), 0);
             },
             updRec(id, val) { const r = this.cur.records; r[id] = { ...r[id], ...val }; this.save(); }
         };
@@ -996,6 +1012,7 @@
                     timer = null;
                 };
                 const handle = (card, long) => {
+                    if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
                     if (long || State.scoring) Actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
@@ -1120,9 +1137,10 @@
                 while (grid.children.length < target) grid.appendChild(this.createCard());
                 while (grid.children.length > target) grid.lastElementChild.remove();
             },
-            renderCard(card, stu, rec) {
+            renderCard(card, stu, rec, excluded = false) {
                 if (card.dataset.id !== stu.id) card.dataset.id = stu.id;
                 if (card.dataset.name !== stu.name) card.dataset.name = stu.name;
+                card.dataset.excluded = excluded ? '1' : '0';
 
                 const idEl = card.children[0];
                 const nameEl = card.children[1];
@@ -1131,10 +1149,11 @@
                 if (idEl.textContent !== stu.id) idEl.textContent = stu.id;
                 if (nameEl.textContent !== stu.name) nameEl.textContent = stu.name;
 
-                const done = !!rec.done;
+                const done = !excluded && !!rec.done;
                 card.classList.toggle('done', done);
+                card.classList.toggle('excluded', excluded);
 
-                if (rec.score != null && rec.score !== '') {
+                if (!excluded && rec.score != null && rec.score !== '') {
                     if (scoreEl.hidden) scoreEl.hidden = false;
                     const scoreText = String(rec.score);
                     if (scoreEl.textContent !== scoreText) scoreEl.textContent = scoreText;
@@ -1143,8 +1162,7 @@
                     scoreEl.textContent = '';
                 }
             },
-            renderProgress(doneCount) {
-                const total = State.roster.length;
+            renderProgress(doneCount, total = State.roster.length) {
                 $('counter').textContent = `${doneCount}/${total}`;
                 $('progressFill').style.width = total ? `${(doneCount / total) * 100}%` : '0%';
             },
@@ -1159,12 +1177,14 @@
                 const cards = $('grid').children;
 
                 let doneCount = 0;
+                const total = State.getAsgTotalCount(asg);
                 State.roster.forEach((stu, i) => {
                     const rec = asg.records[stu.id] || {};
-                    if (rec.done) doneCount++;
-                    this.renderCard(cards[i], stu, rec);
+                    const excluded = !State.isStuIncluded(asg, stu);
+                    if (!excluded && rec.done) doneCount++;
+                    this.renderCard(cards[i], stu, rec, excluded);
                 });
-                this.renderProgress(doneCount);
+                this.renderProgress(doneCount, total);
                 this.scheduleGridLayout();
             }
         };
@@ -1399,9 +1419,9 @@
                 const renderRows = () => {
                     table.innerHTML = `<div class="st-row st-head asg-row-view"><div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div></div>`;
                     State.data.slice().reverse().forEach(asg => {
-                        const total = State.roster.length || 1;
+                        const total = State.getAsgTotalCount(asg);
                         const done = State.getAsgDoneCount(asg);
-                        const rate = Math.round(done / total * 100);
+                        const rate = total ? Math.round(done / total * 100) : 0;
                         const viewRow = document.createElement('button');
                         viewRow.type = 'button';
                         viewRow.className = 'st-row asg-row-view asg-row-btn';
@@ -1413,7 +1433,7 @@
                             <div class="asg-rate"></div>`;
                         viewRow.querySelector('.st-name').textContent = asg.name;
                         viewRow.querySelector('.st-id').textContent = asg.id === State.curId ? '当前任务' : `ID ${asg.id}`;
-                        viewRow.querySelector('.st-rate').textContent = `${done}/${State.roster.length}`;
+                        viewRow.querySelector('.st-rate').textContent = `${done}/${total}`;
                         const rateEl = viewRow.querySelector('.asg-rate');
                         rateEl.textContent = `${rate}%`;
                         rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
@@ -1482,7 +1502,7 @@
             roster() {
                 const c = document.createElement('div'); c.className = 'st-layout'; c.style.cssText = 'display:flex;flex-direction:column;height:100%';
                 c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
-                    <div class="st-scroll-area" style="padding:16px;flex:1"><textarea class="st-editor" style="height:100%"></textarea></div>`;
+                    <div class="st-scroll-area" style="padding:16px;flex:1"><div style="font-size:12px;color:#6c757d;margin-bottom:8px">行尾加 #非英语，可在英语作业统计时自动排除</div><textarea class="st-editor" style="height:calc(100% - 24px)"></textarea></div>`;
                 const ta = c.querySelector('textarea'); ta.value = State.list.join('\n');
                 const ensureVisible = () => {
                     requestAnimationFrame(() => {
@@ -1521,10 +1541,12 @@
                 const upd = () => {
                     const tgs = State.data.filter(a => sel.has(a.id));
                     const rows = State.roster.map((s, i) => {
-                        const dones = tgs.map(t => !!t.records[s.id]?.done);
-                        const rate = Math.round(dones.filter(Boolean).length / tgs.length * 100) || 0;
-                        return { ...s, dones, rate, i };
-                    }).sort((a, b) => b.rate - a.rate || a.i - b.i);
+                        const stuTgs = tgs.filter(t => State.isStuIncluded(t, s));
+                        const dones = stuTgs.map(t => !!t.records[s.id]?.done);
+                        const total = stuTgs.length;
+                        const rate = total ? Math.round(dones.filter(Boolean).length / total * 100) : 0;
+                        return { ...s, dones, rate, total, i };
+                    }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
 
                     ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
                         <div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
