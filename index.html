@@ -336,6 +336,7 @@
             opacity: 0;
             pointer-events: none;
             padding: var(--modal-top-gap, 16px) 0 var(--modal-bottom-gap, 16px);
+            will-change: opacity;
         }
 
         dialog.is-open,
@@ -369,6 +370,8 @@
             overflow: hidden;
             flex-shrink: 0;
             max-height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 16px) - var(--modal-bottom-gap, 16px));
+            will-change: transform, opacity;
+            backface-visibility: hidden;
         }
 
         dialog.is-open .modal-card {
@@ -497,6 +500,24 @@
             padding: 0;
             display: flex;
             flex-direction: column;
+        }
+
+        dialog.focus-stable {
+            backdrop-filter: none;
+            background: rgba(10, 16, 24, 0.46);
+        }
+
+        dialog.focus-stable.is-open,
+        dialog.focus-stable.is-closing,
+        dialog.focus-stable.is-open .modal-card,
+        dialog.focus-stable.is-closing .modal-card {
+            animation: none;
+        }
+
+        dialog.focus-stable .modal-card {
+            transform: none;
+            opacity: 1;
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
         }
 
         /* Form Elements in Modal */
@@ -1058,6 +1079,7 @@
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
         const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
+        const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
 
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
@@ -1497,6 +1519,8 @@
             _layoutRaf: 0,
             _viewportHandler: null,
             _focusHandler: null,
+            _focusTimer: 0,
+            _stableFocusMode: false,
 
             init() {
                 this.closeBtn.onclick = () => this.close(false);
@@ -1520,16 +1544,55 @@
                 window.scrollTo(0, this._scrollY || 0);
             },
 
+            releaseActiveInput() {
+                const active = document.activeElement;
+                if (!active || active === document.body) return;
+                if (active.matches?.('input, textarea, select, [contenteditable="true"]')) active.blur();
+            },
+
+            shouldUseStableFocusMode(el) {
+                if (!IS_ANDROID_FIREFOX || !el) return false;
+                return el.matches?.('input, textarea, [contenteditable="true"]');
+            },
+
+            shouldFreezeViewportOffsets() {
+                return this._stableFocusMode;
+            },
+
+            scheduleFocus(el) {
+                clearTimeout(this._focusTimer);
+                this._focusTimer = 0;
+                if (!el) return;
+                const delay = this.shouldUseStableFocusMode(el) ? 180 : 60;
+                this._focusTimer = setTimeout(() => {
+                    this._focusTimer = 0;
+                    if (!this.isOpen) return;
+                    el.focus({ preventScroll: true });
+                }, delay);
+            },
+
+            clearFocusTimer() {
+                clearTimeout(this._focusTimer);
+                this._focusTimer = 0;
+            },
+
             bindViewport() {
                 this.unbindViewport();
                 this._viewportHandler = () => this.scheduleLayout();
-                this._focusHandler = () => this.scheduleLayout();
+                this._focusHandler = () => {
+                    if (this.shouldFreezeViewportOffsets()) return;
+                    this.scheduleLayout();
+                };
                 window.addEventListener('resize', this._viewportHandler, { passive: true });
                 if (window.visualViewport) {
                     window.visualViewport.addEventListener('resize', this._viewportHandler, { passive: true });
-                    window.visualViewport.addEventListener('scroll', this._viewportHandler, { passive: true });
+                    if (!this.shouldFreezeViewportOffsets()) {
+                        window.visualViewport.addEventListener('scroll', this._viewportHandler, { passive: true });
+                    }
                 }
-                document.addEventListener('focusin', this._focusHandler);
+                if (!this.shouldFreezeViewportOffsets()) {
+                    document.addEventListener('focusin', this._focusHandler);
+                }
             },
 
             unbindViewport() {
@@ -1547,6 +1610,7 @@
                 }
                 cancelAnimationFrame(this._layoutRaf || 0);
                 this._layoutRaf = 0;
+                this.clearFocusTimer();
             },
 
             scheduleLayout() {
@@ -1559,20 +1623,28 @@
                 if (!this.isOpen) return;
                 const vv = window.visualViewport;
                 const vpH = Math.round(vv ? vv.height : window.innerHeight);
-                const vpTop = Math.round(vv ? vv.offsetTop : 0);
-                const keyboardInset = Math.max(0, Math.round(window.innerHeight - (vv ? vv.height + vv.offsetTop : window.innerHeight)));
+                let topGap;
+                let bottomGap;
 
-                const topGap = this.isFull ? vpTop : Math.max(10, vpTop + 12);
-                const bottomGap = this.isFull ? keyboardInset : Math.max(10, keyboardInset + 12);
+                if (this.shouldFreezeViewportOffsets()) {
+                    topGap = this.isFull ? 0 : 12;
+                    bottomGap = this.isFull ? 0 : 12;
+                } else {
+                    const vpTop = Math.round(vv ? vv.offsetTop : 0);
+                    const keyboardInset = Math.max(0, Math.round(window.innerHeight - (vv ? vv.height + vv.offsetTop : window.innerHeight)));
+                    topGap = this.isFull ? vpTop : Math.max(10, vpTop + 12);
+                    bottomGap = this.isFull ? keyboardInset : Math.max(10, keyboardInset + 12);
+                }
 
                 this.el.style.setProperty('--modal-vh', `${vpH}px`);
                 this.el.style.setProperty('--modal-top-gap', `${topGap}px`);
                 this.el.style.setProperty('--modal-bottom-gap', `${bottomGap}px`);
             },
 
-            show({ title, content, type = 'normal', btns = [] }) {
+            show({ title, content, type = 'normal', btns = [], autoFocusEl = null }) {
                 if (this.isOpen) this.forceClose(false);
                 UI.setGridFrozen(true);
+                this.releaseActiveInput();
                 this.title.textContent = title || '';
                 this.body.innerHTML = '';
                 if (typeof content === 'string') this.body.innerHTML = content;
@@ -1580,7 +1652,9 @@
 
                 this.el.className = ''; // Reset class
                 this.isFull = type === 'full';
+                this._stableFocusMode = this.shouldUseStableFocusMode(autoFocusEl);
                 if (this.isFull) this.el.classList.add('full');
+                if (this._stableFocusMode) this.el.classList.add('focus-stable');
                 this.header.style.display = type === 'full' ? 'none' : 'flex';
 
                 this.footer.innerHTML = '';
@@ -1600,6 +1674,7 @@
                 this.lockBody();
                 this.bindViewport();
                 this.scheduleLayout();
+                this.scheduleFocus(autoFocusEl);
                 return new Promise(r => this.resolve = r);
             },
 
@@ -1611,10 +1686,11 @@
 
                 const cleanup = () => {
                     this.el.classList.remove('is-closing');
-                    this.el.classList.remove('full');
+                    this.el.classList.remove('full', 'focus-stable');
                     this.isOpen = false;
                     this.isClosing = false;
                     this.isFull = false;
+                    this._stableFocusMode = false;
                     this.unbindViewport();
                     this.unlockBody();
                     UI.setGridFrozen(false);
@@ -1632,10 +1708,11 @@
 
             forceClose(val = false) {
                 if (!this.isOpen) return;
-                this.el.classList.remove('is-open', 'is-closing', 'full');
+                this.el.classList.remove('is-open', 'is-closing', 'full', 'focus-stable');
                 this.isOpen = false;
                 this.isClosing = false;
                 this.isFull = false;
+                this._stableFocusMode = false;
                 this.unbindViewport();
                 this.unlockBody();
                 UI.setGridFrozen(false);
@@ -1661,9 +1738,8 @@
                         this.close(input.value);
                     }
                 });
-                setTimeout(() => input.focus({ preventScroll: true }), 50);
                 return this.show({
-                    title, content: input,
+                    title, content: input, autoFocusEl: input,
                     btns: [
                         { text: '取消', type: 'btn-c', val: false },
                         { text: '确定', type: 'btn-p', onClick: () => this.close(input.value) }
@@ -1692,8 +1768,7 @@
                     <div style="font-size:12px;color:#6c757d;margin-top:10px">默认科目标签为英语，会自动排除名单中标记了 #非英语 的学生。</div>`;
                 const inp = c.firstChild;
                 c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
-                setTimeout(() => inp.focus({ preventScroll: true }), 50);
-                const n = await Modal.show({ title: '新建任务', content: c, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
+                const n = await Modal.show({ title: '新建任务', content: c, autoFocusEl: inp, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
                 if (n) State.addAsg(n);
             },
             async del() {
