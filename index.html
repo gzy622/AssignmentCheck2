@@ -660,32 +660,6 @@
             flex-wrap: wrap;
         }
 
-        .score-preset-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 10px;
-            touch-action: pan-y;
-        }
-
-        .score-preset-btn {
-            padding: 12px 0;
-            border-radius: 14px;
-            border: 1px solid #dbe5ef;
-            background: #fff;
-            color: #1d2b38;
-            font-size: 1rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: 0.15s;
-        }
-
-        .score-preset-btn:hover,
-        .score-preset-btn:focus-visible {
-            border-color: var(--primary);
-            background: #eef5ff;
-            outline: none;
-        }
-
         .score-toolbar {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -712,10 +686,6 @@
 
             .score-index {
                 text-align: left;
-            }
-
-            .score-preset-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
 
@@ -2051,7 +2021,7 @@
                 let index = students.findIndex(stu => stu.id === id);
                 if (index === -1) return;
 
-                const presets = ['100', '95', '90', '85', '80', '75', '70', '60'];
+                const presets = ['0', '100'];
                 const { root, body } = this.buildAsgLayout('登记分数');
                 const page = document.createElement('div');
                 page.className = 'score-layout';
@@ -2131,7 +2101,6 @@
                     const edit = document.createElement('section');
                     edit.className = 'score-section';
                     edit.innerHTML = `<div class="score-section-head">
-                            <div class="score-section-title">分数录入</div>
                             <div class="score-inline-actions">
                                 <button class="btn btn-c btn-xs" type="button" data-act="minus">-1</button>
                                 <button class="btn btn-c btn-xs" type="button" data-act="plus">+1</button>
@@ -2140,6 +2109,8 @@
                         <div class="score-input-row">
                             <input class="input-ui score-input" inputmode="numeric" enterkeyhint="done" placeholder="输入分数">
                             <div class="score-inline-actions">
+                                <button class="btn btn-c" type="button" data-act="preset-0">0</button>
+                                <button class="btn btn-c" type="button" data-act="preset-100">100</button>
                                 <button class="btn btn-c" type="button" data-act="toggle-done">标记完成</button>
                                 <button class="btn btn-c" type="button" data-act="clear">清空</button>
                             </div>
@@ -2167,40 +2138,41 @@
                         applyCurrentView({ keepFocus: true });
                     };
                     input.addEventListener('keydown', e => {
+                        if (e.key === 'ArrowDown' && !e.isComposing) {
+                            e.preventDefault();
+                            const stu = getCurrentStudent();
+                            saveStudent(stu.id, input.value);
+                            shiftStudent(1);
+                            return;
+                        }
+                        if (e.key === 'ArrowUp' && !e.isComposing) {
+                            e.preventDefault();
+                            const stu = getCurrentStudent();
+                            saveStudent(stu.id, input.value);
+                            shiftStudent(-1);
+                            return;
+                        }
                         if (e.key === 'Enter' && !e.isComposing) {
                             e.preventDefault();
                             const stu = getCurrentStudent();
                             saveStudent(stu.id, input.value);
-                            if (index < students.length - 1) shiftStudent(1);
-                            else Modal.close(true);
+                            Modal.close(true);
                         }
                     });
 
-                    const quick = document.createElement('section');
-                    quick.className = 'score-section';
-                    quick.innerHTML = `<div class="score-section-title">快捷分值</div>`;
-                    const presetGrid = document.createElement('div');
-                    presetGrid.className = 'score-preset-grid';
                     presets.forEach(value => {
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'score-preset-btn';
-                        btn.textContent = value;
-                        btn.onclick = () => {
+                        edit.querySelector(`[data-act="preset-${value}"]`).onclick = () => {
                             const stu = getCurrentStudent();
                             input.value = value;
                             saveStudent(stu.id, value);
                             applyCurrentView({ keepFocus: true });
                         };
-                        presetGrid.appendChild(btn);
                     });
-                    quick.appendChild(presetGrid);
 
                     const actions = document.createElement('section');
                     actions.className = 'score-section';
-                    actions.innerHTML = `<div class="score-section-title">快捷操作</div>
-                        <div class="score-toolbar">
-                            <button class="btn btn-p" type="button" data-act="save">保存</button>
+                    actions.innerHTML = `<div class="score-toolbar">
+                            <button class="btn btn-p" type="button" data-act="save">保存并关闭</button>
                             <button class="btn btn-p" type="button" data-act="save-next">保存并下一位</button>
                             <button class="btn btn-c" type="button" data-act="copy-prev">沿用上一位分数</button>
                             <button class="btn btn-c" type="button" data-act="close">完成录入</button>
@@ -2213,7 +2185,7 @@
                     actions.querySelector('[data-act="save"]').onclick = () => {
                         const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
-                        applyCurrentView({ keepFocus: true });
+                        Modal.close(true);
                     };
                     actions.querySelector('[data-act="save-next"]').onclick = () => {
                         const stu = getCurrentStudent();
@@ -2247,7 +2219,7 @@
                         shiftStudent(1);
                     };
 
-                    page.replaceChildren(hero, edit, quick, actions);
+                    page.replaceChildren(hero, edit, actions);
                 };
 
                 build();
