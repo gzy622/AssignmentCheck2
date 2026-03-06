@@ -543,6 +543,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            contain: layout paint;
         }
 
         .score-hero {
@@ -663,6 +664,7 @@
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
+            touch-action: pan-y;
         }
 
         .score-preset-btn {
@@ -2055,6 +2057,16 @@
                 page.className = 'score-layout';
                 body.appendChild(page);
                 let focusTarget = null;
+                let input;
+                let heroTitle;
+                let heroTask;
+                let heroDone;
+                let heroScore;
+                let heroIndex;
+                let doneToggleBtn;
+                let copyPrevBtn;
+                let prevBtn;
+                let nextBtn;
 
                 const saveStudent = (stuId, scoreValue, forceDone = null) => {
                     const current = asg.records[stuId] || {};
@@ -2066,23 +2078,55 @@
                     State.updRec(stuId, payload);
                 };
 
-                const render = () => {
-                    const stu = students[index];
-                    const rec = asg.records[stu.id] || {};
-                    const done = !!rec.done;
-                    page.innerHTML = '';
+                const getCurrentStudent = () => students[index];
+                const getCurrentRecord = () => asg.records[getCurrentStudent().id] || {};
 
+                const applyCurrentView = ({ keepFocus = false } = {}) => {
+                    const stu = getCurrentStudent();
+                    const rec = getCurrentRecord();
+                    const done = !!rec.done;
+
+                    heroTitle.textContent = `${stu.id} ${stu.name || name || ''}`;
+                    heroTask.textContent = asg.name;
+                    heroDone.textContent = done ? '已完成' : '未完成';
+                    heroDone.className = `score-chip ${done ? 'done' : 'pending'}`;
+                    heroScore.textContent = rec.score != null && rec.score !== '' ? `当前分数 ${rec.score}` : '当前未录入';
+                    heroIndex.textContent = `第 ${index + 1} / ${students.length} 位`;
+
+                    input.value = rec.score ?? '';
+                    doneToggleBtn.textContent = done ? '已完成' : '标记完成';
+                    doneToggleBtn.className = `btn ${done ? 'btn-p' : 'btn-c'}`;
+
+                    copyPrevBtn.disabled = index === 0;
+                    prevBtn.disabled = index === 0;
+                    nextBtn.disabled = index === students.length - 1;
+
+                    focusTarget = input;
+                    if (keepFocus && Modal.isOpen) Modal.scheduleFocus(input);
+                };
+
+                const shiftStudent = step => {
+                    const nextIndex = index + step;
+                    if (nextIndex < 0 || nextIndex >= students.length) return;
+                    index = nextIndex;
+                    applyCurrentView({ keepFocus: true });
+                };
+
+                const build = () => {
                     const hero = document.createElement('section');
                     hero.className = 'score-hero';
                     hero.innerHTML = `<div class="score-hero-main">
-                            <div class="score-hero-title">${stu.id} ${stu.name || name || ''}</div>
+                            <div class="score-hero-title"></div>
                             <div class="score-hero-sub">
-                                <span class="score-chip">${asg.name}</span>
-                                <span class="score-chip ${done ? 'done' : 'pending'}">${done ? '已完成' : '未完成'}</span>
-                                ${rec.score != null && rec.score !== '' ? `<span class="score-chip">当前分数 ${rec.score}</span>` : '<span class="score-chip">当前未录入</span>'}
+                                <span class="score-chip"></span>
+                                <span class="score-chip"></span>
+                                <span class="score-chip"></span>
                             </div>
                         </div>
-                        <div class="score-index">第 ${index + 1} / ${students.length} 位</div>`;
+                        <div class="score-index"></div>`;
+                    heroTitle = hero.querySelector('.score-hero-title');
+                    [heroTask, heroDone, heroScore] = hero.querySelectorAll('.score-chip');
+                    heroIndex = hero.querySelector('.score-index');
 
                     const edit = document.createElement('section');
                     edit.className = 'score-section';
@@ -2094,40 +2138,41 @@
                             </div>
                         </div>
                         <div class="score-input-row">
-                            <input class="input-ui score-input" inputmode="numeric" enterkeyhint="done" placeholder="输入分数" value="${rec.score ?? ''}">
+                            <input class="input-ui score-input" inputmode="numeric" enterkeyhint="done" placeholder="输入分数">
                             <div class="score-inline-actions">
-                                <button class="btn ${done ? 'btn-p' : 'btn-c'}" type="button" data-act="toggle-done">${done ? '已完成' : '标记完成'}</button>
+                                <button class="btn btn-c" type="button" data-act="toggle-done">标记完成</button>
                                 <button class="btn btn-c" type="button" data-act="clear">清空</button>
                             </div>
                         </div>`;
 
-                    const input = edit.querySelector('.score-input');
+                    input = edit.querySelector('.score-input');
+                    doneToggleBtn = edit.querySelector('[data-act="toggle-done"]');
+
                     const stepValue = delta => {
-                        const base = Number(input.value || rec.score || 0);
-                        if (!Number.isFinite(base)) return;
-                        input.value = String(base + delta);
+                        const currentValue = Number(input.value || getCurrentRecord().score || 0);
+                        if (!Number.isFinite(currentValue)) return;
+                        input.value = String(currentValue + delta);
                     };
                     edit.querySelector('[data-act="minus"]').onclick = () => stepValue(-1);
                     edit.querySelector('[data-act="plus"]').onclick = () => stepValue(1);
-                    edit.querySelector('[data-act="toggle-done"]').onclick = () => {
-                        saveStudent(stu.id, input.value, !done);
-                        render();
+                    doneToggleBtn.onclick = () => {
+                        const stu = getCurrentStudent();
+                        saveStudent(stu.id, input.value, !getCurrentRecord().done);
+                        applyCurrentView({ keepFocus: true });
                     };
                     edit.querySelector('[data-act="clear"]').onclick = () => {
+                        const stu = getCurrentStudent();
                         input.value = '';
                         saveStudent(stu.id, '', false);
-                        render();
+                        applyCurrentView({ keepFocus: true });
                     };
                     input.addEventListener('keydown', e => {
                         if (e.key === 'Enter' && !e.isComposing) {
                             e.preventDefault();
+                            const stu = getCurrentStudent();
                             saveStudent(stu.id, input.value);
-                            if (index < students.length - 1) {
-                                index++;
-                                render();
-                            } else {
-                                Modal.close(true);
-                            }
+                            if (index < students.length - 1) shiftStudent(1);
+                            else Modal.close(true);
                         }
                     });
 
@@ -2142,10 +2187,10 @@
                         btn.className = 'score-preset-btn';
                         btn.textContent = value;
                         btn.onclick = () => {
+                            const stu = getCurrentStudent();
                             input.value = value;
                             saveStudent(stu.id, value);
-                            input.focus({ preventScroll: true });
-                            render();
+                            applyCurrentView({ keepFocus: true });
                         };
                         presetGrid.appendChild(btn);
                     });
@@ -2157,62 +2202,56 @@
                         <div class="score-toolbar">
                             <button class="btn btn-p" type="button" data-act="save">保存</button>
                             <button class="btn btn-p" type="button" data-act="save-next">保存并下一位</button>
-                            <button class="btn btn-c" type="button" data-act="copy-prev"${index === 0 ? ' disabled' : ''}>沿用上一位分数</button>
+                            <button class="btn btn-c" type="button" data-act="copy-prev">沿用上一位分数</button>
                             <button class="btn btn-c" type="button" data-act="close">完成录入</button>
                         </div>
                         <div class="score-nav">
-                            <button class="btn btn-c" type="button" data-act="prev"${index === 0 ? ' disabled' : ''}>上一位</button>
-                            <button class="btn btn-c" type="button" data-act="next"${index === students.length - 1 ? ' disabled' : ''}>下一位</button>
+                            <button class="btn btn-c" type="button" data-act="prev">上一位</button>
+                            <button class="btn btn-c" type="button" data-act="next">下一位</button>
                         </div>`;
 
                     actions.querySelector('[data-act="save"]').onclick = () => {
+                        const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
-                        render();
+                        applyCurrentView({ keepFocus: true });
                     };
                     actions.querySelector('[data-act="save-next"]').onclick = () => {
+                        const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
-                        if (index < students.length - 1) {
-                            index++;
-                            render();
-                        } else {
-                            Modal.close(true);
-                        }
+                        if (index < students.length - 1) shiftStudent(1);
+                        else Modal.close(true);
                     };
-                    actions.querySelector('[data-act="copy-prev"]').onclick = () => {
+                    copyPrevBtn = actions.querySelector('[data-act="copy-prev"]');
+                    copyPrevBtn.onclick = () => {
                         if (index === 0) return;
                         const prevStu = students[index - 1];
                         const prevRec = asg.records[prevStu.id] || {};
                         input.value = prevRec.score ?? '';
+                        if (Modal.isOpen) Modal.scheduleFocus(input);
                     };
                     actions.querySelector('[data-act="close"]').onclick = () => {
+                        const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
                         Modal.close(true);
                     };
-                    actions.querySelector('[data-act="prev"]').onclick = () => {
+                    prevBtn = actions.querySelector('[data-act="prev"]');
+                    nextBtn = actions.querySelector('[data-act="next"]');
+                    prevBtn.onclick = () => {
+                        const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
-                        if (index > 0) {
-                            index--;
-                            render();
-                        }
+                        shiftStudent(-1);
                     };
-                    actions.querySelector('[data-act="next"]').onclick = () => {
+                    nextBtn.onclick = () => {
+                        const stu = getCurrentStudent();
                         saveStudent(stu.id, input.value);
-                        if (index < students.length - 1) {
-                            index++;
-                            render();
-                        }
+                        shiftStudent(1);
                     };
 
-                    page.appendChild(hero);
-                    page.appendChild(edit);
-                    page.appendChild(quick);
-                    page.appendChild(actions);
-
-                    focusTarget = input;
-                    if (Modal.isOpen) Modal.scheduleFocus(input);
+                    page.replaceChildren(hero, edit, quick, actions);
                 };
 
-                render();
+                build();
+                applyCurrentView();
                 await Modal.show({ title: '', content: root, type: 'full', autoFocusEl: focusTarget, btns: [] });
             },
             asgManage() {
