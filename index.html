@@ -867,6 +867,10 @@
 
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
+            asgMap: new Map(),
+            _persistTimer: 0,
+            _metricsToken: 0,
+            _statsCache: new Map(),
             init() {
                 this.list = LS.get(KEYS.LIST, [
                     '01 蓝慧婷',
@@ -924,9 +928,28 @@
                 this.data = LS.get(KEYS.DATA, []);
                 this.animations = LS.get(KEYS.ANIM, true);
                 if (!this.data.length) this.addAsg('任务 1');
+                this.rebuildAsgIndex();
                 this.curId = this.data[this.data.length - 1].id;
                 this.applyAnim();
+                window.addEventListener('beforeunload', () => this.flushPersist());
                 UI.init();
+            },
+            rebuildAsgIndex() {
+                this.asgMap = new Map(this.data.map(a => [a.id, a]));
+            },
+            invalidateDerived() {
+                this._metricsToken++;
+                this._statsCache.clear();
+            },
+            queuePersist() {
+                clearTimeout(this._persistTimer);
+                this._persistTimer = setTimeout(() => this.flushPersist(), 300);
+            },
+            flushPersist() {
+                clearTimeout(this._persistTimer);
+                this._persistTimer = 0;
+                LS.set(KEYS.DATA, this.data);
+                LS.set(KEYS.LIST, this.list);
             },
             parseRoster() {
                 this.roster = this.list.map(l => {
@@ -935,28 +958,35 @@
                     const i = line.indexOf(' ');
                     return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
                 }).filter(s => s.id);
+                this.invalidateDerived();
             },
-            save() { LS.set(KEYS.DATA, this.data); LS.set(KEYS.LIST, this.list); UI.render(); },
+            save({ render = true, immediate = false } = {}) {
+                this.rebuildAsgIndex();
+                this.invalidateDerived();
+                if (immediate) this.flushPersist();
+                else this.queuePersist();
+                if (render) UI.render();
+            },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
             },
-            get cur() { return this.data.find(a => a.id === this.curId) || this.data[0]; },
+            get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
             addAsg(n) {
                 let id = Date.now();
-                while (this.data.some(a => a.id === id)) id++;
+                while (this.asgMap.has(id)) id++;
                 this.data.push({ id, name: n, records: {} });
                 this.curId = id;
                 this.save();
             },
             selectAsg(id) {
-                if (!this.data.some(a => a.id === id)) return;
+                if (!this.asgMap.has(id)) return;
                 this.curId = id;
                 UI.render();
             },
             renameAsg(id, name) {
-                const asg = this.data.find(a => a.id === id);
+                const asg = this.asgMap.get(id);
                 const safeName = (name || '').trim();
                 if (!asg || !safeName) return false;
                 asg.name = safeName;
@@ -977,13 +1007,53 @@
             },
             isEnglishAsg(asg) { return /英语/.test(asg?.name || ''); },
             isStuIncluded(asg, stu) { return !(this.isEnglishAsg(asg) && stu.noEnglish); },
-            getAsgTotalCount(asg) { return this.roster.reduce((n, stu) => n + (this.isStuIncluded(asg, stu) ? 1 : 0), 0); },
-            getAsgDoneCount(asg) {
-                return this.roster.reduce((n, stu) => n + (this.isStuIncluded(asg, stu) && asg.records?.[stu.id]?.done ? 1 : 0), 0);
+            getAsgMetrics(asg) {
+                if (!asg) return { total: 0, done: 0 };
+                const cached = this._statsCache.get(asg.id);
+                if (cached && cached.token === this._metricsToken) return cached.metrics;
+                let total = 0;
+                let done = 0;
+                for (const stu of this.roster) {
+                    if (!this.isStuIncluded(asg, stu)) continue;
+                    total++;
+                    if (asg.records?.[stu.id]?.done) done++;
+                }
+                const metrics = { total, done };
+                this._statsCache.set(asg.id, { token: this._metricsToken, metrics });
+                return metrics;
             },
-            updRec(id, val) { const r = this.cur.records; r[id] = { ...r[id], ...val }; this.save(); }
+            getAsgTotalCount(asg) { return this.getAsgMetrics(asg).total; },
+            getAsgDoneCount(asg) { return this.getAsgMetrics(asg).done; },
+            getStatsRows(selectedIds) {
+                const keyIds = selectedIds.slice().sort((a, b) => a - b);
+                const cacheKey = `${this._metricsToken}|${keyIds.join(',')}`;
+                const cached = this._statsCache.get(cacheKey);
+                if (cached) return cached;
+                const tgs = keyIds.map(id => this.asgMap.get(id)).filter(Boolean);
+                const rows = this.roster.map((s, i) => {
+                    let total = 0;
+                    let doneCount = 0;
+                    const dones = [];
+                    for (const t of tgs) {
+                        if (!this.isStuIncluded(t, s)) continue;
+                        total++;
+                        const done = !!t.records[s.id]?.done;
+                        dones.push(done);
+                        if (done) doneCount++;
+                    }
+                    const rate = total ? Math.round(doneCount / total * 100) : 0;
+                    return { ...s, dones, rate, total, i };
+                }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
+                const result = { tgs, rows };
+                this._statsCache.set(cacheKey, result);
+                return result;
+            },
+            updRec(id, val) {
+                const r = this.cur.records;
+                r[id] = { ...r[id], ...val };
+                this.save();
+            }
         };
-
         const UI = {
             _gridFrozen: false,
             init() {
@@ -1417,7 +1487,11 @@
                 table.className = 'st-card-table';
 
                 const renderRows = () => {
-                    table.innerHTML = `<div class="st-row st-head asg-row-view"><div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div></div>`;
+                    const frag = document.createDocumentFragment();
+                    const head = document.createElement('div');
+                    head.className = 'st-row st-head asg-row-view';
+                    head.innerHTML = '<div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div>';
+                    frag.appendChild(head);
                     State.data.slice().reverse().forEach(asg => {
                         const total = State.getAsgTotalCount(asg);
                         const done = State.getAsgDoneCount(asg);
@@ -1437,7 +1511,7 @@
                         const rateEl = viewRow.querySelector('.asg-rate');
                         rateEl.textContent = `${rate}%`;
                         rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
-                        table.appendChild(viewRow);
+                        frag.appendChild(viewRow);
 
                         const row = document.createElement('div');
                         row.className = 'asg-edit-row';
@@ -1452,8 +1526,9 @@
                         input.value = asg.name;
                         input.placeholder = '作业项目名称';
                         row.prepend(input);
-                        table.appendChild(row);
+                        frag.appendChild(row);
                     });
+                    table.replaceChildren(frag);
                 };
 
                 table.onclick = async e => {
@@ -1539,49 +1614,124 @@
                 ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
 
                 const upd = () => {
-                    const tgs = State.data.filter(a => sel.has(a.id));
-                    const rows = State.roster.map((s, i) => {
-                        const stuTgs = tgs.filter(t => State.isStuIncluded(t, s));
-                        const dones = stuTgs.map(t => !!t.records[s.id]?.done);
-                        const total = stuTgs.length;
-                        const rate = total ? Math.round(dones.filter(Boolean).length / total * 100) : 0;
-                        return { ...s, dones, rate, total, i };
-                    }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
+                    const selectedIds = State.data.filter(a => sel.has(a.id)).map(a => a.id);
+                    const { tgs, rows } = State.getStatsRows(selectedIds);
 
                     ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
                         <div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
 
-                    const h = State.data.map(a => `<div class="st-chip ${sel.has(a.id) ? 'active' : ''}" data-id="${a.id}">${a.name}</div>`).reverse().join('');
-                    if (ui.fil.innerHTML !== h) ui.fil.innerHTML = h;
+                    const chipFrag = document.createDocumentFragment();
+                    State.data.slice().reverse().forEach(a => {
+                        const chip = document.createElement('div');
+                        chip.className = `st-chip ${sel.has(a.id) ? 'active' : ''}`;
+                        chip.dataset.id = String(a.id);
+                        chip.textContent = a.name;
+                        chipFrag.appendChild(chip);
+                    });
+                    ui.fil.replaceChildren(chipFrag);
 
-                    ui.tab.innerHTML = `<div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>` +
-                        rows.map(r => `<div class="st-row"><div class="st-user"><span class="st-name">${r.name}</span><span class="st-id">${r.id}</span></div>
-                            <div class="st-visual">${r.dones.map(v => `<div class="st-dot ${v ? 'done' : ''}"></div>`).join('')}</div>
-                            <div class="st-rate" style="color:${r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit'}">${r.rate}%</div></div>`).join('');
+                    const tableFrag = document.createDocumentFragment();
+                    const head = document.createElement('div');
+                    head.className = 'st-row st-head';
+                    head.innerHTML = '<div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div>';
+                    tableFrag.appendChild(head);
+                    rows.forEach(r => {
+                        const row = document.createElement('div');
+                        row.className = 'st-row';
+
+                        const user = document.createElement('div');
+                        user.className = 'st-user';
+                        const name = document.createElement('span');
+                        name.className = 'st-name';
+                        name.textContent = r.name;
+                        const id = document.createElement('span');
+                        id.className = 'st-id';
+                        id.textContent = r.id;
+                        user.appendChild(name);
+                        user.appendChild(id);
+
+                        const visual = document.createElement('div');
+                        visual.className = 'st-visual';
+                        r.dones.forEach(v => {
+                            const dot = document.createElement('div');
+                            dot.className = `st-dot ${v ? 'done' : ''}`;
+                            visual.appendChild(dot);
+                        });
+
+                        const rate = document.createElement('div');
+                        rate.className = 'st-rate';
+                        rate.textContent = `${r.rate}%`;
+                        rate.style.color = r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit';
+
+                        row.appendChild(user);
+                        row.appendChild(visual);
+                        row.appendChild(rate);
+                        tableFrag.appendChild(row);
+                    });
+                    ui.tab.replaceChildren(tableFrag);
                 };
                 upd(); Modal.show({ title: '', content: c, type: 'full', btns: [] });
             },
             exp() {
                 const blob = new Blob([JSON.stringify({ list: State.list, data: State.data })], { type: 'application/json' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup.json'; a.click();
+                const a = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = 'backup.json';
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 0);
             },
             imp() { $('fileIn').click(); },
+            normalizeImport(raw) {
+                if (!raw || typeof raw !== 'object') throw new Error('备份文件结构错误');
+                if (!Array.isArray(raw.list) || !Array.isArray(raw.data)) throw new Error('备份缺少 list/data');
+                const list = raw.list.map(v => String(v ?? '').trim()).filter(Boolean);
+                const idSet = new Set();
+                const data = raw.data.map((a, idx) => {
+                    if (!a || typeof a !== 'object') throw new Error(`第 ${idx + 1} 个作业格式错误`);
+                    const id = Number(a.id);
+                    const name = String(a.name ?? '').trim();
+                    if (!Number.isFinite(id)) throw new Error(`第 ${idx + 1} 个作业ID无效`);
+                    if (!name) throw new Error(`第 ${idx + 1} 个作业名称为空`);
+                    if (idSet.has(id)) throw new Error(`作业ID重复: ${id}`);
+                    idSet.add(id);
+                    const recObj = a.records && typeof a.records === 'object' ? a.records : {};
+                    const records = {};
+                    Object.entries(recObj).forEach(([stuId, rec]) => {
+                        if (!stuId || !rec || typeof rec !== 'object') return;
+                        const item = {};
+                        if (rec.done != null) item.done = !!rec.done;
+                        if (rec.score != null && rec.score !== '') item.score = rec.score;
+                        if (Object.keys(item).length) records[String(stuId)] = item;
+                    });
+                    return { id, name, records };
+                });
+                if (!data.length) throw new Error('备份中没有作业数据');
+                if (!list.length) throw new Error('备份中没有学生名单');
+                return { list, data };
+            },
             handleFile(e) {
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader(); r.onload = async ev => {
                     try {
-                        const d = JSON.parse(ev.target.result);
+                        const d = this.normalizeImport(JSON.parse(ev.target.result));
                         if (await Modal.confirm('覆盖现有数据？')) {
-                            Object.assign(State, { list: d.list, data: d.data, curId: d.data[0].id });
-                            State.parseRoster(); State.save(); UI.render(); Modal.alert('导入成功');
+                            State.list = d.list;
+                            State.data = d.data;
+                            State.parseRoster();
+                            State.rebuildAsgIndex();
+                            State.curId = State.data[0].id;
+                            State.save({ immediate: true });
+                            Modal.alert('导入成功');
                         }
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
             }
         };
-
         Modal.init(); State.init();
     </script>
 </body>
 
 </html>
+
+
