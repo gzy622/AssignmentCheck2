@@ -798,6 +798,199 @@
             font-size: 0.78rem;
         }
 
+        .asg-manage-hero {
+            background: linear-gradient(135deg, #fdfefe, #eef5ff 55%, #fff7eb);
+            border: 1px solid rgba(13, 110, 253, 0.12);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: 0 10px 24px rgba(13, 110, 253, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .asg-manage-hero-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .asg-manage-hero-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #17324d;
+        }
+
+        .asg-manage-hero-note {
+            font-size: 0.78rem;
+            color: #54708c;
+        }
+
+        .asg-manage-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(110px, 0.8fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .asg-manage-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .asg-card {
+            background: linear-gradient(180deg, #fff, #fbfcff);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .asg-card.current {
+            border-color: rgba(13, 110, 253, 0.3);
+            box-shadow: 0 10px 26px rgba(13, 110, 253, 0.12);
+        }
+
+        .asg-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .asg-card-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .asg-card-title {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: #17212b;
+            line-height: 1.2;
+        }
+
+        .asg-card-sub {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: #758292;
+        }
+
+        .asg-current-badge,
+        .asg-subject-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.74rem;
+            font-weight: 700;
+        }
+
+        .asg-current-badge {
+            background: #e7f1ff;
+            color: var(--primary);
+        }
+
+        .asg-subject-badge {
+            background: #edf6ef;
+            color: #2d7a4b;
+        }
+
+        .asg-subject-badge.non-english {
+            background: #fff1db;
+            color: #b86800;
+        }
+
+        .asg-card-stats {
+            text-align: right;
+            font-size: 0.82rem;
+            color: #607080;
+            min-width: 72px;
+        }
+
+        .asg-card-rate {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #16212c;
+            line-height: 1.1;
+        }
+
+        .asg-card-fields {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(120px, 0.9fr);
+            gap: 10px;
+        }
+
+        .asg-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .asg-field label {
+            font-size: 0.73rem;
+            color: #7a8795;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .asg-subject-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .asg-pill {
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid #d8e1ec;
+            background: #fff;
+            color: #5b6775;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            transition: 0.15s;
+        }
+
+        .asg-pill.active {
+            background: #17324d;
+            color: #fff;
+            border-color: #17324d;
+            box-shadow: 0 6px 16px rgba(23, 50, 77, 0.18);
+        }
+
+        .asg-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .asg-hint {
+            font-size: 0.78rem;
+            color: #7a8795;
+        }
+
+        @media (max-width: 680px) {
+            .asg-manage-form,
+            .asg-card-fields {
+                grid-template-columns: 1fr;
+            }
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -864,6 +1057,7 @@
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
         const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
+        const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
 
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
@@ -926,6 +1120,7 @@
                 ]);
                 this.parseRoster();
                 this.data = LS.get(KEYS.DATA, []);
+                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.animations = LS.get(KEYS.ANIM, true);
                 if (!this.data.length) this.addAsg('任务 1');
                 this.rebuildAsgIndex();
@@ -936,6 +1131,18 @@
             },
             rebuildAsgIndex() {
                 this.asgMap = new Map(this.data.map(a => [a.id, a]));
+            },
+            normalizeAsg(asg) {
+                if (!asg || typeof asg !== 'object') return null;
+                const name = String(asg.name || '').trim();
+                const legacyEnglish = /英语/.test(name);
+                const subject = String(asg.subject || '').trim() || (legacyEnglish ? '英语' : '其他');
+                return {
+                    id: Number(asg.id),
+                    name: name || '未命名任务',
+                    subject,
+                    records: asg.records && typeof asg.records === 'object' ? asg.records : {}
+                };
             },
             invalidateDerived() {
                 this._metricsToken++;
@@ -961,6 +1168,7 @@
                 this.invalidateDerived();
             },
             save({ render = true, immediate = false } = {}) {
+                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.rebuildAsgIndex();
                 this.invalidateDerived();
                 if (immediate) this.flushPersist();
@@ -976,7 +1184,7 @@
             addAsg(n) {
                 let id = Date.now();
                 while (this.asgMap.has(id)) id++;
-                this.data.push({ id, name: n, records: {} });
+                this.data.push({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} });
                 this.curId = id;
                 this.save();
             },
@@ -993,6 +1201,17 @@
                 this.save();
                 return true;
             },
+            updateAsgMeta(id, payload = {}) {
+                const asg = this.asgMap.get(id);
+                if (!asg) return false;
+                const safeName = String(payload.name ?? asg.name).trim();
+                const safeSubject = String(payload.subject ?? asg.subject ?? '').trim() || '英语';
+                if (!safeName) return false;
+                asg.name = safeName;
+                asg.subject = safeSubject;
+                this.save();
+                return true;
+            },
             removeAsg(id) {
                 if (this.data.length <= 1) return false;
                 const idx = this.data.findIndex(a => a.id === id);
@@ -1005,7 +1224,10 @@
                 this.save();
                 return true;
             },
-            isEnglishAsg(asg) { return /英语/.test(asg?.name || ''); },
+            getAsgSubject(asg) {
+                return String(asg?.subject || '').trim() || (/英语/.test(asg?.name || '') ? '英语' : '其他');
+            },
+            isEnglishAsg(asg) { return this.getAsgSubject(asg) === '英语'; },
             isStuIncluded(asg, stu) { return !(this.isEnglishAsg(asg) && stu.noEnglish); },
             getAsgMetrics(asg) {
                 if (!asg) return { total: 0, done: 0 };
@@ -1239,7 +1461,7 @@
             render() {
                 const asg = State.cur; if (!asg) return;
                 const sel = $('asgSelect');
-                const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                const optionsHtml = State.data.map(a => `<option value="${a.id}">[${State.getAsgSubject(a)}] ${a.name}</option>`).join('');
                 if (sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
                 if (sel.value != State.curId) sel.value = State.curId;
 
@@ -1466,7 +1688,8 @@
                 const c = document.createElement('div');
                 c.innerHTML = `<input class="input-ui" value="${def}"><div style="display:flex;gap:8px;margin-top:8px">
                     <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="">清空</button>
-                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="${alt}">${alt}</button></div>`;
+                    <button class="btn btn-c" style="padding:4px 10px;font-size:0.85rem" data-v="${alt}">${alt}</button></div>
+                    <div style="font-size:12px;color:#6c757d;margin-top:10px">默认科目标签为英语，会自动排除名单中标记了 #非英语 的学生。</div>`;
                 const inp = c.firstChild;
                 c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
                 setTimeout(() => inp.focus({ preventScroll: true }), 50);
@@ -1483,60 +1706,132 @@
             },
             asgManage() {
                 const { root, body } = this.buildAsgLayout('作业项目管理');
-                const table = document.createElement('div');
-                table.className = 'st-card-table';
+                const wrap = document.createElement('div');
+                wrap.className = 'asg-manage-grid';
+
+                const quick = document.createElement('section');
+                quick.className = 'asg-manage-hero';
+                quick.innerHTML = `<div class="asg-manage-hero-head">
+                        <div>
+                            <div class="asg-manage-hero-title">快速新建项目</div>
+                            <div class="asg-manage-hero-note">默认科目为英语，会自动触发“非英语”学生排除。</div>
+                        </div>
+                    </div>
+                    <div class="asg-manage-form">
+                        <input class="input-ui" data-role="quick-name" placeholder="例如：0306作业 / Unit 4 听写">
+                        <input class="input-ui" data-role="quick-subject" value="英语" placeholder="科目标签">
+                        <button class="btn btn-p" type="button" data-act="quick-add">新增项目</button>
+                    </div>
+                    <div class="asg-subject-presets" data-role="quick-presets"></div>`;
+                wrap.appendChild(quick);
+
+                const list = document.createElement('section');
+                list.className = 'asg-manage-grid';
+                wrap.appendChild(list);
+
+                const bindSubjectPresets = (host, input) => {
+                    host.replaceChildren();
+                    SUBJECT_PRESETS.forEach(subject => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `asg-pill ${input.value.trim() === subject ? 'active' : ''}`;
+                        btn.dataset.subject = subject;
+                        btn.textContent = subject;
+                        btn.onclick = () => {
+                            input.value = subject;
+                            [...host.children].forEach(el => el.classList.toggle('active', el.dataset.subject === subject));
+                        };
+                        host.appendChild(btn);
+                    });
+                };
+
+                const quickName = quick.querySelector('[data-role="quick-name"]');
+                const quickSubject = quick.querySelector('[data-role="quick-subject"]');
+                bindSubjectPresets(quick.querySelector('[data-role="quick-presets"]'), quickSubject);
 
                 const renderRows = () => {
                     const frag = document.createDocumentFragment();
-                    const head = document.createElement('div');
-                    head.className = 'st-row st-head asg-row-view';
-                    head.innerHTML = '<div>作业项目</div><div style="text-align:right">完成</div><div style="text-align:right">完成率</div>';
-                    frag.appendChild(head);
                     State.data.slice().reverse().forEach(asg => {
                         const total = State.getAsgTotalCount(asg);
                         const done = State.getAsgDoneCount(asg);
                         const rate = total ? Math.round(done / total * 100) : 0;
-                        const viewRow = document.createElement('button');
-                        viewRow.type = 'button';
-                        viewRow.className = 'st-row asg-row-view asg-row-btn';
-                        viewRow.style.cursor = 'pointer';
-                        viewRow.dataset.id = String(asg.id);
-                        if (asg.id === State.curId) viewRow.style.background = '#f4f9ff';
-                        viewRow.innerHTML = `<div class="st-user"><span class="st-name"></span><span class="st-id"></span></div>
-                            <div class="st-rate"></div>
-                            <div class="asg-rate"></div>`;
-                        viewRow.querySelector('.st-name').textContent = asg.name;
-                        viewRow.querySelector('.st-id').textContent = asg.id === State.curId ? '当前任务' : `ID ${asg.id}`;
-                        viewRow.querySelector('.st-rate').textContent = `${done}/${total}`;
-                        const rateEl = viewRow.querySelector('.asg-rate');
-                        rateEl.textContent = `${rate}%`;
-                        rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : 'inherit';
-                        frag.appendChild(viewRow);
+                        const card = document.createElement('article');
+                        card.className = `asg-card ${asg.id === State.curId ? 'current' : ''}`;
+                        card.dataset.id = String(asg.id);
 
-                        const row = document.createElement('div');
-                        row.className = 'asg-edit-row';
-                        row.dataset.id = String(asg.id);
-                        row.innerHTML = `<div class="asg-edit-tools">
+                        const subject = State.getAsgSubject(asg);
+                        card.innerHTML = `<div class="asg-card-head">
+                                <div class="asg-card-meta">
+                                    <div class="asg-card-title"></div>
+                                    <div class="asg-card-sub">
+                                        <span class="asg-current-badge"${asg.id === State.curId ? '' : ' hidden'}>当前项目</span>
+                                        <span class="asg-subject-badge ${subject === '英语' ? '' : 'non-english'}"></span>
+                                        <span>ID ${asg.id}</span>
+                                    </div>
+                                </div>
+                                <div class="asg-card-stats">
+                                    <span class="asg-card-rate"></span>
+                                    <span>${done}/${total}</span>
+                                </div>
+                            </div>
+                            <div class="asg-card-fields">
+                                <div class="asg-field">
+                                    <label>项目名称</label>
+                                    <input class="input-ui" data-role="name" placeholder="作业项目名称">
+                                </div>
+                                <div class="asg-field">
+                                    <label>科目标签</label>
+                                    <input class="input-ui" data-role="subject" placeholder="默认英语">
+                                </div>
+                            </div>
+                            <div class="asg-subject-presets" data-role="presets"></div>
+                            <div class="asg-hint">英语标签会自动排除学生名单中标记为 #非英语 的学生。</div>
+                            <div class="asg-card-actions">
                                 <button class="btn btn-c btn-xs" type="button" data-act="pick">切换</button>
                                 <button class="btn btn-p btn-xs" type="button" data-act="save">保存</button>
                                 <button class="btn btn-d btn-xs" type="button" data-act="del">删除</button>
                             </div>`;
-                        const input = document.createElement('input');
-                        input.className = 'input-ui asg-edit-name';
-                        input.value = asg.name;
-                        input.placeholder = '作业项目名称';
-                        row.prepend(input);
-                        frag.appendChild(row);
+                        card.querySelector('.asg-card-title').textContent = asg.name;
+                        card.querySelector('.asg-subject-badge').textContent = subject;
+                        const rateEl = card.querySelector('.asg-card-rate');
+                        rateEl.textContent = `${rate}%`;
+                        rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : '#16212c';
+                        const nameInput = card.querySelector('[data-role="name"]');
+                        const subjectInput = card.querySelector('[data-role="subject"]');
+                        nameInput.value = asg.name;
+                        subjectInput.value = subject;
+                        bindSubjectPresets(card.querySelector('[data-role="presets"]'), subjectInput);
+                        frag.appendChild(card);
                     });
-                    table.replaceChildren(frag);
+                    list.replaceChildren(frag);
                 };
 
-                table.onclick = async e => {
+                quick.onclick = e => {
+                    const btn = e.target.closest('[data-subject]');
+                    if (btn) quickSubject.value = btn.dataset.subject;
+                };
+
+                quick.querySelector('[data-act="quick-add"]').onclick = () => {
+                    const name = quickName.value.trim();
+                    if (!name) {
+                        Modal.alert('请先输入项目名称');
+                        return;
+                    }
+                    State.addAsg(name);
+                    const created = State.cur;
+                    State.updateAsgMeta(created.id, { name, subject: quickSubject.value.trim() || '英语' });
+                    quickName.value = '';
+                    quickSubject.value = '英语';
+                    bindSubjectPresets(quick.querySelector('[data-role="quick-presets"]'), quickSubject);
+                    renderRows();
+                };
+
+                list.onclick = async e => {
                     const btn = e.target.closest('[data-act]');
                     if (btn) {
-                        const row = btn.closest('.asg-edit-row[data-id]');
-                        if (!row) return;
-                        const id = +row.dataset.id;
+                        const card = btn.closest('.asg-card[data-id]');
+                        if (!card) return;
+                        const id = +card.dataset.id;
                         const act = btn.dataset.act;
                         if (act === 'pick') {
                             State.selectAsg(id);
@@ -1544,9 +1839,10 @@
                             return;
                         }
                         if (act === 'save') {
-                            const input = row.querySelector('.asg-edit-name');
-                            if (!State.renameAsg(id, input.value)) {
-                                Modal.alert('名称不能为空');
+                            const name = card.querySelector('[data-role="name"]').value.trim();
+                            const subject = card.querySelector('[data-role="subject"]').value.trim() || '英语';
+                            if (!State.updateAsgMeta(id, { name, subject })) {
+                                Modal.alert('项目名称不能为空');
                                 return;
                             }
                             renderRows();
@@ -1561,15 +1857,17 @@
                         }
                         return;
                     }
+                };
 
-                    const viewRow = e.target.closest('.asg-row-btn[data-id]');
-                    if (!viewRow) return;
-                    State.selectAsg(+viewRow.dataset.id);
-                    renderRows();
+                list.oninput = e => {
+                    const subjectInput = e.target.closest('[data-role="subject"]');
+                    if (!subjectInput) return;
+                    const card = subjectInput.closest('.asg-card');
+                    bindSubjectPresets(card.querySelector('[data-role="presets"]'), subjectInput);
                 };
 
                 renderRows();
-                body.appendChild(table);
+                body.appendChild(wrap);
                 Modal.show({ title: '', content: root, type: 'full', btns: [] });
             },
             asgView() { this.asgManage(); },
@@ -1691,6 +1989,7 @@
                     if (!a || typeof a !== 'object') throw new Error(`第 ${idx + 1} 个作业格式错误`);
                     const id = Number(a.id);
                     const name = String(a.name ?? '').trim();
+                    const subject = String(a.subject ?? '').trim() || (/英语/.test(name) ? '英语' : '其他');
                     if (!Number.isFinite(id)) throw new Error(`第 ${idx + 1} 个作业ID无效`);
                     if (!name) throw new Error(`第 ${idx + 1} 个作业名称为空`);
                     if (idSet.has(id)) throw new Error(`作业ID重复: ${id}`);
@@ -1704,7 +2003,7 @@
                         if (rec.score != null && rec.score !== '') item.score = rec.score;
                         if (Object.keys(item).length) records[String(stuId)] = item;
                     });
-                    return { id, name, records };
+                    return { id, name, subject, records };
                 });
                 if (!data.length) throw new Error('备份中没有作业数据');
                 if (!list.length) throw new Error('备份中没有学生名单');
