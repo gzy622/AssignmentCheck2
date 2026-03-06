@@ -514,22 +514,6 @@
             box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
         }
 
-        .modal-page-panel {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            min-height: 0;
-        }
-
-        .modal-page-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
         .modal-page-section {
             background: #fff;
             border: 1px solid rgba(15, 23, 42, 0.08);
@@ -545,6 +529,192 @@
             color: #495057;
             line-height: 1.6;
             white-space: pre-wrap;
+        }
+
+        .modal-page-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-top: 4px;
+        }
+
+        .score-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .score-hero {
+            background: linear-gradient(135deg, #ffffff, #eef5ff 60%, #f8fbff);
+            border: 1px solid rgba(13, 110, 253, 0.14);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 10px 24px rgba(13, 110, 253, 0.08);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .score-hero-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .score-hero-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #16212c;
+            line-height: 1.2;
+        }
+
+        .score-hero-sub {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            color: #607080;
+            font-size: 0.82rem;
+        }
+
+        .score-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            font-weight: 700;
+        }
+
+        .score-chip.done {
+            background: #edf8f1;
+            color: #257447;
+            border-color: rgba(37, 116, 71, 0.12);
+        }
+
+        .score-chip.pending {
+            background: #fff4e5;
+            color: #a15c00;
+            border-color: rgba(161, 92, 0, 0.12);
+        }
+
+        .score-index {
+            min-width: 70px;
+            text-align: right;
+            font-size: 0.82rem;
+            color: #607080;
+            font-weight: 700;
+        }
+
+        .score-section {
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .score-section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .score-section-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #16212c;
+        }
+
+        .score-input-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .score-input {
+            padding: 16px 18px;
+            font-size: 2rem;
+            font-weight: 800;
+            text-align: center;
+            border-radius: 16px;
+            border-width: 2px;
+            font-variant-numeric: tabular-nums;
+            background: #fbfdff;
+        }
+
+        .score-inline-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .score-preset-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .score-preset-btn {
+            padding: 12px 0;
+            border-radius: 14px;
+            border: 1px solid #dbe5ef;
+            background: #fff;
+            color: #1d2b38;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .score-preset-btn:hover,
+        .score-preset-btn:focus-visible {
+            border-color: var(--primary);
+            background: #eef5ff;
+            outline: none;
+        }
+
+        .score-toolbar {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .score-nav {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .score-nav .btn[disabled],
+        .score-toolbar .btn[disabled] {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        @media (max-width: 680px) {
+            .score-hero,
+            .score-input-row {
+                grid-template-columns: 1fr;
+            }
+
+            .score-index {
+                text-align: left;
+            }
+
+            .score-preset-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
         }
 
         /* Form Elements in Modal */
@@ -1346,7 +1516,7 @@
                 this.render();
             },
             setupGrid() {
-                let timer = null, pressCard = null, longPressed = false, startPos = { x: 0, y: 0 };
+                let timer = null, pressCard = null, longPressed = false, moved = false, startPos = { x: 0, y: 0 };
                 const cancelTimer = () => {
                     if (!timer) return;
                     clearTimeout(timer);
@@ -1363,6 +1533,7 @@
                     if (!c) return;
                     pressCard = c;
                     longPressed = false;
+                    moved = false;
                     startPos = { x: e.clientX, y: e.clientY };
                     cancelTimer();
                     timer = setTimeout(() => {
@@ -1374,22 +1545,33 @@
                 $('grid').onpointerup = () => {
                     const c = pressCard;
                     const wasLongPressed = longPressed;
+                    const wasMoved = moved;
                     cancelTimer();
                     pressCard = null;
                     longPressed = false;
-                    if (!c || wasLongPressed) return;
+                    moved = false;
+                    if (!c || wasLongPressed || wasMoved) return;
                     handle(c, false);
                 };
                 $('grid').onpointermove = e => {
-                    if (!timer) return;
-                    if (Math.abs(e.clientX - startPos.x) > 16 || Math.abs(e.clientY - startPos.y) > 16) cancelTimer();
+                    if (!pressCard) return;
+                    const dx = Math.abs(e.clientX - startPos.x);
+                    const dy = Math.abs(e.clientY - startPos.y);
+                    if (dx > 10 || dy > 8) {
+                        moved = true;
+                        cancelTimer();
+                    }
                 };
                 $('grid').onpointercancel = () => {
                     cancelTimer();
                     pressCard = null;
                     longPressed = false;
+                    moved = false;
                 };
-                $('grid').onpointerleave = () => cancelTimer();
+                $('grid').onpointerleave = () => {
+                    cancelTimer();
+                    moved = false;
+                };
             },
             setupGridSizing() {
                 const grid = $('grid');
@@ -1603,9 +1785,10 @@
                 this._focusTimer = 0;
             },
 
-            buildPagePanel(title, content) {
+            buildPagePanel(title, content, btns = []) {
                 const panel = document.createElement('div');
-                panel.className = 'modal-page-panel';
+                panel.className = 'st-layout';
+                panel.style.cssText = 'display:flex;flex-direction:column;height:100%';
 
                 const nav = document.createElement('div');
                 nav.className = 'st-nav';
@@ -1621,7 +1804,7 @@
                 nav.appendChild(closeBtn);
 
                 const scroll = document.createElement('div');
-                scroll.className = 'modal-page-scroll';
+                scroll.className = 'st-scroll-area';
 
                 const section = document.createElement('section');
                 section.className = 'modal-page-section';
@@ -1632,6 +1815,20 @@
                     section.appendChild(text);
                 } else {
                     section.appendChild(content);
+                }
+
+                if (btns.length) {
+                    const actions = document.createElement('div');
+                    actions.className = 'modal-page-actions';
+                    btns.forEach(b => {
+                        const btn = document.createElement('button');
+                        btn.className = `btn ${b.type || 'btn-c'}`;
+                        btn.type = 'button';
+                        btn.textContent = b.text;
+                        btn.onclick = () => { if (b.onClick) b.onClick(); else this.close(b.val); };
+                        actions.appendChild(btn);
+                    });
+                    section.appendChild(actions);
                 }
 
                 scroll.appendChild(section);
@@ -1709,32 +1906,35 @@
                 if (this.isOpen) this.forceClose(false);
                 UI.setGridFrozen(true);
                 this.releaseActiveInput();
+                const usePageLayout = type !== 'full';
                 this.title.textContent = title || '';
                 this.body.innerHTML = '';
-                if (type === 'full') {
+                if (!usePageLayout) {
                     if (typeof content === 'string') this.body.innerHTML = content;
                     else this.body.appendChild(content);
                 } else {
-                    this.body.appendChild(this.buildPagePanel(title, content));
+                    this.body.appendChild(this.buildPagePanel(title, content, btns));
                 }
 
                 this.el.className = ''; // Reset class
-                this.isFull = type === 'full';
+                this.isFull = true;
                 this._stableFocusMode = this.shouldUseStableFocusMode(autoFocusEl);
-                if (this.isFull) this.el.classList.add('full');
+                this.el.classList.add('full');
                 if (this._stableFocusMode) this.el.classList.add('focus-stable');
                 this.header.style.display = 'none';
 
                 this.footer.innerHTML = '';
-                this.footer.style.display = btns.length ? 'flex' : 'none';
+                this.footer.style.display = !usePageLayout && btns.length ? 'flex' : 'none';
 
-                btns.forEach(b => {
-                    const btn = document.createElement('button');
-                    btn.className = `btn ${b.type || 'btn-c'}`;
-                    btn.textContent = b.text;
-                    btn.onclick = () => { if (b.onClick) b.onClick(); else this.close(b.val); };
-                    this.footer.appendChild(btn);
-                });
+                if (!usePageLayout) {
+                    btns.forEach(b => {
+                        const btn = document.createElement('button');
+                        btn.className = `btn ${b.type || 'btn-c'}`;
+                        btn.textContent = b.text;
+                        btn.onclick = () => { if (b.onClick) b.onClick(); else this.close(b.val); };
+                        this.footer.appendChild(btn);
+                    });
+                }
 
                 this.isOpen = true;
                 this.isClosing = false;
@@ -1844,8 +2044,176 @@
                 if (await Modal.confirm('删除此任务？')) State.removeAsg(State.curId);
             },
             async score(id, name) {
-                const s = await Modal.prompt(`${id} ${name} 分数`, State.cur.records[id]?.score || '', 'number');
-                if (s !== false) State.updRec(id, { score: s ? s : null, done: s ? true : State.cur.records[id]?.done });
+                const asg = State.cur;
+                const students = State.roster.filter(stu => State.isStuIncluded(asg, stu));
+                let index = students.findIndex(stu => stu.id === id);
+                if (index === -1) return;
+
+                const presets = ['100', '95', '90', '85', '80', '75', '70', '60'];
+                const { root, body } = this.buildAsgLayout('登记分数');
+                const page = document.createElement('div');
+                page.className = 'score-layout';
+                body.appendChild(page);
+                let focusTarget = null;
+
+                const saveStudent = (stuId, scoreValue, forceDone = null) => {
+                    const current = asg.records[stuId] || {};
+                    const normalized = String(scoreValue ?? '').trim();
+                    const payload = {
+                        score: normalized ? normalized : null,
+                        done: forceDone == null ? (normalized ? true : !!current.done) : forceDone
+                    };
+                    State.updRec(stuId, payload);
+                };
+
+                const render = () => {
+                    const stu = students[index];
+                    const rec = asg.records[stu.id] || {};
+                    const done = !!rec.done;
+                    page.innerHTML = '';
+
+                    const hero = document.createElement('section');
+                    hero.className = 'score-hero';
+                    hero.innerHTML = `<div class="score-hero-main">
+                            <div class="score-hero-title">${stu.id} ${stu.name || name || ''}</div>
+                            <div class="score-hero-sub">
+                                <span class="score-chip">${asg.name}</span>
+                                <span class="score-chip ${done ? 'done' : 'pending'}">${done ? '已完成' : '未完成'}</span>
+                                ${rec.score != null && rec.score !== '' ? `<span class="score-chip">当前分数 ${rec.score}</span>` : '<span class="score-chip">当前未录入</span>'}
+                            </div>
+                        </div>
+                        <div class="score-index">第 ${index + 1} / ${students.length} 位</div>`;
+
+                    const edit = document.createElement('section');
+                    edit.className = 'score-section';
+                    edit.innerHTML = `<div class="score-section-head">
+                            <div class="score-section-title">分数录入</div>
+                            <div class="score-inline-actions">
+                                <button class="btn btn-c btn-xs" type="button" data-act="minus">-1</button>
+                                <button class="btn btn-c btn-xs" type="button" data-act="plus">+1</button>
+                            </div>
+                        </div>
+                        <div class="score-input-row">
+                            <input class="input-ui score-input" inputmode="numeric" enterkeyhint="done" placeholder="输入分数" value="${rec.score ?? ''}">
+                            <div class="score-inline-actions">
+                                <button class="btn ${done ? 'btn-p' : 'btn-c'}" type="button" data-act="toggle-done">${done ? '已完成' : '标记完成'}</button>
+                                <button class="btn btn-c" type="button" data-act="clear">清空</button>
+                            </div>
+                        </div>`;
+
+                    const input = edit.querySelector('.score-input');
+                    const stepValue = delta => {
+                        const base = Number(input.value || rec.score || 0);
+                        if (!Number.isFinite(base)) return;
+                        input.value = String(base + delta);
+                    };
+                    edit.querySelector('[data-act="minus"]').onclick = () => stepValue(-1);
+                    edit.querySelector('[data-act="plus"]').onclick = () => stepValue(1);
+                    edit.querySelector('[data-act="toggle-done"]').onclick = () => {
+                        saveStudent(stu.id, input.value, !done);
+                        render();
+                    };
+                    edit.querySelector('[data-act="clear"]').onclick = () => {
+                        input.value = '';
+                        saveStudent(stu.id, '', false);
+                        render();
+                    };
+                    input.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' && !e.isComposing) {
+                            e.preventDefault();
+                            saveStudent(stu.id, input.value);
+                            if (index < students.length - 1) {
+                                index++;
+                                render();
+                            } else {
+                                Modal.close(true);
+                            }
+                        }
+                    });
+
+                    const quick = document.createElement('section');
+                    quick.className = 'score-section';
+                    quick.innerHTML = `<div class="score-section-title">快捷分值</div>`;
+                    const presetGrid = document.createElement('div');
+                    presetGrid.className = 'score-preset-grid';
+                    presets.forEach(value => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'score-preset-btn';
+                        btn.textContent = value;
+                        btn.onclick = () => {
+                            input.value = value;
+                            saveStudent(stu.id, value);
+                            input.focus({ preventScroll: true });
+                            render();
+                        };
+                        presetGrid.appendChild(btn);
+                    });
+                    quick.appendChild(presetGrid);
+
+                    const actions = document.createElement('section');
+                    actions.className = 'score-section';
+                    actions.innerHTML = `<div class="score-section-title">快捷操作</div>
+                        <div class="score-toolbar">
+                            <button class="btn btn-p" type="button" data-act="save">保存</button>
+                            <button class="btn btn-p" type="button" data-act="save-next">保存并下一位</button>
+                            <button class="btn btn-c" type="button" data-act="copy-prev"${index === 0 ? ' disabled' : ''}>沿用上一位分数</button>
+                            <button class="btn btn-c" type="button" data-act="close">完成录入</button>
+                        </div>
+                        <div class="score-nav">
+                            <button class="btn btn-c" type="button" data-act="prev"${index === 0 ? ' disabled' : ''}>上一位</button>
+                            <button class="btn btn-c" type="button" data-act="next"${index === students.length - 1 ? ' disabled' : ''}>下一位</button>
+                        </div>`;
+
+                    actions.querySelector('[data-act="save"]').onclick = () => {
+                        saveStudent(stu.id, input.value);
+                        render();
+                    };
+                    actions.querySelector('[data-act="save-next"]').onclick = () => {
+                        saveStudent(stu.id, input.value);
+                        if (index < students.length - 1) {
+                            index++;
+                            render();
+                        } else {
+                            Modal.close(true);
+                        }
+                    };
+                    actions.querySelector('[data-act="copy-prev"]').onclick = () => {
+                        if (index === 0) return;
+                        const prevStu = students[index - 1];
+                        const prevRec = asg.records[prevStu.id] || {};
+                        input.value = prevRec.score ?? '';
+                    };
+                    actions.querySelector('[data-act="close"]').onclick = () => {
+                        saveStudent(stu.id, input.value);
+                        Modal.close(true);
+                    };
+                    actions.querySelector('[data-act="prev"]').onclick = () => {
+                        saveStudent(stu.id, input.value);
+                        if (index > 0) {
+                            index--;
+                            render();
+                        }
+                    };
+                    actions.querySelector('[data-act="next"]').onclick = () => {
+                        saveStudent(stu.id, input.value);
+                        if (index < students.length - 1) {
+                            index++;
+                            render();
+                        }
+                    };
+
+                    page.appendChild(hero);
+                    page.appendChild(edit);
+                    page.appendChild(quick);
+                    page.appendChild(actions);
+
+                    focusTarget = input;
+                    if (Modal.isOpen) Modal.scheduleFocus(input);
+                };
+
+                render();
+                await Modal.show({ title: '', content: root, type: 'full', autoFocusEl: focusTarget, btns: [] });
             },
             asgManage() {
                 const { root, body } = this.buildAsgLayout('作业项目管理');
