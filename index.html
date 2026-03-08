@@ -1804,7 +1804,7 @@
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader(); r.onload = async ev => {
                     try {
-                        const d = this.normalizeImport(JSON.parse(ev.target.result));
+                        const d = Actions.normalizeImport(JSON.parse(ev.target.result));
                         if (await Modal.confirm('覆盖现有数据？')) {
                             State.list = d.list;
                             State.data = d.data;
