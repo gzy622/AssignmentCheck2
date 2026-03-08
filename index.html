@@ -507,7 +507,6 @@
         <div class="select-wrapper"><select id="asgSelect"></select></div>
         <div class="toolbar">
             <div id="counter" class="badge">0/0</div>
-            <button id="btnScore" class="btn-icon">打分</button>
             <button id="btnView" class="btn-icon">姓名</button>
             <div style="position: relative;">
                 <button id="btnMenu" class="btn-icon" style="display:flex;padding:6px 4px" title="选项">
@@ -518,6 +517,7 @@
                     </svg>
                 </button>
                 <div id="menu" class="dropdown">
+                    <button class="menu-item" act="toggleScore" id="btnScoreMenu">打分模式: 关</button>
                     <button class="menu-item" act="add">新建任务</button>
                     <button class="menu-item" act="stats">统计数据</button>
                     <button class="menu-item" act="asgManage">作业项目管理</button>
@@ -678,6 +678,9 @@
                 document.body.classList.toggle('no-animations', !this.animations);
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
             },
+            applyScoring() {
+                $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
+            },
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
             addAsg(n) {
                 let id = Date.now();
@@ -779,7 +782,6 @@
             init() {
                 window.onpopstate = () => { if (Modal.isOpen) Modal.close(false); };
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
-                $('btnScore').onclick = e => e.target.classList.toggle('active', State.scoring = !State.scoring);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
@@ -792,6 +794,7 @@
                 $('fileIn').onchange = Actions.handleFile;
                 this.setupGrid();
                 this.setupGridSizing();
+                State.applyScoring();
                 this.render();
             },
             setupGrid() {
@@ -971,7 +974,7 @@
             render() {
                 const asg = State.cur; if (!asg) return;
                 const sel = $('asgSelect');
-                const optionsHtml = State.data.map(a => `<option value="${a.id}">[${State.getAsgSubject(a)}] ${a.name}</option>`).join('');
+                const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                 if (sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
                 if (sel.value != State.curId) sel.value = State.curId;
 
@@ -1296,6 +1299,7 @@
         };
 
         const Actions = {
+            toggleScore() { State.scoring = !State.scoring; State.applyScoring(); },
             toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
             buildAsgLayout(title) {
                 const c = document.createElement('div');
@@ -1538,22 +1542,6 @@
                 const wrap = document.createElement('div');
                 wrap.className = 'asg-manage-grid';
 
-                const quick = document.createElement('section');
-                quick.className = 'asg-manage-hero';
-                quick.innerHTML = `<div class="asg-manage-hero-head">
-                        <div>
-                            <div class="asg-manage-hero-title">快速新建项目</div>
-                            <div class="asg-manage-hero-note">默认科目为英语，会自动触发“非英语”学生排除。</div>
-                        </div>
-                    </div>
-                    <div class="asg-manage-form">
-                        <input class="input-ui" data-role="quick-name" placeholder="例如：0306作业 / Unit 4 听写">
-                        <input class="input-ui" data-role="quick-subject" value="英语" placeholder="科目标签">
-                        <button class="btn btn-p" type="button" data-act="quick-add">新增项目</button>
-                    </div>
-                    <div class="asg-subject-presets" data-role="quick-presets"></div>`;
-                wrap.appendChild(quick);
-
                 const list = document.createElement('section');
                 list.className = 'asg-manage-grid';
                 wrap.appendChild(list);
@@ -1573,10 +1561,6 @@
                         host.appendChild(btn);
                     });
                 };
-
-                const quickName = quick.querySelector('[data-role="quick-name"]');
-                const quickSubject = quick.querySelector('[data-role="quick-subject"]');
-                bindSubjectPresets(quick.querySelector('[data-role="quick-presets"]'), quickSubject);
 
                 const renderRows = () => {
                     const frag = document.createDocumentFragment();
@@ -1633,26 +1617,6 @@
                         frag.appendChild(card);
                     });
                     list.replaceChildren(frag);
-                };
-
-                quick.onclick = e => {
-                    const btn = e.target.closest('[data-subject]');
-                    if (btn) quickSubject.value = btn.dataset.subject;
-                };
-
-                quick.querySelector('[data-act="quick-add"]').onclick = () => {
-                    const name = quickName.value.trim();
-                    if (!name) {
-                        Modal.alert('请先输入项目名称');
-                        return;
-                    }
-                    State.addAsg(name);
-                    const created = State.cur;
-                    State.updateAsgMeta(created.id, { name, subject: quickSubject.value.trim() || '英语' });
-                    quickName.value = '';
-                    quickSubject.value = '英语';
-                    bindSubjectPresets(quick.querySelector('[data-role="quick-presets"]'), quickSubject);
-                    renderRows();
                 };
 
                 list.onclick = async e => {
@@ -1859,6 +1823,3 @@
 </body>
 
 </html>
-
-
-
