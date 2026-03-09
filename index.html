@@ -798,7 +798,7 @@
                 this.render();
             },
             setupGrid() {
-                let timer = null, pressCard = null, longPressed = false, moved = false, startPos = { x: 0, y: 0 };
+                let timer = null, pressCard = null, longPressed = false, moved = false, suppressClick = false, startPos = { x: 0, y: 0 };
                 const cancelTimer = () => {
                     if (!timer) return;
                     clearTimeout(timer);
@@ -821,19 +821,13 @@
                     timer = setTimeout(() => {
                         timer = null;
                         longPressed = true;
+                        suppressClick = true;
                         handle(c, true);
                     }, 500);
                 };
                 $('grid').onpointerup = () => {
-                    const c = pressCard;
-                    const wasLongPressed = longPressed;
-                    const wasMoved = moved;
                     cancelTimer();
                     pressCard = null;
-                    longPressed = false;
-                    moved = false;
-                    if (!c || wasLongPressed || wasMoved) return;
-                    handle(c, false);
                 };
                 $('grid').onpointermove = e => {
                     if (!pressCard) return;
@@ -853,6 +847,18 @@
                 $('grid').onpointerleave = () => {
                     cancelTimer();
                     moved = false;
+                };
+                $('grid').onclick = e => {
+                    const c = e.target.closest('.student-card');
+                    if (!c) return;
+                    e.preventDefault();
+                    if (suppressClick || longPressed || moved) {
+                        suppressClick = false;
+                        longPressed = false;
+                        moved = false;
+                        return;
+                    }
+                    handle(c, false);
                 };
             },
             setupGridSizing() {
