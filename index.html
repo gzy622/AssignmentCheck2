@@ -500,6 +500,9 @@
         .asg-card-actions{display:flex;gap:8px;flex-wrap:wrap}
         .asg-hint{font-size:.78rem;color:#7a8795}
 
+        .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+        .toast.show{opacity:1;transform:translate(-50%,0)}
+
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
     </style>
 </head>
@@ -552,12 +555,83 @@
         </div>
     </dialog>
 
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
     <script>
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
         const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
         const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
+
+        const Toast = {
+            el: null,
+            timer: 0,
+            init() { this.el = $('toast'); },
+            show(msg, ms = 1500) {
+                if (!this.el) return;
+                this.el.textContent = msg;
+                this.el.classList.add('show');
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.el.classList.remove('show'), ms);
+            }
+        };
+
+        const BackHandler = {
+            EXIT_WINDOW_MS: 1500,
+            _sentinelKey: '__tracker_guard__',
+            _lastBackAt: 0,
+            _ignorePopOnce: false,
+            init() {
+                this.seedGuardState();
+                window.addEventListener('popstate', () => this.onPopState());
+            },
+            seedGuardState() {
+                const base = history.state && typeof history.state === 'object' ? history.state : {};
+                if (!base[this._sentinelKey]) history.replaceState({ ...base, [this._sentinelKey]: 'root' }, '');
+                history.pushState({ [this._sentinelKey]: 'guard', t: Date.now() }, '');
+            },
+            closeOverlayLikeEsc() {
+                if (Modal.isOpen) {
+                    Modal.close(false);
+                    return true;
+                }
+                const menu = $('menu');
+                if (menu.classList.contains('show')) {
+                    menu.classList.remove('show');
+                    return true;
+                }
+                return false;
+            },
+            onPopState() {
+                if (this._ignorePopOnce) {
+                    this._ignorePopOnce = false;
+                    return;
+                }
+                if (this.closeOverlayLikeEsc()) {
+                    this.rearmGuard();
+                    return;
+                }
+                const now = Date.now();
+                if (now - this._lastBackAt <= this.EXIT_WINDOW_MS) {
+                    this.exitPage();
+                    return;
+                }
+                this._lastBackAt = now;
+                Toast.show('再按一次返回退出');
+                this.rearmGuard();
+            },
+            rearmGuard() {
+                setTimeout(() => history.pushState({ [this._sentinelKey]: 'guard', t: Date.now() }, ''), 0);
+            },
+            exitPage() {
+                this._ignorePopOnce = true;
+                history.back();
+                setTimeout(() => {
+                    if (!document.hidden) window.close();
+                }, 120);
+            }
+        };
 
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
@@ -782,7 +856,7 @@
         const UI = {
             _gridFrozen: false,
             init() {
-                window.onpopstate = () => { if (Modal.isOpen) Modal.close(false); };
+                BackHandler.init();
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
@@ -1026,7 +1100,9 @@
                 this.closeBtn.onclick = () => this.close(false);
                 this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
                 document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && this.isOpen) this.close(false);
+                    if (e.key !== 'Escape') return;
+                    if (this.isOpen) this.close(false);
+                    else BackHandler.closeOverlayLikeEsc();
                 });
             },
 
@@ -1830,6 +1906,7 @@
                 }; r.readAsText(f); e.target.value = '';
             }
         };
+        Toast.init();
         Modal.init(); State.init();
     </script>
 </body>
