@@ -6,6 +6,7 @@ It focuses on:
 - Reply style
 - Coding style
 - Execution workflow
+- Repo-specific maintenance expectations
 
 If any rule here conflicts with higher-priority instructions (system/developer/user prompt), follow the higher-priority instruction.
 
@@ -24,6 +25,7 @@ If any rule here conflicts with higher-priority instructions (system/developer/u
 - When blocked, state the blocker and the next best action.
 
 ## Coding Rules
+- This repo is a single-file static app centered on `index.html`; prefer targeted edits inside the existing file instead of splitting modules unless the user explicitly asks for restructuring.
 - Prefer minimal, targeted changes over broad refactors.
 - Match existing project conventions unless explicitly asked to change them.
 - Keep code readable; only add comments where logic is not obvious.
@@ -36,6 +38,7 @@ If any rule here conflicts with higher-priority instructions (system/developer/u
 - Preserve line endings and encoding used by the project when possible.
 - Use ASCII by default unless non-ASCII is necessary.
 - Do not rewrite large files if a focused patch is sufficient.
+- If UI behavior, storage format, or user workflow changes, update `README.md` in the same task when the documentation would otherwise become stale.
 
 ## Execution Workflow
 1. Inspect context and constraints first.
@@ -48,9 +51,10 @@ If any rule here conflicts with higher-priority instructions (system/developer/u
 - Prefer the smallest meaningful validation that proves the change.
 - If tests cannot run, explain exactly why and provide manual verification steps.
 - Do not claim success without verification evidence.
+- For `index.html` changes, prioritize focused validation of the affected flow in browser terms: render path, interaction path, localStorage impact, and import/export compatibility when relevant.
 
 ## Output Format
-- Reference files using clickable inline paths like `src/app.ts:42`.
+- Reference files using clear clickable paths with line numbers when useful, for example `index.html:520`.
 - Keep summaries short and actionable.
 - Provide next steps only when they are natural and useful.
 - After completing requested code changes, include a summary in git commit message style (subject line + optional bullet list body), and output that git message inside a code block.
