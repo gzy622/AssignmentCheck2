@@ -581,19 +581,19 @@
             EXIT_WINDOW_MS: 1500,
             _sentinelHash: '#__tracker_back_guard__',
             _lastBackAt: 0,
+            _lastSignalAt: 0,
             _suppressOnce: false,
             _guardReady: false,
             init() {
                 this.armGuards();
-                window.addEventListener('popstate', () => this.onBackSignal('popstate'));
+                window.addEventListener('popstate', () => this.onBackSignal());
                 window.addEventListener('hashchange', () => this.onHashChange());
             },
             armGuards() {
                 if (location.hash !== this._sentinelHash) location.hash = this._sentinelHash;
-                if (!this._guardReady) {
-                    history.pushState({ __trackerGuard__: true, t: Date.now() }, '');
-                    this._guardReady = true;
-                }
+                if (this._guardReady) return;
+                history.pushState({ __trackerGuard__: true, t: Date.now() }, '');
+                this._guardReady = true;
             },
             onHashChange() {
                 if (this._suppressOnce) {
@@ -601,7 +601,7 @@
                     return;
                 }
                 if (location.hash === this._sentinelHash) return;
-                this.onBackSignal('hashchange');
+                this.onBackSignal();
             },
             closeOverlayLikeEsc() {
                 if (Modal.isOpen) {
@@ -616,6 +616,9 @@
                 return false;
             },
             onBackSignal() {
+                const now = Date.now();
+                if (now - this._lastSignalAt < 80) return;
+                this._lastSignalAt = now;
                 if (this._suppressOnce) {
                     this._suppressOnce = false;
                     return;
@@ -624,7 +627,6 @@
                     this.rearm();
                     return;
                 }
-                const now = Date.now();
                 if (now - this._lastBackAt <= this.EXIT_WINDOW_MS) {
                     this.exitPage();
                     return;
@@ -642,11 +644,7 @@
             },
             exitPage() {
                 this._suppressOnce = true;
-                if (location.hash === this._sentinelHash) {
-                    history.back();
-                } else {
-                    window.close();
-                }
+                history.back();
                 setTimeout(() => {
                     if (!document.hidden) window.close();
                 }, 120);
