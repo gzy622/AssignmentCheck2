@@ -427,6 +427,20 @@
 
         textarea.st-editor{width:100%;height:300px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;resize:vertical;outline:none;font-size:.9rem}
         textarea.st-editor:focus{border-color:var(--primary)}
+        .roster-shell{display:flex;flex-direction:column;gap:14px;min-height:0}
+        .roster-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+        .roster-toolbar .btn{padding:8px 12px}
+        .roster-hint-card{background:linear-gradient(145deg,#fff,#f8f9fa);border:1px solid rgba(0,0,0,.05);border-radius:14px;padding:12px 14px;color:#5c6670;font-size:.84rem;line-height:1.55}
+        .roster-summary{display:flex;gap:10px;flex-wrap:wrap}
+        .roster-badge{padding:6px 10px;border-radius:999px;background:#eef3f8;color:#324253;font-size:.8rem;font-weight:700}
+        .roster-list{display:flex;flex-direction:column;gap:10px;min-height:0}
+        .roster-row{display:grid;grid-template-columns:88px minmax(0,1fr) auto auto;gap:10px;align-items:center;background:#fff;border:1px solid rgba(0,0,0,.06);border-radius:14px;padding:10px 12px;box-shadow:0 2px 6px rgba(0,0,0,.03)}
+        .roster-row input[type="text"]{min-width:0}
+        .roster-row .input-ui{margin-bottom:0}
+        .roster-check{display:flex;align-items:center;gap:6px;color:#5c6670;font-size:.82rem;white-space:nowrap}
+        .roster-check input{margin:0}
+        .roster-empty{padding:24px 14px;border:1px dashed rgba(0,0,0,.12);border-radius:14px;text-align:center;color:#7a8795;background:rgba(255,255,255,.55)}
+        @media (max-width:640px){.roster-row{grid-template-columns:1fr auto;align-items:start}.roster-row .roster-seat{grid-column:1/2}.roster-row .roster-name{grid-column:1/3}.roster-row .roster-check{grid-column:1/2}.roster-row .roster-del{grid-column:2/3;justify-self:end}}
         .input-ui{width:100%;padding:10px;border:2px solid #f0f2f5;border-radius:8px;margin-bottom:0;outline:none;font-family:inherit}
         .input-ui:focus{border-color:var(--primary)}
         .btn{padding:8px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:.9rem;transition:.1s}
@@ -1904,30 +1918,171 @@
                 Modal.show({ title: '', content: root, type: 'full', btns: [] });
             },
             roster() {
-                const c = document.createElement('div'); c.className = 'st-layout'; c.style.cssText = 'display:flex;flex-direction:column;height:100%';
-                c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
-                    <div class="st-scroll-area" style="padding:16px;flex:1"><div style="font-size:12px;color:#6c757d;margin-bottom:8px">行尾加 #非英语，可在英语作业统计时自动排除</div><textarea class="st-editor" style="height:calc(100% - 24px)"></textarea></div>`;
-                const ta = c.querySelector('textarea'); ta.value = State.list.join('\n');
-                const ensureVisible = () => {
-                    requestAnimationFrame(() => {
-                        if (!Modal.isOpen || document.activeElement !== ta) return;
-                        Modal.scheduleLayout();
-                        ta.scrollIntoView({ block: 'center' });
-                    });
+                const parseEntry = line => {
+                    const raw = String(line || '').trim();
+                    if (!raw) return null;
+                    const noEnglish = /\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i.test(raw);
+                    const clean = raw.replace(/\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i, '').trim();
+                    const spaceIndex = clean.indexOf(' ');
+                    return spaceIndex === -1
+                        ? { id: clean, name: '', noEnglish }
+                        : { id: clean.slice(0, spaceIndex), name: clean.slice(spaceIndex + 1).trim(), noEnglish };
                 };
-                const onViewportResize = () => ensureVisible();
-                ta.addEventListener('focus', () => {
-                    ensureVisible();
-                    if (window.visualViewport) window.visualViewport.addEventListener('resize', onViewportResize, { passive: true });
-                });
-                ta.addEventListener('blur', () => {
-                    if (window.visualViewport) window.visualViewport.removeEventListener('resize', onViewportResize);
-                });
-                ta.addEventListener('input', ensureVisible);
+                const entries = State.list.map(parseEntry).filter(Boolean);
+
+                const c = document.createElement('div');
+                c.className = 'st-layout';
+                c.style.cssText = 'display:flex;flex-direction:column;height:100%';
+                c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑学生名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
+                    <div class="st-scroll-area" style="padding:16px;flex:1">
+                        <div class="roster-shell">
+                            <div class="roster-hint-card">直接逐行编辑座位号、姓名和排除标记。可一键自动生成座位号，也可按座位号排序。勾选“排除英语”后，该学生会在英语任务中自动跳过。</div>
+                            <div class="roster-toolbar">
+                                <button class="btn btn-p" type="button" data-act="add">新增一行</button>
+                                <button class="btn btn-c" type="button" data-act="autonum">自动生成座位号</button>
+                                <button class="btn btn-c" type="button" data-act="sort-seat">按座位号排序</button>
+                                <button class="btn btn-c" type="button" data-act="clean">清理空行</button>
+                            </div>
+                            <div class="roster-summary">
+                                <span class="roster-badge" data-role="count"></span>
+                                <span class="roster-badge" data-role="excluded"></span>
+                            </div>
+                            <div class="roster-list" data-role="list"></div>
+                        </div>
+                    </div>`;
+
+                const listEl = c.querySelector('[data-role="list"]');
+                const countEl = c.querySelector('[data-role="count"]');
+                const excludedEl = c.querySelector('[data-role="excluded"]');
+                const getPadLength = () => Math.max(2, String(Math.max(entries.length, 1)).length);
+                const formatSeat = (value, padLength = getPadLength()) => {
+                    const text = String(value ?? '').trim();
+                    if (!text) return '';
+                    return /^\d+$/.test(text) ? text.padStart(padLength, '0') : text;
+                };
+                const syncSummary = () => {
+                    const valid = entries.filter(item => item.id || item.name).length;
+                    const excluded = entries.filter(item => item.noEnglish && (item.id || item.name)).length;
+                    countEl.textContent = `共 ${valid} 人`;
+                    excludedEl.textContent = `排除英语 ${excluded} 人`;
+                };
+                const renderRows = () => {
+                    syncSummary();
+                    if (!entries.length) {
+                        listEl.innerHTML = '<div class="roster-empty">还没有学生，点击“新增一行”开始编辑。</div>';
+                        return;
+                    }
+                    const frag = document.createDocumentFragment();
+                    entries.forEach((entry, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'roster-row';
+                        row.dataset.index = String(index);
+                        row.innerHTML = `<input class="input-ui roster-seat" data-role="id" type="text" inputmode="numeric" placeholder="座位号">
+                            <input class="input-ui roster-name" data-role="name" type="text" placeholder="姓名">
+                            <label class="roster-check"><input data-role="exclude" type="checkbox">排除英语</label>
+                            <button class="btn btn-d btn-xs roster-del" type="button" data-act="remove">删除</button>`;
+                        row.querySelector('[data-role="id"]').value = entry.id || '';
+                        row.querySelector('[data-role="name"]').value = entry.name || '';
+                        row.querySelector('[data-role="exclude"]').checked = !!entry.noEnglish;
+                        frag.appendChild(row);
+                    });
+                    listEl.replaceChildren(frag);
+                };
+                const autoNumber = () => {
+                    const padLength = getPadLength();
+                    entries.forEach((entry, index) => { entry.id = String(index + 1).padStart(padLength, '0'); });
+                    renderRows();
+                };
+                const sortBySeat = () => {
+                    const rank = value => {
+                        const text = String(value || '').trim();
+                        if (/^\d+$/.test(text)) return [0, Number(text), ''];
+                        return [1, Number.MAX_SAFE_INTEGER, text];
+                    };
+                    entries.sort((a, b) => {
+                        const [ta, na, sa] = rank(a.id);
+                        const [tb, nb, sb] = rank(b.id);
+                        return ta - tb || na - nb || sa.localeCompare(sb, 'zh-CN') || (a.name || '').localeCompare(b.name || '', 'zh-CN');
+                    });
+                    renderRows();
+                };
+                const compactEntries = () => {
+                    for (let i = entries.length - 1; i >= 0; i--) {
+                        if (!entries[i].id && !entries[i].name) entries.splice(i, 1);
+                    }
+                    renderRows();
+                };
+                const serializeEntries = () => {
+                    const padLength = getPadLength();
+                    let nextAuto = 1;
+                    const usedIds = new Set(entries.map(item => formatSeat(item.id, padLength)).filter(Boolean));
+                    const nextFreeId = () => {
+                        while (usedIds.has(String(nextAuto).padStart(padLength, '0'))) nextAuto++;
+                        const id = String(nextAuto).padStart(padLength, '0');
+                        usedIds.add(id);
+                        nextAuto++;
+                        return id;
+                    };
+                    return entries
+                        .filter(item => String(item.id || '').trim() || String(item.name || '').trim())
+                        .map(item => ({
+                            id: formatSeat(item.id, padLength) || nextFreeId(),
+                            name: String(item.name || '').trim(),
+                            noEnglish: !!item.noEnglish
+                        }))
+                        .map(item => `${item.id}${item.name ? ` ${item.name}` : ''}${item.noEnglish ? ' #非英语' : ''}`);
+                };
+
+                c.querySelector('.roster-toolbar').onclick = e => {
+                    const btn = e.target.closest('[data-act]');
+                    if (!btn) return;
+                    const act = btn.dataset.act;
+                    if (act === 'add') {
+                        entries.push({ id: '', name: '', noEnglish: false });
+                        renderRows();
+                        requestAnimationFrame(() => listEl.querySelector('.roster-row:last-child [data-role="name"]')?.focus());
+                        return;
+                    }
+                    if (act === 'autonum') return autoNumber();
+                    if (act === 'sort-seat') return sortBySeat();
+                    if (act === 'clean') return compactEntries();
+                };
+                listEl.oninput = e => {
+                    const row = e.target.closest('.roster-row');
+                    if (!row) return;
+                    const index = Number(row.dataset.index);
+                    const entry = entries[index];
+                    if (!entry) return;
+                    if (e.target.matches('[data-role="id"]')) entry.id = e.target.value.trim();
+                    if (e.target.matches('[data-role="name"]')) entry.name = e.target.value.trim();
+                    syncSummary();
+                };
+                listEl.onchange = e => {
+                    const row = e.target.closest('.roster-row');
+                    if (!row) return;
+                    const index = Number(row.dataset.index);
+                    const entry = entries[index];
+                    if (!entry) return;
+                    if (e.target.matches('[data-role="exclude"]')) {
+                        entry.noEnglish = e.target.checked;
+                        syncSummary();
+                    }
+                };
+                listEl.onclick = e => {
+                    const btn = e.target.closest('[data-act="remove"]');
+                    if (!btn) return;
+                    const row = btn.closest('.roster-row');
+                    const index = Number(row?.dataset.index);
+                    if (!Number.isInteger(index)) return;
+                    entries.splice(index, 1);
+                    renderRows();
+                };
+
+                renderRows();
                 Modal.show({
                     title: '', content: c, type: 'full', btns: [{ text: '取消', val: false }, {
                         text: '保存', type: 'btn-p', onClick: () => {
-                            State.list = ta.value.split('\n').map(s => s.trim()).filter(s => s);
+                            State.list = serializeEntries();
                             State.parseRoster();
                             State.save({ dirtyData: false, dirtyList: true, normalizeMode: 'none' });
                             Modal.close();
