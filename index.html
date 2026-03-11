@@ -660,6 +660,8 @@
             _statsCache: new Map(),
             _dirtyData: false,
             _dirtyList: false,
+            _asgListVersion: 0,
+            _rosterVersion: 0,
             init() {
                 this.list = LS.get(KEYS.LIST, [
                     '01 蓝慧婷',
@@ -767,14 +769,16 @@
                     return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
                 }).filter(s => s.id);
                 this.rosterIndexMap = new Map(this.roster.map((stu, index) => [stu.id, index]));
+                this._rosterVersion++;
                 this.invalidateDerived();
             },
-            save({ render = true, immediate = false, dirtyData = true, dirtyList = false } = {}) {
+            save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false } = {}) {
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.rebuildAsgIndex();
                 this.invalidateDerived();
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
+                if (asgListChanged) this._asgListVersion++;
                 if (immediate) this.flushPersist();
                 else this.queuePersist();
                 if (render) UI.render();
@@ -793,7 +797,7 @@
                 while (this.asgMap.has(id)) id++;
                 this.data.push({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} });
                 this.curId = id;
-                this.save();
+                this.save({ asgListChanged: true });
             },
             selectAsg(id) {
                 if (!this.asgMap.has(id)) return;
@@ -805,7 +809,7 @@
                 const safeName = (name || '').trim();
                 if (!asg || !safeName) return false;
                 asg.name = safeName;
-                this.save();
+                this.save({ asgListChanged: true });
                 return true;
             },
             updateAsgMeta(id, payload = {}) {
@@ -816,7 +820,7 @@
                 if (!safeName) return false;
                 asg.name = safeName;
                 asg.subject = safeSubject;
-                this.save();
+                this.save({ asgListChanged: true });
                 return true;
             },
             removeAsg(id) {
@@ -828,7 +832,7 @@
                     const fallback = this.data[Math.max(0, idx - 1)] || this.data[0];
                     this.curId = fallback.id;
                 }
-                this.save();
+                this.save({ asgListChanged: true });
                 return true;
             },
             getAsgSubject(asg) {
@@ -896,6 +900,9 @@
         };
         const UI = {
             _gridFrozen: false,
+            _taskSelectVersion: -1,
+            _lastRenderAsgId: null,
+            _lastRosterVersion: -1,
             init() {
                 BackHandler.init();
                 $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
@@ -1106,12 +1113,35 @@
                 $('counter').textContent = `${doneCount}/${total}`;
                 $('progressFill').style.width = total ? `${(doneCount / total) * 100}%` : '0%';
             },
+            ensureTaskOptions() {
+                const sel = $('asgSelect');
+                if (this._taskSelectVersion !== State._asgListVersion) {
+                    const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                    sel.innerHTML = optionsHtml;
+                    this._taskSelectVersion = State._asgListVersion;
+                }
+                if (sel.value != State.curId) sel.value = String(State.curId);
+            },
+            getCardState(asg, stu) {
+                const excluded = !State.isStuIncluded(asg, stu);
+                const rec = asg?.records?.[stu.id] || {};
+                return {
+                    excluded,
+                    done: !excluded && !!rec.done,
+                    score: !excluded && rec.score != null && rec.score !== '' ? String(rec.score) : ''
+                };
+            },
+            shouldRefreshCard(prevAsg, nextAsg, stu) {
+                if (!prevAsg || !nextAsg) return true;
+                const prevState = this.getCardState(prevAsg, stu);
+                const nextState = this.getCardState(nextAsg, stu);
+                return prevState.excluded !== nextState.excluded || prevState.done !== nextState.done || prevState.score !== nextState.score;
+            },
             render() {
                 const asg = State.cur; if (!asg) return;
-                const sel = $('asgSelect');
-                const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                if (sel.innerHTML !== optionsHtml) sel.innerHTML = optionsHtml;
-                if (sel.value != State.curId) sel.value = State.curId;
+                const prevAsg = State.asgMap.get(this._lastRenderAsgId);
+                const forceFull = this._lastRosterVersion !== State._rosterVersion || !prevAsg || prevAsg.id === asg.id;
+                this.ensureTaskOptions();
 
                 this.syncCardPool();
                 const cards = $('grid').children;
@@ -1122,9 +1152,13 @@
                     const rec = asg.records[stu.id] || {};
                     const excluded = !State.isStuIncluded(asg, stu);
                     if (!excluded && rec.done) doneCount++;
-                    this.renderCard(cards[i], stu, rec, excluded);
+                    if (forceFull || this.shouldRefreshCard(prevAsg, asg, stu)) {
+                        this.renderCard(cards[i], stu, rec, excluded);
+                    }
                 });
                 this.renderProgress(doneCount, total);
+                this._lastRenderAsgId = asg.id;
+                this._lastRosterVersion = State._rosterVersion;
                 this.scheduleGridLayout();
             }
         };
@@ -1843,61 +1877,98 @@
                     <div class="st-scroll-area"><div class="st-summary" id="stSum"></div><div class="st-filters" id="stFil"></div><div class="st-card-table" id="stTab"></div></div>`;
 
                 const ui = { sum: c.querySelector('#stSum'), fil: c.querySelector('#stFil'), tab: c.querySelector('#stTab') };
+                const statsState = { chipVersion: -1, rowPool: new Map() };
                 ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
+
+                const syncSummary = (rows, taskCount) => {
+                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
+                        <div class="st-metric"><div class="st-val">${taskCount}</div><div class="st-label">统计任务数</div></div>`;
+                };
+
+                const syncChips = () => {
+                    if (statsState.chipVersion !== State._asgListVersion) {
+                        const chipFrag = document.createDocumentFragment();
+                        State.data.slice().reverse().forEach(a => {
+                            const chip = document.createElement('div');
+                            chip.className = 'st-chip';
+                            chip.dataset.id = String(a.id);
+                            chip.textContent = a.name;
+                            chipFrag.appendChild(chip);
+                        });
+                        ui.fil.replaceChildren(chipFrag);
+                        statsState.chipVersion = State._asgListVersion;
+                    }
+                    [...ui.fil.children].forEach(chip => {
+                        chip.classList.toggle('active', sel.has(+chip.dataset.id));
+                    });
+                };
+
+                const createStatsRow = () => {
+                    const row = document.createElement('div');
+                    row.className = 'st-row';
+
+                    const user = document.createElement('div');
+                    user.className = 'st-user';
+                    const name = document.createElement('span');
+                    name.className = 'st-name';
+                    const id = document.createElement('span');
+                    id.className = 'st-id';
+                    user.appendChild(name);
+                    user.appendChild(id);
+
+                    const visual = document.createElement('div');
+                    visual.className = 'st-visual';
+                    const rate = document.createElement('div');
+                    rate.className = 'st-rate';
+
+                    row.appendChild(user);
+                    row.appendChild(visual);
+                    row.appendChild(rate);
+                    row._nameEl = name;
+                    row._idEl = id;
+                    row._visualEl = visual;
+                    row._rateEl = rate;
+                    return row;
+                };
+
+                const syncStatsRow = (row, item) => {
+                    row._nameEl.textContent = item.name;
+                    row._idEl.textContent = item.id;
+                    row._rateEl.textContent = `${item.rate}%`;
+                    row._rateEl.style.color = item.rate < 60 ? 'var(--danger)' : item.rate > 90 ? 'var(--success)' : 'inherit';
+
+                    const visual = row._visualEl;
+                    while (visual.children.length < item.dones.length) {
+                        const dot = document.createElement('div');
+                        dot.className = 'st-dot';
+                        visual.appendChild(dot);
+                    }
+                    while (visual.children.length > item.dones.length) {
+                        visual.lastElementChild.remove();
+                    }
+                    item.dones.forEach((done, index) => {
+                        visual.children[index].className = `st-dot ${done ? 'done' : ''}`;
+                    });
+                };
 
                 const upd = () => {
                     const selectedIds = State.data.filter(a => sel.has(a.id)).map(a => a.id);
                     const { tgs, rows } = State.getStatsRows(selectedIds);
-
-                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
-                        <div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
-
-                    const chipFrag = document.createDocumentFragment();
-                    State.data.slice().reverse().forEach(a => {
-                        const chip = document.createElement('div');
-                        chip.className = `st-chip ${sel.has(a.id) ? 'active' : ''}`;
-                        chip.dataset.id = String(a.id);
-                        chip.textContent = a.name;
-                        chipFrag.appendChild(chip);
-                    });
-                    ui.fil.replaceChildren(chipFrag);
+                    syncSummary(rows, tgs.length);
+                    syncChips();
 
                     const tableFrag = document.createDocumentFragment();
                     const head = document.createElement('div');
                     head.className = 'st-row st-head';
                     head.innerHTML = '<div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div>';
                     tableFrag.appendChild(head);
-                    rows.forEach(r => {
-                        const row = document.createElement('div');
-                        row.className = 'st-row';
-
-                        const user = document.createElement('div');
-                        user.className = 'st-user';
-                        const name = document.createElement('span');
-                        name.className = 'st-name';
-                        name.textContent = r.name;
-                        const id = document.createElement('span');
-                        id.className = 'st-id';
-                        id.textContent = r.id;
-                        user.appendChild(name);
-                        user.appendChild(id);
-
-                        const visual = document.createElement('div');
-                        visual.className = 'st-visual';
-                        r.dones.forEach(v => {
-                            const dot = document.createElement('div');
-                            dot.className = `st-dot ${v ? 'done' : ''}`;
-                            visual.appendChild(dot);
-                        });
-
-                        const rate = document.createElement('div');
-                        rate.className = 'st-rate';
-                        rate.textContent = `${r.rate}%`;
-                        rate.style.color = r.rate < 60 ? 'var(--danger)' : r.rate > 90 ? 'var(--success)' : 'inherit';
-
-                        row.appendChild(user);
-                        row.appendChild(visual);
-                        row.appendChild(rate);
+                    rows.forEach(item => {
+                        let row = statsState.rowPool.get(item.id);
+                        if (!row) {
+                            row = createStatsRow();
+                            statsState.rowPool.set(item.id, row);
+                        }
+                        syncStatsRow(row, item);
                         tableFrag.appendChild(row);
                     });
                     ui.tab.replaceChildren(tableFrag);
@@ -1954,7 +2025,7 @@
                             State.parseRoster();
                             State.rebuildAsgIndex();
                             State.curId = State.data[0].id;
-                            State.save({ immediate: true, dirtyData: true, dirtyList: true });
+                            State.save({ immediate: true, dirtyData: true, dirtyList: true, asgListChanged: true });
                             Modal.alert('导入成功');
                         }
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
