@@ -654,9 +654,12 @@
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
             asgMap: new Map(),
+            rosterIndexMap: new Map(),
             _persistTimer: 0,
             _metricsToken: 0,
             _statsCache: new Map(),
+            _dirtyData: false,
+            _dirtyList: false,
             init() {
                 this.list = LS.get(KEYS.LIST, [
                     '01 蓝慧婷',
@@ -747,8 +750,14 @@
             flushPersist() {
                 clearTimeout(this._persistTimer);
                 this._persistTimer = 0;
-                LS.set(KEYS.DATA, this.data);
-                LS.set(KEYS.LIST, this.list);
+                if (this._dirtyData) {
+                    LS.set(KEYS.DATA, this.data);
+                    this._dirtyData = false;
+                }
+                if (this._dirtyList) {
+                    LS.set(KEYS.LIST, this.list);
+                    this._dirtyList = false;
+                }
             },
             parseRoster() {
                 this.roster = this.list.map(l => {
@@ -757,12 +766,15 @@
                     const i = line.indexOf(' ');
                     return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
                 }).filter(s => s.id);
+                this.rosterIndexMap = new Map(this.roster.map((stu, index) => [stu.id, index]));
                 this.invalidateDerived();
             },
-            save({ render = true, immediate = false } = {}) {
+            save({ render = true, immediate = false, dirtyData = true, dirtyList = false } = {}) {
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.rebuildAsgIndex();
                 this.invalidateDerived();
+                if (dirtyData) this._dirtyData = true;
+                if (dirtyList) this._dirtyList = true;
                 if (immediate) this.flushPersist();
                 else this.queuePersist();
                 if (render) UI.render();
@@ -866,9 +878,20 @@
                 return result;
             },
             updRec(id, val) {
+                const asg = this.cur;
+                if (!asg) return;
+                const prev = asg.records[id] || {};
                 const r = this.cur.records;
                 r[id] = { ...r[id], ...val };
-                this.save();
+                const next = r[id];
+                if (!next.done && (next.score == null || next.score === '')) delete r[id];
+                this.invalidateDerived();
+                this._dirtyData = true;
+                this.queuePersist();
+                UI.renderStudent(id);
+                const prevDone = !!prev.done;
+                const nextDone = !!(r[id]?.done);
+                if (prevDone !== nextDone) UI.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
             }
         };
         const UI = {
@@ -1066,6 +1089,18 @@
                     scoreEl.hidden = true;
                     scoreEl.textContent = '';
                 }
+            },
+            renderStudent(id) {
+                const asg = State.cur;
+                const index = State.rosterIndexMap.get(id);
+                if (!asg || index == null) return;
+                this.syncCardPool();
+                const card = $('grid').children[index];
+                const stu = State.roster[index];
+                if (!card || !stu) return;
+                const rec = asg.records[id] || {};
+                const excluded = !State.isStuIncluded(asg, stu);
+                this.renderCard(card, stu, rec, excluded);
             },
             renderProgress(doneCount, total = State.roster.length) {
                 $('counter').textContent = `${doneCount}/${total}`;
@@ -1794,7 +1829,9 @@
                     title: '', content: c, type: 'full', btns: [{ text: '取消', val: false }, {
                         text: '保存', type: 'btn-p', onClick: () => {
                             State.list = ta.value.split('\n').map(s => s.trim()).filter(s => s);
-                            State.parseRoster(); State.save(); Modal.close();
+                            State.parseRoster();
+                            State.save({ dirtyData: false, dirtyList: true });
+                            Modal.close();
                         }
                     }]
                 });
@@ -1917,7 +1954,7 @@
                             State.parseRoster();
                             State.rebuildAsgIndex();
                             State.curId = State.data[0].id;
-                            State.save({ immediate: true });
+                            State.save({ immediate: true, dirtyData: true, dirtyList: true });
                             Modal.alert('导入成功');
                         }
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
