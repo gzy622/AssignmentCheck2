@@ -579,17 +579,29 @@
 
         const BackHandler = {
             EXIT_WINDOW_MS: 1500,
-            _sentinelKey: '__tracker_guard__',
+            _sentinelHash: '#__tracker_back_guard__',
             _lastBackAt: 0,
-            _ignorePopOnce: false,
+            _lastSignalAt: 0,
+            _suppressOnce: false,
+            _guardReady: false,
             init() {
-                this.seedGuardState();
-                window.addEventListener('popstate', () => this.onPopState());
+                this.armGuards();
+                window.addEventListener('popstate', () => this.onBackSignal());
+                window.addEventListener('hashchange', () => this.onHashChange());
             },
-            seedGuardState() {
-                const base = history.state && typeof history.state === 'object' ? history.state : {};
-                if (!base[this._sentinelKey]) history.replaceState({ ...base, [this._sentinelKey]: 'root' }, '');
-                history.pushState({ [this._sentinelKey]: 'guard', t: Date.now() }, '');
+            armGuards() {
+                if (location.hash !== this._sentinelHash) location.hash = this._sentinelHash;
+                if (this._guardReady) return;
+                history.pushState({ __trackerGuard__: true, t: Date.now() }, '');
+                this._guardReady = true;
+            },
+            onHashChange() {
+                if (this._suppressOnce) {
+                    this._suppressOnce = false;
+                    return;
+                }
+                if (location.hash === this._sentinelHash) return;
+                this.onBackSignal();
             },
             closeOverlayLikeEsc() {
                 if (Modal.isOpen) {
@@ -603,29 +615,35 @@
                 }
                 return false;
             },
-            onPopState() {
-                if (this._ignorePopOnce) {
-                    this._ignorePopOnce = false;
+            onBackSignal() {
+                const now = Date.now();
+                if (now - this._lastSignalAt < 80) return;
+                this._lastSignalAt = now;
+                if (this._suppressOnce) {
+                    this._suppressOnce = false;
                     return;
                 }
                 if (this.closeOverlayLikeEsc()) {
-                    this.rearmGuard();
+                    this.rearm();
                     return;
                 }
-                const now = Date.now();
                 if (now - this._lastBackAt <= this.EXIT_WINDOW_MS) {
                     this.exitPage();
                     return;
                 }
                 this._lastBackAt = now;
                 Toast.show('再按一次返回退出');
-                this.rearmGuard();
+                this.rearm();
             },
-            rearmGuard() {
-                setTimeout(() => history.pushState({ [this._sentinelKey]: 'guard', t: Date.now() }, ''), 0);
+            rearm() {
+                setTimeout(() => {
+                    if (location.hash !== this._sentinelHash) location.hash = this._sentinelHash;
+                    history.pushState({ __trackerGuard__: true, t: Date.now() }, '');
+                    this._guardReady = true;
+                }, 0);
             },
             exitPage() {
-                this._ignorePopOnce = true;
+                this._suppressOnce = true;
                 history.back();
                 setTimeout(() => {
                     if (!document.hidden) window.close();
