@@ -655,6 +655,7 @@
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
             asgMap: new Map(),
             rosterIndexMap: new Map(),
+            noEnglishIds: [],
             _persistTimer: 0,
             _metricsToken: 0,
             _statsCache: new Map(),
@@ -741,6 +742,18 @@
                     records: asg.records && typeof asg.records === 'object' ? asg.records : {}
                 };
             },
+            normalizeAsgInPlace(asg) {
+                const normalized = this.normalizeAsg(asg);
+                if (!normalized) return null;
+                if (asg && typeof asg === 'object') {
+                    asg.id = normalized.id;
+                    asg.name = normalized.name;
+                    asg.subject = normalized.subject;
+                    asg.records = normalized.records;
+                    return asg;
+                }
+                return normalized;
+            },
             invalidateDerived() {
                 this._metricsToken++;
                 this._statsCache.clear();
@@ -769,12 +782,20 @@
                     return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
                 }).filter(s => s.id);
                 this.rosterIndexMap = new Map(this.roster.map((stu, index) => [stu.id, index]));
+                this.noEnglishIds = this.roster.filter(stu => stu.noEnglish).map(stu => stu.id);
                 this._rosterVersion++;
                 this.invalidateDerived();
             },
-            save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false } = {}) {
-                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
-                this.rebuildAsgIndex();
+            save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null } = {}) {
+                if (normalizeMode === 'all') {
+                    this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
+                    this.rebuildAsgIndex();
+                } else if (normalizeMode === 'target' && targetAsgId != null) {
+                    const asg = this.asgMap.get(targetAsgId) || this.data.find(item => item.id === targetAsgId);
+                    if (asg) this.normalizeAsgInPlace(asg);
+                } else if (normalizeMode === 'none') {
+                    if (!this.asgMap.size || this.asgMap.size !== this.data.length) this.rebuildAsgIndex();
+                }
                 this.invalidateDerived();
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
@@ -795,9 +816,11 @@
             addAsg(n) {
                 let id = Date.now();
                 while (this.asgMap.has(id)) id++;
-                this.data.push({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} });
+                const asg = this.normalizeAsg({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} });
+                this.data.push(asg);
+                this.rebuildAsgIndex();
                 this.curId = id;
-                this.save({ asgListChanged: true });
+                this.save({ asgListChanged: true, normalizeMode: 'none' });
             },
             selectAsg(id) {
                 if (!this.asgMap.has(id)) return;
@@ -809,7 +832,7 @@
                 const safeName = (name || '').trim();
                 if (!asg || !safeName) return false;
                 asg.name = safeName;
-                this.save({ asgListChanged: true });
+                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id });
                 return true;
             },
             updateAsgMeta(id, payload = {}) {
@@ -820,7 +843,7 @@
                 if (!safeName) return false;
                 asg.name = safeName;
                 asg.subject = safeSubject;
-                this.save({ asgListChanged: true });
+                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id });
                 return true;
             },
             removeAsg(id) {
@@ -832,7 +855,8 @@
                     const fallback = this.data[Math.max(0, idx - 1)] || this.data[0];
                     this.curId = fallback.id;
                 }
-                this.save({ asgListChanged: true });
+                this.rebuildAsgIndex();
+                this.save({ asgListChanged: true, normalizeMode: 'none' });
                 return true;
             },
             getAsgSubject(asg) {
@@ -857,27 +881,46 @@
             },
             getAsgTotalCount(asg) { return this.getAsgMetrics(asg).total; },
             getAsgDoneCount(asg) { return this.getAsgMetrics(asg).done; },
+            getAsgRowSnapshot(asg) {
+                if (!asg) return { included: [], done: [] };
+                const cacheKey = `rows:${asg.id}`;
+                const cached = this._statsCache.get(cacheKey);
+                if (cached && cached.token === this._metricsToken) return cached.value;
+                const included = new Array(this.roster.length);
+                const done = new Array(this.roster.length);
+                for (let i = 0; i < this.roster.length; i++) {
+                    const stu = this.roster[i];
+                    const isIncluded = this.isStuIncluded(asg, stu);
+                    included[i] = isIncluded;
+                    done[i] = isIncluded && !!asg.records?.[stu.id]?.done;
+                }
+                const value = { included, done };
+                this._statsCache.set(cacheKey, { token: this._metricsToken, value });
+                return value;
+            },
             getStatsRows(selectedIds) {
                 const keyIds = selectedIds.slice().sort((a, b) => a - b);
                 const cacheKey = `${this._metricsToken}|${keyIds.join(',')}`;
                 const cached = this._statsCache.get(cacheKey);
                 if (cached) return cached;
                 const tgs = keyIds.map(id => this.asgMap.get(id)).filter(Boolean);
+                const snapshots = tgs.map(asg => this.getAsgRowSnapshot(asg));
                 const rows = this.roster.map((s, i) => {
                     let total = 0;
                     let doneCount = 0;
                     const dones = [];
-                    for (const t of tgs) {
-                        if (!this.isStuIncluded(t, s)) continue;
+                    for (const snapshot of snapshots) {
+                        if (!snapshot.included[i]) continue;
                         total++;
-                        const done = !!t.records[s.id]?.done;
+                        const done = snapshot.done[i];
                         dones.push(done);
                         if (done) doneCount++;
                     }
                     const rate = total ? Math.round(doneCount / total * 100) : 0;
                     return { ...s, dones, rate, total, i };
                 }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
-                const result = { tgs, rows };
+                const avgRate = rows.length ? Math.round(rows.reduce((sum, row) => sum + row.rate, 0) / rows.length) : 0;
+                const result = { tgs, rows, avgRate };
                 this._statsCache.set(cacheKey, result);
                 return result;
             },
@@ -1137,6 +1180,17 @@
                 const nextState = this.getCardState(nextAsg, stu);
                 return prevState.excluded !== nextState.excluded || prevState.done !== nextState.done || prevState.score !== nextState.score;
             },
+            getChangedStudentIds(prevAsg, nextAsg) {
+                if (!prevAsg || !nextAsg) return State.roster.map(stu => stu.id);
+                const changed = new Set([
+                    ...Object.keys(prevAsg.records || {}),
+                    ...Object.keys(nextAsg.records || {})
+                ]);
+                if (State.isEnglishAsg(prevAsg) !== State.isEnglishAsg(nextAsg)) {
+                    State.noEnglishIds.forEach(id => changed.add(id));
+                }
+                return changed;
+            },
             render() {
                 const asg = State.cur; if (!asg) return;
                 const prevAsg = State.asgMap.get(this._lastRenderAsgId);
@@ -1148,14 +1202,25 @@
 
                 let doneCount = 0;
                 const total = State.getAsgTotalCount(asg);
-                State.roster.forEach((stu, i) => {
-                    const rec = asg.records[stu.id] || {};
-                    const excluded = !State.isStuIncluded(asg, stu);
-                    if (!excluded && rec.done) doneCount++;
-                    if (forceFull || this.shouldRefreshCard(prevAsg, asg, stu)) {
+                doneCount = State.getAsgDoneCount(asg);
+                if (forceFull) {
+                    State.roster.forEach((stu, i) => {
+                        const rec = asg.records[stu.id] || {};
+                        const excluded = !State.isStuIncluded(asg, stu);
                         this.renderCard(cards[i], stu, rec, excluded);
-                    }
-                });
+                    });
+                } else {
+                    this.getChangedStudentIds(prevAsg, asg).forEach(id => {
+                        const index = State.rosterIndexMap.get(id);
+                        if (index == null) return;
+                        const stu = State.roster[index];
+                        if (!stu) return;
+                        if (!this.shouldRefreshCard(prevAsg, asg, stu)) return;
+                        const rec = asg.records[stu.id] || {};
+                        const excluded = !State.isStuIncluded(asg, stu);
+                        this.renderCard(cards[index], stu, rec, excluded);
+                    });
+                }
                 this.renderProgress(doneCount, total);
                 this._lastRenderAsgId = asg.id;
                 this._lastRosterVersion = State._rosterVersion;
@@ -1864,7 +1929,7 @@
                         text: '保存', type: 'btn-p', onClick: () => {
                             State.list = ta.value.split('\n').map(s => s.trim()).filter(s => s);
                             State.parseRoster();
-                            State.save({ dirtyData: false, dirtyList: true });
+                            State.save({ dirtyData: false, dirtyList: true, normalizeMode: 'none' });
                             Modal.close();
                         }
                     }]
@@ -1880,9 +1945,21 @@
                 const statsState = { chipVersion: -1, rowPool: new Map() };
                 ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
 
-                const syncSummary = (rows, taskCount) => {
-                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${Math.round(rows.reduce((a, b) => a + b.rate, 0) / rows.length) || 0}%</div><div class="st-label">平均完成率</div></div>
-                        <div class="st-metric"><div class="st-val">${taskCount}</div><div class="st-label">统计任务数</div></div>`;
+                const summaryCards = {
+                    avg: document.createElement('div'),
+                    count: document.createElement('div')
+                };
+                summaryCards.avg.className = 'st-metric';
+                summaryCards.count.className = 'st-metric';
+                summaryCards.avg.innerHTML = '<div class="st-val"></div><div class="st-label">平均完成率</div>';
+                summaryCards.count.innerHTML = '<div class="st-val"></div><div class="st-label">统计任务数</div>';
+                ui.sum.replaceChildren(summaryCards.avg, summaryCards.count);
+                const avgValEl = summaryCards.avg.querySelector('.st-val');
+                const countValEl = summaryCards.count.querySelector('.st-val');
+
+                const syncSummary = (avgRate, taskCount) => {
+                    avgValEl.textContent = `${avgRate}%`;
+                    countValEl.textContent = String(taskCount);
                 };
 
                 const syncChips = () => {
@@ -1953,8 +2030,8 @@
 
                 const upd = () => {
                     const selectedIds = State.data.filter(a => sel.has(a.id)).map(a => a.id);
-                    const { tgs, rows } = State.getStatsRows(selectedIds);
-                    syncSummary(rows, tgs.length);
+                    const { tgs, rows, avgRate } = State.getStatsRows(selectedIds);
+                    syncSummary(avgRate, tgs.length);
                     syncChips();
 
                     const tableFrag = document.createDocumentFragment();
