@@ -526,6 +526,10 @@
         .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
         .toast.show{opacity:1;transform:translate(-50%,0)}
 
+
+        .debug-panel{position:fixed;left:8px;right:8px;bottom:8px;z-index:1200;background:rgba(17,24,39,.92);color:#d1fae5;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;max-height:38vh;overflow:auto;display:none;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+        .debug-panel.show{display:block}
+
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
     </style>
 </head>
@@ -552,6 +556,7 @@
                     <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
                     <button class="menu-item" act="toggleAnim" id="btnAnim">显示动画: 开</button>
+                    <button class="menu-item" act="toggleDebug" id="btnDebug">调试面板: 关</button>
                     <button class="menu-item" act="exp">导出备份</button>
                     <button class="menu-item" act="imp">导入备份</button>
                     <button class="menu-item danger" act="del">删除任务</button>
@@ -579,11 +584,12 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="debugPanel" class="debug-panel" aria-live="polite"></div>
 
     <script>
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
+        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
         const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
 
@@ -597,6 +603,41 @@
                 this.el.classList.add('show');
                 clearTimeout(this.timer);
                 this.timer = setTimeout(() => this.el.classList.remove('show'), ms);
+            }
+        };
+
+        const Debug = {
+            enabled: false,
+            el: null,
+            lines: [],
+            init() {
+                this.el = $('debugPanel');
+                this.enabled = !!LS.get(KEYS.DEBUG, false);
+                this.apply();
+            },
+            apply() {
+                if (!this.el) return;
+                this.el.classList.toggle('show', this.enabled);
+                $('btnDebug').textContent = `调试面板: ${this.enabled ? '开' : '关'}`;
+            },
+            toggle() {
+                this.enabled = !this.enabled;
+                LS.set(KEYS.DEBUG, this.enabled);
+                if (!this.enabled) this.lines = [];
+                this.apply();
+                this.render();
+            },
+            log(msg) {
+                if (!this.enabled || !this.el) return;
+                const t = new Date();
+                const ts = `${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}.${String(t.getMilliseconds()).padStart(3,'0')}`;
+                this.lines.push(`[${ts}] ${msg}`);
+                if (this.lines.length > 40) this.lines.shift();
+                this.render();
+            },
+            render() {
+                if (!this.el) return;
+                this.el.textContent = this.enabled ? this.lines.join('\n') || '调试已开启，等待事件...' : '';
             }
         };
 
@@ -675,7 +716,7 @@
         };
 
         const State = {
-            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
+            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             asgMap: new Map(),
             rosterIndexMap: new Map(),
             noEnglishIds: [],
@@ -743,6 +784,7 @@
                 this.data = LS.get(KEYS.DATA, []);
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.animations = LS.get(KEYS.ANIM, true);
+                this.debug = !!LS.get(KEYS.DEBUG, false);
                 if (!this.data.length) this.addAsg('任务 1');
                 this.rebuildAsgIndex();
                 this.curId = this.data[this.data.length - 1].id;
@@ -831,6 +873,7 @@
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
+                $('btnDebug').textContent = `调试面板: ${this.debug ? '开' : '关'}`;
             },
             applyScoring() {
                 $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
@@ -982,6 +1025,7 @@
                     Actions[act]();
                 };
                 $('fileIn').onchange = Actions.handleFile;
+                Debug.init();
                 this.setupGrid();
                 this.setupGridSizing();
                 State.applyScoring();
@@ -997,6 +1041,7 @@
                 const handle = (card, long) => {
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
+                    Debug.log(`卡片触发 id=${id} name=${name} long=${long?1:0} scoring=${State.scoring?1:0}`);
                     if (long || State.scoring) Actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
@@ -1009,6 +1054,8 @@
                     startPos = { x: 0, y: 0 };
                 };
                 $('grid').onpointerdown = e => {
+                    const tc = e.target.closest('.student-card');
+                    if (tc && (tc.dataset.id === '38' || tc.dataset.id === '39' || tc.dataset.id === '40')) Debug.log(`pointerdown id=${tc.dataset.id} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
                     const c = e.target.closest('.student-card');
                     if (!c) return;
                     pressCard = c;
@@ -1026,6 +1073,8 @@
                     }, 500);
                 };
                 $('grid').onpointerup = e => {
+                    const tc = e.target.closest('.student-card');
+                    if (tc && (tc.dataset.id === '38' || tc.dataset.id === '39' || tc.dataset.id === '40')) Debug.log(`pointerup id=${tc.dataset.id} moved=${moved?1:0} long=${longPressed?1:0}`);
                     const c = e.target.closest('.student-card');
                     if (c && pressCard === c && !longPressed && !moved) {
                         c.classList.remove('pressing');
@@ -1272,7 +1321,7 @@
             _lastLayout: null,
 
             init() {
-                this.closeBtn.onclick = () => this.close(false);
+                this.closeBtn.onclick = () => { Debug.log('点击关闭按钮'); this.close(false); };
                 document.addEventListener('keydown', (e) => {
                     if (e.key !== 'Escape') return;
                     if (this.isOpen) this.close(false);
@@ -1495,6 +1544,7 @@
                 }
 
                 this.isOpen = true;
+                Debug.log(`Modal.show open type=${type} stable=${this._stableFocusMode?1:0}`);
                 this.isClosing = false;
                 this._lastLayout = null;
                 this.el.classList.add('is-open');
@@ -1508,6 +1558,7 @@
 
             close(val) {
                 if (!this.isOpen || this.isClosing) return;
+                Debug.log(`Modal.close val=${val}`);
                 this.isClosing = true;
                 this.el.classList.add('is-closing');
                 this.el.classList.remove('is-open');
@@ -1538,6 +1589,7 @@
 
             forceClose(val = false) {
                 if (!this.isOpen) return;
+                Debug.log(`Modal.forceClose val=${val}`);
                 this.el.classList.remove('is-open', 'is-closing', 'full', 'focus-stable');
                 this.isOpen = false;
                 this.isClosing = false;
@@ -1583,6 +1635,7 @@
         const Actions = {
             toggleScore() { State.scoring = !State.scoring; State.applyScoring(); },
             toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
+            toggleDebug() { State.debug = !State.debug; Debug.toggle(); State.debug = Debug.enabled; Toast.show(`调试面板已${State.debug ? '开启' : '关闭'}`); },
             buildAsgLayout(title) {
                 const c = document.createElement('div');
                 c.className = 'st-layout';
