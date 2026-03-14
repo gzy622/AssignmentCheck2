@@ -333,8 +333,7 @@
             height: var(--modal-vh, 100dvh);
             max-width: none;
             max-height: none;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: none;
+            background: transparent;
             display: none;
             align-items: flex-start;
             justify-content: center;
@@ -1273,7 +1272,6 @@
 
             init() {
                 this.closeBtn.onclick = () => this.close(false);
-                this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
                 document.addEventListener('keydown', (e) => {
                     if (e.key !== 'Escape') return;
                     if (this.isOpen) this.close(false);
