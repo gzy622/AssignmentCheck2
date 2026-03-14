@@ -716,7 +716,7 @@
         };
 
         const State = {
-            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true,
+            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             asgMap: new Map(),
             rosterIndexMap: new Map(),
             noEnglishIds: [],
@@ -784,6 +784,7 @@
                 this.data = LS.get(KEYS.DATA, []);
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.animations = LS.get(KEYS.ANIM, true);
+                this.debug = !!LS.get(KEYS.DEBUG, false);
                 if (!this.data.length) this.addAsg('任务 1');
                 this.rebuildAsgIndex();
                 this.curId = this.data[this.data.length - 1].id;
