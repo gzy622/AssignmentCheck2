@@ -333,8 +333,7 @@
             height: var(--modal-vh, 100dvh);
             max-width: none;
             max-height: none;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: none;
+            background: transparent;
             display: none;
             align-items: flex-start;
             justify-content: center;
@@ -527,6 +526,10 @@
         .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
         .toast.show{opacity:1;transform:translate(-50%,0)}
 
+
+        .debug-panel{position:fixed;left:8px;right:8px;bottom:8px;z-index:1200;background:rgba(17,24,39,.92);color:#d1fae5;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.35;max-height:38vh;overflow:auto;display:none;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+        .debug-panel.show{display:block}
+
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
     </style>
 </head>
@@ -553,6 +556,7 @@
                     <button class="menu-item" act="roster">编辑学生名单</button>
                     <div class="divider"></div>
                     <button class="menu-item" act="toggleAnim" id="btnAnim">显示动画: 开</button>
+                    <button class="menu-item" act="toggleDebug" id="btnDebug">调试面板: 关</button>
                     <button class="menu-item" act="exp">导出备份</button>
                     <button class="menu-item" act="imp">导入备份</button>
                     <button class="menu-item danger" act="del">删除任务</button>
@@ -580,11 +584,12 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="debugPanel" class="debug-panel" aria-live="polite"></div>
 
     <script>
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim' };
+        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
         const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
 
@@ -598,6 +603,41 @@
                 this.el.classList.add('show');
                 clearTimeout(this.timer);
                 this.timer = setTimeout(() => this.el.classList.remove('show'), ms);
+            }
+        };
+
+        const Debug = {
+            enabled: false,
+            el: null,
+            lines: [],
+            init() {
+                this.el = $('debugPanel');
+                this.enabled = !!LS.get(KEYS.DEBUG, false);
+                this.apply();
+            },
+            apply() {
+                if (!this.el) return;
+                this.el.classList.toggle('show', this.enabled);
+                $('btnDebug').textContent = `调试面板: ${this.enabled ? '开' : '关'}`;
+            },
+            toggle() {
+                this.enabled = !this.enabled;
+                LS.set(KEYS.DEBUG, this.enabled);
+                if (!this.enabled) this.lines = [];
+                this.apply();
+                this.render();
+            },
+            log(msg) {
+                if (!this.enabled || !this.el) return;
+                const t = new Date();
+                const ts = `${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}.${String(t.getMilliseconds()).padStart(3,'0')}`;
+                this.lines.push(`[${ts}] ${msg}`);
+                if (this.lines.length > 40) this.lines.shift();
+                this.render();
+            },
+            render() {
+                if (!this.el) return;
+                this.el.textContent = this.enabled ? this.lines.join('\n') || '调试已开启，等待事件...' : '';
             }
         };
 
@@ -832,6 +872,7 @@
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
+                $('btnDebug').textContent = `调试面板: ${Debug.enabled ? '开' : '关'}`;
             },
             applyScoring() {
                 $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
@@ -970,9 +1011,16 @@
             _taskSelectVersion: -1,
             _lastRenderAsgId: null,
             _lastRosterVersion: -1,
+            _lastGridMetricsKey: '',
+            _gridPaddingX: 0,
+            _gridPaddingY: 0,
             init() {
                 BackHandler.init();
-                $('asgSelect').onchange = e => { State.curId = +e.target.value; this.render(); };
+                this.gridEl = $('grid');
+                this.counterEl = $('counter');
+                this.progressFillEl = $('progressFill');
+                this.asgSelectEl = $('asgSelect');
+                this.asgSelectEl.onchange = e => { State.curId = +e.target.value; this.render(); };
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
@@ -983,6 +1031,7 @@
                     Actions[act]();
                 };
                 $('fileIn').onchange = Actions.handleFile;
+                Debug.init();
                 this.setupGrid();
                 this.setupGridSizing();
                 State.applyScoring();
@@ -990,6 +1039,8 @@
             },
             setupGrid() {
                 let timer = null, pressCard = null, longPressed = false, moved = false, startPos = { x: 0, y: 0 };
+                const grid = this.gridEl;
+                const isTrackedCard = card => card && (card.dataset.id === '38' || card.dataset.id === '39' || card.dataset.id === '40');
                 const cancelTimer = () => {
                     if (!timer) return;
                     clearTimeout(timer);
@@ -998,6 +1049,7 @@
                 const handle = (card, long) => {
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
+                    if (Debug.enabled) Debug.log(`卡片触发 id=${id} name=${name} long=${long ? 1 : 0} scoring=${State.scoring ? 1 : 0}`);
                     if (long || State.scoring) Actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
@@ -1009,7 +1061,9 @@
                     moved = false;
                     startPos = { x: 0, y: 0 };
                 };
-                $('grid').onpointerdown = e => {
+                grid.onpointerdown = e => {
+                    const tc = e.target.closest('.student-card');
+                    if (Debug.enabled && isTrackedCard(tc)) Debug.log(`pointerdown id=${tc.dataset.id} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
                     const c = e.target.closest('.student-card');
                     if (!c) return;
                     pressCard = c;
@@ -1026,7 +1080,9 @@
                         resetState();
                     }, 500);
                 };
-                $('grid').onpointerup = e => {
+                grid.onpointerup = e => {
+                    const tc = e.target.closest('.student-card');
+                    if (Debug.enabled && isTrackedCard(tc)) Debug.log(`pointerup id=${tc.dataset.id} moved=${moved ? 1 : 0} long=${longPressed ? 1 : 0}`);
                     const c = e.target.closest('.student-card');
                     if (c && pressCard === c && !longPressed && !moved) {
                         c.classList.remove('pressing');
@@ -1034,7 +1090,7 @@
                     }
                     resetState();
                 };
-                $('grid').onpointermove = e => {
+                grid.onpointermove = e => {
                     if (!pressCard) return;
                     const dx = Math.abs(e.clientX - startPos.x);
                     const dy = Math.abs(e.clientY - startPos.y);
@@ -1044,21 +1100,30 @@
                         cancelTimer();
                     }
                 };
-                $('grid').onpointercancel = resetState;
-                $('grid').onpointerleave = () => {
+                grid.onpointercancel = resetState;
+                grid.onpointerleave = () => {
                     if (pressCard) pressCard.classList.remove('pressing');
                     cancelTimer();
                     pressCard = null;
                 };
             },
             setupGridSizing() {
-                const grid = $('grid');
-                const refresh = () => this.scheduleGridLayout();
+                const grid = this.gridEl;
+                this.refreshGridPadding();
+                const refresh = () => {
+                    this.refreshGridPadding();
+                    this.scheduleGridLayout();
+                };
                 this._gridResizeObserver = new ResizeObserver(refresh);
                 this._gridResizeObserver.observe(grid);
                 window.addEventListener('resize', refresh, { passive: true });
                 if (window.visualViewport) window.visualViewport.addEventListener('resize', refresh, { passive: true });
                 this.scheduleGridLayout();
+            },
+            refreshGridPadding() {
+                const style = getComputedStyle(this.gridEl);
+                this._gridPaddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                this._gridPaddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
             },
             setGridFrozen(frozen) {
                 this._gridFrozen = !!frozen;
@@ -1103,16 +1168,16 @@
                 };
             },
             updateGridMetrics() {
-                const grid = $('grid');
+                const grid = this.gridEl;
                 const count = Math.max(1, State.roster.length || 1);
-                const style = getComputedStyle(grid);
-                const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-                const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-                const width = Math.max(0, grid.clientWidth - paddingX);
-                const height = Math.max(0, grid.clientHeight - paddingY);
+                const width = Math.max(0, grid.clientWidth - this._gridPaddingX);
+                const height = Math.max(0, grid.clientHeight - this._gridPaddingY);
                 if (!width || !height) return;
 
                 const metrics = this.calcGridLayout(count, width, height);
+                const metricsKey = `${count}|${metrics.cols}|${metrics.rows}|${metrics.gap}|${metrics.cellW.toFixed(2)}|${metrics.cellH.toFixed(2)}|${metrics.idSize}|${metrics.nameSize}|${metrics.tagSize}|${metrics.cardPad}|${metrics.cardRadius}`;
+                if (metricsKey === this._lastGridMetricsKey) return;
+                this._lastGridMetricsKey = metricsKey;
                 grid.style.setProperty('--grid-cols', metrics.cols);
                 grid.style.setProperty('--grid-rows', metrics.rows);
                 grid.style.setProperty('--grid-gap', `${metrics.gap}px`);
@@ -1133,7 +1198,7 @@
                 return card;
             },
             syncCardPool() {
-                const grid = $('grid');
+                const grid = this.gridEl;
                 const target = State.roster.length;
                 while (grid.children.length < target) grid.appendChild(this.createCard());
                 while (grid.children.length > target) grid.lastElementChild.remove();
@@ -1168,7 +1233,7 @@
                 const index = State.rosterIndexMap.get(id);
                 if (!asg || index == null) return;
                 this.syncCardPool();
-                const card = $('grid').children[index];
+                const card = this.gridEl.children[index];
                 const stu = State.roster[index];
                 if (!card || !stu) return;
                 const rec = asg.records[id] || {};
@@ -1176,11 +1241,11 @@
                 this.renderCard(card, stu, rec, excluded);
             },
             renderProgress(doneCount, total = State.roster.length) {
-                $('counter').textContent = `${doneCount}/${total}`;
-                $('progressFill').style.width = total ? `${(doneCount / total) * 100}%` : '0%';
+                this.counterEl.textContent = `${doneCount}/${total}`;
+                this.progressFillEl.style.width = total ? `${(doneCount / total) * 100}%` : '0%';
             },
             ensureTaskOptions() {
-                const sel = $('asgSelect');
+                const sel = this.asgSelectEl;
                 if (this._taskSelectVersion !== State._asgListVersion) {
                     const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
                     sel.innerHTML = optionsHtml;
@@ -1221,11 +1286,10 @@
                 this.ensureTaskOptions();
 
                 this.syncCardPool();
-                const cards = $('grid').children;
+                const cards = this.gridEl.children;
 
-                let doneCount = 0;
                 const total = State.getAsgTotalCount(asg);
-                doneCount = State.getAsgDoneCount(asg);
+                const doneCount = State.getAsgDoneCount(asg);
                 if (forceFull) {
                     State.roster.forEach((stu, i) => {
                         const rec = asg.records[stu.id] || {};
@@ -1268,12 +1332,15 @@
             _viewportHandler: null,
             _focusHandler: null,
             _focusTimer: 0,
+            _pointerGuardTimer: 0,
             _stableFocusMode: false,
             _lastLayout: null,
 
             init() {
-                this.closeBtn.onclick = () => this.close(false);
-                this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
+                this.closeBtn.onclick = () => {
+                    if (Debug.enabled) Debug.log('点击关闭按钮');
+                    this.close(false);
+                };
                 document.addEventListener('keydown', (e) => {
                     if (e.key !== 'Escape') return;
                     if (this.isOpen) this.close(false);
@@ -1325,6 +1392,23 @@
             clearFocusTimer() {
                 clearTimeout(this._focusTimer);
                 this._focusTimer = 0;
+            },
+
+            armPointerGuard(ms = 320) {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = 'none';
+                this._pointerGuardTimer = setTimeout(() => {
+                    this._pointerGuardTimer = 0;
+                    if (!this.isOpen || this.isClosing) return;
+                    this.el.style.pointerEvents = '';
+                }, ms);
+            },
+
+            clearPointerGuard() {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = '';
             },
 
             buildPagePanel(title, content, btns = []) {
@@ -1479,9 +1563,11 @@
                 }
 
                 this.isOpen = true;
+                if (Debug.enabled) Debug.log(`Modal.show open type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
                 this.isClosing = false;
                 this._lastLayout = null;
                 this.el.classList.add('is-open');
+                this.armPointerGuard();
                 this.lockBody();
                 this.bindViewport();
                 this.scheduleLayout();
@@ -1491,6 +1577,7 @@
 
             close(val) {
                 if (!this.isOpen || this.isClosing) return;
+                if (Debug.enabled) Debug.log(`Modal.close val=${val}`);
                 this.isClosing = true;
                 this.el.classList.add('is-closing');
                 this.el.classList.remove('is-open');
@@ -1503,6 +1590,7 @@
                     this.isFull = false;
                     this._stableFocusMode = false;
                     this._lastLayout = null;
+                    this.clearPointerGuard();
                     this.unbindViewport();
                     this.unlockBody();
                     UI.setGridFrozen(false);
@@ -1520,12 +1608,14 @@
 
             forceClose(val = false) {
                 if (!this.isOpen) return;
+                if (Debug.enabled) Debug.log(`Modal.forceClose val=${val}`);
                 this.el.classList.remove('is-open', 'is-closing', 'full', 'focus-stable');
                 this.isOpen = false;
                 this.isClosing = false;
                 this.isFull = false;
                 this._stableFocusMode = false;
                 this._lastLayout = null;
+                this.clearPointerGuard();
                 this.unbindViewport();
                 this.unlockBody();
                 UI.setGridFrozen(false);
@@ -1564,6 +1654,7 @@
         const Actions = {
             toggleScore() { State.scoring = !State.scoring; State.applyScoring(); },
             toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
+            toggleDebug() { Debug.toggle(); Toast.show(`调试面板已${Debug.enabled ? '开启' : '关闭'}`); },
             buildAsgLayout(title) {
                 const c = document.createElement('div');
                 c.className = 'st-layout';
