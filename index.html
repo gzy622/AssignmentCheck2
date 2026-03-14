@@ -17,6 +17,11 @@
             --border: #dee2e6;
             --radius: 12px;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --done-card-start: #68c490;
+            --done-card-end: #4dae77;
+            --done-card-border: #459f6c;
+            --done-card-shadow: rgba(77, 174, 119, 0.22);
+            --done-card-press-shadow: rgba(77, 174, 119, 0.32);
         }
 
         * {
@@ -188,13 +193,13 @@
         }
 
         .student-card.done.pressing {
-            box-shadow: 0 2px 8px rgba(47, 156, 106, 0.35);
+            box-shadow: 0 2px 8px var(--done-card-press-shadow);
         }
 
         .student-card.done {
-            background: linear-gradient(160deg, #68c490, #4dae77);
-            border-color: #459f6c;
-            box-shadow: 0 3px 10px rgba(77, 174, 119, 0.22);
+            background: linear-gradient(160deg, var(--done-card-start), var(--done-card-end));
+            border-color: var(--done-card-border);
+            box-shadow: 0 3px 10px var(--done-card-shadow);
         }
 
         .card-id {
@@ -318,6 +323,16 @@
         .menu-item.danger {
             color: var(--danger);
         }
+
+        .color-panel{display:flex;flex-direction:column;gap:16px}
+        .color-preview{height:96px;border-radius:16px;border:1px solid rgba(15,23,42,.08);background:linear-gradient(160deg,var(--done-card-start),var(--done-card-end));box-shadow:0 10px 24px var(--done-card-shadow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;font-weight:800;letter-spacing:.02em}
+        .color-presets{display:flex;gap:10px;flex-wrap:wrap}
+        .color-preset{width:36px;height:36px;border-radius:50%;border:2px solid rgba(15,23,42,.12);cursor:pointer;box-shadow:0 4px 10px rgba(15,23,42,.08);transition:transform .12s ease,border-color .12s ease}
+        .color-preset.active{transform:scale(1.08);border-color:#16212c}
+        .color-picker-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .color-picker-row input[type="color"]{width:56px;height:42px;padding:0;border:none;background:transparent;cursor:pointer}
+        .color-code{padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9rem;color:#44515f;min-width:108px;text-transform:uppercase}
+        .color-note{font-size:.82rem;color:#6b7785;line-height:1.6}
 
         .divider {
             border-top: 1px solid var(--border);
@@ -550,6 +565,7 @@
                 </button>
                 <div id="menu" class="dropdown">
                     <button class="menu-item" act="toggleScore" id="btnScoreMenu">打分模式: 关</button>
+                    <button class="menu-item" act="cardColor">卡片颜色</button>
                     <button class="menu-item" act="add">新建任务</button>
                     <button class="menu-item" act="stats">统计数据</button>
                     <button class="menu-item" act="asgManage">作业项目管理</button>
@@ -589,9 +605,49 @@
     <script>
         const $ = id => document.getElementById(id);
         const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
-        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug' };
+        const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug', PREFS: 'tracker_prefs' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
         const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
+        const CARD_COLOR_PRESETS = ['#68c490', '#8ecae6', '#f4a261', '#e9c46a', '#c084fc', '#f28482'];
+
+        const ColorUtil = {
+            clamp(v, min = 0, max = 255) { return Math.max(min, Math.min(max, Math.round(v))); },
+            normalizeHex(input, fallback = '#68c490') {
+                const raw = String(input || '').trim();
+                const short = /^#?([0-9a-f]{3})$/i.exec(raw);
+                if (short) {
+                    const hex = short[1];
+                    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`.toLowerCase();
+                }
+                const full = /^#?([0-9a-f]{6})$/i.exec(raw);
+                return full ? `#${full[1].toLowerCase()}` : fallback;
+            },
+            hexToRgb(hex) {
+                const safe = this.normalizeHex(hex);
+                return {
+                    r: parseInt(safe.slice(1, 3), 16),
+                    g: parseInt(safe.slice(3, 5), 16),
+                    b: parseInt(safe.slice(5, 7), 16)
+                };
+            },
+            rgbToHex({ r, g, b }) {
+                return `#${[r, g, b].map(v => this.clamp(v).toString(16).padStart(2, '0')).join('')}`;
+            },
+            mix(hexA, hexB, ratio) {
+                const a = this.hexToRgb(hexA);
+                const b = this.hexToRgb(hexB);
+                const t = Math.max(0, Math.min(1, Number(ratio) || 0));
+                return this.rgbToHex({
+                    r: a.r + (b.r - a.r) * t,
+                    g: a.g + (b.g - a.g) * t,
+                    b: a.b + (b.b - a.b) * t
+                });
+            },
+            withAlpha(hex, alpha) {
+                const { r, g, b } = this.hexToRgb(hex);
+                return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, Number(alpha) || 0))})`;
+            }
+        };
 
         const Toast = {
             el: null,
@@ -717,6 +773,7 @@
 
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
+            prefs: { cardDoneColor: '#68c490' },
             asgMap: new Map(),
             rosterIndexMap: new Map(),
             noEnglishIds: [],
@@ -785,12 +842,20 @@
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.animations = LS.get(KEYS.ANIM, true);
                 this.debug = !!LS.get(KEYS.DEBUG, false);
+                this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                 if (!this.data.length) this.addAsg('任务 1');
                 this.rebuildAsgIndex();
                 this.curId = this.data[this.data.length - 1].id;
                 this.applyAnim();
+                this.applyCardColor();
                 window.addEventListener('beforeunload', () => this.flushPersist());
                 UI.init();
+            },
+            normalizePrefs(raw) {
+                const prefs = raw && typeof raw === 'object' ? raw : {};
+                return {
+                    cardDoneColor: ColorUtil.normalizeHex(prefs.cardDoneColor, '#68c490')
+                };
             },
             rebuildAsgIndex() {
                 this.asgMap = new Map(this.data.map(a => [a.id, a]));
@@ -870,10 +935,26 @@
                 if (render) UI.render();
             },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
+            savePrefs() {
+                this.prefs = this.normalizePrefs(this.prefs);
+                LS.set(KEYS.PREFS, this.prefs);
+                this.applyCardColor();
+            },
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
                 $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
                 $('btnDebug').textContent = `调试面板: ${Debug.enabled ? '开' : '关'}`;
+            },
+            applyCardColor() {
+                const base = ColorUtil.normalizeHex(this.prefs?.cardDoneColor, '#68c490');
+                const start = ColorUtil.mix(base, '#ffffff', 0.08);
+                const end = ColorUtil.mix(base, '#10261a', 0.14);
+                const border = ColorUtil.mix(base, '#10261a', 0.2);
+                document.documentElement.style.setProperty('--done-card-start', start);
+                document.documentElement.style.setProperty('--done-card-end', end);
+                document.documentElement.style.setProperty('--done-card-border', border);
+                document.documentElement.style.setProperty('--done-card-shadow', ColorUtil.withAlpha(base, 0.22));
+                document.documentElement.style.setProperty('--done-card-press-shadow', ColorUtil.withAlpha(base, 0.32));
             },
             applyScoring() {
                 $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
@@ -1656,6 +1737,74 @@
             toggleScore() { State.scoring = !State.scoring; State.applyScoring(); },
             toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
             toggleDebug() { Debug.toggle(); Toast.show(`调试面板已${Debug.enabled ? '开启' : '关闭'}`); },
+            async cardColor() {
+                const defaults = State.normalizePrefs({});
+                let selected = ColorUtil.normalizeHex(State.prefs.cardDoneColor, defaults.cardDoneColor);
+                const panel = document.createElement('div');
+                panel.className = 'color-panel';
+                panel.innerHTML = `<div class="color-preview">已登记卡片预览</div>
+                    <div>
+                        <div style="font-size:.84rem;font-weight:700;color:#5a6774;margin-bottom:8px">预设颜色</div>
+                        <div class="color-presets"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:.84rem;font-weight:700;color:#5a6774;margin-bottom:8px">自定义颜色</div>
+                        <div class="color-picker-row">
+                            <input type="color" value="${selected}">
+                            <span class="color-code">${selected}</span>
+                        </div>
+                    </div>
+                    <div class="color-note">颜色会立即用于已登记学生卡片，并写入本地存储；导出备份时也会一起带上。</div>`;
+                const preview = panel.querySelector('.color-preview');
+                const presetHost = panel.querySelector('.color-presets');
+                const picker = panel.querySelector('input[type="color"]');
+                const code = panel.querySelector('.color-code');
+
+                const paintPreview = hex => {
+                    const safe = ColorUtil.normalizeHex(hex, defaults.cardDoneColor);
+                    const start = ColorUtil.mix(safe, '#ffffff', 0.08);
+                    const end = ColorUtil.mix(safe, '#10261a', 0.14);
+                    preview.style.background = `linear-gradient(160deg, ${start}, ${end})`;
+                    preview.style.boxShadow = `0 10px 24px ${ColorUtil.withAlpha(safe, 0.22)}`;
+                };
+                const syncPresetActive = () => {
+                    [...presetHost.children].forEach(btn => btn.classList.toggle('active', btn.dataset.color === selected));
+                };
+                const applySelection = hex => {
+                    selected = ColorUtil.normalizeHex(hex, defaults.cardDoneColor);
+                    picker.value = selected;
+                    code.textContent = selected.toUpperCase();
+                    paintPreview(selected);
+                    syncPresetActive();
+                };
+
+                CARD_COLOR_PRESETS.forEach(hex => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'color-preset';
+                    btn.dataset.color = hex;
+                    btn.style.background = hex;
+                    btn.onclick = () => applySelection(hex);
+                    presetHost.appendChild(btn);
+                });
+
+                picker.addEventListener('input', e => applySelection(e.target.value));
+                applySelection(selected);
+
+                const val = await Modal.show({
+                    title: '卡片颜色',
+                    content: panel,
+                    btns: [
+                        { text: '恢复默认', type: 'btn-c', onClick: () => Modal.close(defaults.cardDoneColor) },
+                        { text: '取消', type: 'btn-c', val: false },
+                        { text: '保存', type: 'btn-p', onClick: () => Modal.close(selected) }
+                    ]
+                });
+                if (!val) return;
+                State.prefs.cardDoneColor = ColorUtil.normalizeHex(val, defaults.cardDoneColor);
+                State.savePrefs();
+                Toast.show('卡片颜色已更新');
+            },
             buildAsgLayout(title) {
                 const c = document.createElement('div');
                 c.className = 'st-layout';
@@ -2309,7 +2458,7 @@
                 upd(); Modal.show({ title: '', content: c, type: 'full', btns: [] });
             },
             exp() {
-                const blob = new Blob([JSON.stringify({ list: State.list, data: State.data })], { type: 'application/json' });
+                const blob = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' });
                 const a = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 a.href = url;
@@ -2345,7 +2494,8 @@
                 });
                 if (!data.length) throw new Error('备份中没有作业数据');
                 if (!list.length) throw new Error('备份中没有学生名单');
-                return { list, data };
+                const prefs = State.normalizePrefs(raw.prefs);
+                return { list, data, prefs };
             },
             handleFile(e) {
                 const f = e.target.files[0]; if (!f) return;
@@ -2355,9 +2505,11 @@
                         if (await Modal.confirm('覆盖现有数据？')) {
                             State.list = d.list;
                             State.data = d.data;
+                            State.prefs = d.prefs;
                             State.parseRoster();
                             State.rebuildAsgIndex();
                             State.curId = State.data[0].id;
+                            State.savePrefs();
                             State.save({ immediate: true, dirtyData: true, dirtyList: true, asgListChanged: true });
                             Modal.alert('导入成功');
                         }
