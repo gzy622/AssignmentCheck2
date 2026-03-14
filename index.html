@@ -333,8 +333,7 @@
             height: var(--modal-vh, 100dvh);
             max-width: none;
             max-height: none;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: none;
+            background: transparent;
             display: none;
             align-items: flex-start;
             justify-content: center;
@@ -1268,12 +1267,12 @@
             _viewportHandler: null,
             _focusHandler: null,
             _focusTimer: 0,
+            _pointerGuardTimer: 0,
             _stableFocusMode: false,
             _lastLayout: null,
 
             init() {
                 this.closeBtn.onclick = () => this.close(false);
-                this.el.onclick = (e) => { if (e.target === this.el) this.close(false); };
                 document.addEventListener('keydown', (e) => {
                     if (e.key !== 'Escape') return;
                     if (this.isOpen) this.close(false);
@@ -1325,6 +1324,23 @@
             clearFocusTimer() {
                 clearTimeout(this._focusTimer);
                 this._focusTimer = 0;
+            },
+
+            armPointerGuard(ms = 320) {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = 'none';
+                this._pointerGuardTimer = setTimeout(() => {
+                    this._pointerGuardTimer = 0;
+                    if (!this.isOpen || this.isClosing) return;
+                    this.el.style.pointerEvents = '';
+                }, ms);
+            },
+
+            clearPointerGuard() {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = '';
             },
 
             buildPagePanel(title, content, btns = []) {
@@ -1482,6 +1498,7 @@
                 this.isClosing = false;
                 this._lastLayout = null;
                 this.el.classList.add('is-open');
+                this.armPointerGuard();
                 this.lockBody();
                 this.bindViewport();
                 this.scheduleLayout();
@@ -1503,6 +1520,7 @@
                     this.isFull = false;
                     this._stableFocusMode = false;
                     this._lastLayout = null;
+                    this.clearPointerGuard();
                     this.unbindViewport();
                     this.unlockBody();
                     UI.setGridFrozen(false);
@@ -1526,6 +1544,7 @@
                 this.isFull = false;
                 this._stableFocusMode = false;
                 this._lastLayout = null;
+                this.clearPointerGuard();
                 this.unbindViewport();
                 this.unlockBody();
                 UI.setGridFrozen(false);
