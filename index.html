@@ -1267,6 +1267,7 @@
             _viewportHandler: null,
             _focusHandler: null,
             _focusTimer: 0,
+            _pointerGuardTimer: 0,
             _stableFocusMode: false,
             _lastLayout: null,
 
@@ -1323,6 +1324,23 @@
             clearFocusTimer() {
                 clearTimeout(this._focusTimer);
                 this._focusTimer = 0;
+            },
+
+            armPointerGuard(ms = 320) {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = 'none';
+                this._pointerGuardTimer = setTimeout(() => {
+                    this._pointerGuardTimer = 0;
+                    if (!this.isOpen || this.isClosing) return;
+                    this.el.style.pointerEvents = '';
+                }, ms);
+            },
+
+            clearPointerGuard() {
+                clearTimeout(this._pointerGuardTimer);
+                this._pointerGuardTimer = 0;
+                this.el.style.pointerEvents = '';
             },
 
             buildPagePanel(title, content, btns = []) {
@@ -1480,6 +1498,7 @@
                 this.isClosing = false;
                 this._lastLayout = null;
                 this.el.classList.add('is-open');
+                this.armPointerGuard();
                 this.lockBody();
                 this.bindViewport();
                 this.scheduleLayout();
@@ -1501,6 +1520,7 @@
                     this.isFull = false;
                     this._stableFocusMode = false;
                     this._lastLayout = null;
+                    this.clearPointerGuard();
                     this.unbindViewport();
                     this.unlockBody();
                     UI.setGridFrozen(false);
@@ -1524,6 +1544,7 @@
                 this.isFull = false;
                 this._stableFocusMode = false;
                 this._lastLayout = null;
+                this.clearPointerGuard();
                 this.unbindViewport();
                 this.unlockBody();
                 UI.setGridFrozen(false);
