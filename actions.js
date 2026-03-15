@@ -584,7 +584,12 @@
             stats() {
                 const sel = new Set(State.data.map(a => a.id));
                 const ui = this.ctx.views.createStatsShell();
-                const statsState = { chipVersion: -1, rowPool: new Map() };
+                const statsState = {
+                    chipVersion: -1,
+                    chipPool: new Map(),
+                    rowPool: new Map(),
+                    mountedRowIds: new Set()
+                };
                 ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
 
                 const summaryCards = {
@@ -606,21 +611,30 @@
 
                 const syncChips = () => {
                     if (statsState.chipVersion !== State._asgListVersion) {
-                        const chipFrag = document.createDocumentFragment();
+                        const chipNodes = [];
                         State.data.slice().reverse().forEach(a => {
-                            const chip = document.createElement('div');
-                            chip.className = 'st-chip';
-                            chip.dataset.id = String(a.id);
+                            let chip = statsState.chipPool.get(a.id);
+                            if (!chip) {
+                                chip = document.createElement('div');
+                                chip.className = 'st-chip';
+                                chip.dataset.id = String(a.id);
+                                statsState.chipPool.set(a.id, chip);
+                            }
                             chip.textContent = a.name;
-                            chipFrag.appendChild(chip);
+                            chipNodes.push(chip);
                         });
-                        ui.fil.replaceChildren(chipFrag);
+                        ui.fil.replaceChildren(...chipNodes);
                         statsState.chipVersion = State._asgListVersion;
                     }
                     [...ui.fil.children].forEach(chip => {
                         chip.classList.toggle('active', sel.has(+chip.dataset.id));
                     });
                 };
+
+                const head = document.createElement('div');
+                head.className = 'st-row st-head';
+                head.innerHTML = '<div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div>';
+                ui.tab.appendChild(head);
 
                 const createStatsRow = () => {
                     const row = document.createElement('div');
@@ -676,11 +690,7 @@
                     syncSummary(avgRate, tgs.length);
                     syncChips();
 
-                    const tableFrag = document.createDocumentFragment();
-                    const head = document.createElement('div');
-                    head.className = 'st-row st-head';
-                    head.innerHTML = '<div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div>';
-                    tableFrag.appendChild(head);
+                    const nextMounted = new Set();
                     rows.forEach(item => {
                         let row = statsState.rowPool.get(item.id);
                         if (!row) {
@@ -688,9 +698,14 @@
                             statsState.rowPool.set(item.id, row);
                         }
                         syncStatsRow(row, item);
-                        tableFrag.appendChild(row);
+                        ui.tab.appendChild(row);
+                        nextMounted.add(item.id);
                     });
-                    ui.tab.replaceChildren(tableFrag);
+                    statsState.mountedRowIds.forEach(id => {
+                        if (nextMounted.has(id)) return;
+                        statsState.rowPool.get(id)?.remove();
+                    });
+                    statsState.mountedRowIds = nextMounted;
                 };
                 upd(); Modal.show({ title: '', content: ui.root, type: 'full', btns: [] });
             },
