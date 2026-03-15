@@ -880,6 +880,7 @@
                 this.debug = !!LS.get(KEYS.DEBUG, false);
                 this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                 if (!this.data.length) this.addAsg('任务 1');
+                const repairedIds = this.sanitizeAsgIds();
                 this.rebuildAsgIndex();
                 if (repairedIds) Toast.show('已自动修复异常任务 ID');
                 this.curId = this.data[this.data.length - 1].id;
