@@ -376,6 +376,12 @@
         };
         const UI = {
             isReady: false,
+            actions: {
+                has() { return false; },
+                run() { },
+                handleFile() { },
+                score() { }
+            },
             _gridFrozen: false,
             _taskSelectVersion: -1,
             _lastRenderAsgId: null,
@@ -396,11 +402,11 @@
                 document.onclick = () => $('menu').classList.remove('show');
                 $('menu').onclick = e => {
                     const act = e.target.getAttribute('act');
-                    if (!act || !Actions[act]) return;
+                    if (!act || !this.actions.has(act)) return;
                     $('menu').classList.remove('show');
-                    Actions[act]();
+                    this.actions.run(act);
                 };
-                $('fileIn').onchange = Actions.handleFile;
+                $('fileIn').onchange = e => this.actions.handleFile(e);
                 Debug.init();
                 this.setupGrid();
                 this.setupGridSizing();
@@ -421,7 +427,7 @@
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
                     if (Debug.enabled) Debug.log(`卡片触发 id=${id} name=${name} long=${long ? 1 : 0} scoring=${State.scoring ? 1 : 0}`);
-                    if (long || State.scoring) Actions.score(id, name);
+                    if (long || State.scoring) this.actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
                 const resetState = () => {
@@ -1495,6 +1501,13 @@
                     } catch (err) { Modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
             }
+        };
+
+        UI.actions = {
+            has: act => typeof Actions[act] === 'function',
+            run: act => Actions[act](),
+            handleFile: e => Actions.handleFile(e),
+            score: (id, name) => Actions.score(id, name)
         };
         Toast.init();
         Modal.init(); State.init();
