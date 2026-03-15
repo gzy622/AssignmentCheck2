@@ -712,12 +712,35 @@
         };
 
         const Actions = {
-            toggleScore() { State.scoring = !State.scoring; State.applyScoring(); },
-            toggleAnim() { State.animations = !State.animations; State.saveAnim(); },
-            toggleDebug() { Debug.toggle(); Toast.show(`调试面板已${Debug.enabled ? '开启' : '关闭'}`); },
+            ctx: {
+                state: null,
+                modal: null,
+                toast: null,
+                debug: null,
+                colorUtil: null,
+                subjectPresets: [],
+                cardColorPresets: [],
+                getFileInput() { return null; }
+            },
+            toggleScore() {
+                const { state } = this.ctx;
+                state.scoring = !state.scoring;
+                state.applyScoring();
+            },
+            toggleAnim() {
+                const { state } = this.ctx;
+                state.animations = !state.animations;
+                state.saveAnim();
+            },
+            toggleDebug() {
+                const { debug, toast } = this.ctx;
+                debug.toggle();
+                toast.show(`调试面板已${debug.enabled ? '开启' : '关闭'}`);
+            },
             async cardColor() {
-                const defaults = State.normalizePrefs({});
-                let selected = ColorUtil.normalizeHex(State.prefs.cardDoneColor, defaults.cardDoneColor);
+                const { state, modal, toast, colorUtil, cardColorPresets } = this.ctx;
+                const defaults = state.normalizePrefs({});
+                let selected = colorUtil.normalizeHex(state.prefs.cardDoneColor, defaults.cardDoneColor);
                 const panel = document.createElement('div');
                 panel.className = 'color-panel';
                 panel.innerHTML = `<div class="color-preview">已登记卡片预览</div>
@@ -739,24 +762,24 @@
                 const code = panel.querySelector('.color-code');
 
                 const paintPreview = hex => {
-                    const safe = ColorUtil.normalizeHex(hex, defaults.cardDoneColor);
-                    const start = ColorUtil.mix(safe, '#ffffff', 0.08);
-                    const end = ColorUtil.mix(safe, '#10261a', 0.14);
+                    const safe = colorUtil.normalizeHex(hex, defaults.cardDoneColor);
+                    const start = colorUtil.mix(safe, '#ffffff', 0.08);
+                    const end = colorUtil.mix(safe, '#10261a', 0.14);
                     preview.style.background = `linear-gradient(160deg, ${start}, ${end})`;
-                    preview.style.boxShadow = `0 10px 24px ${ColorUtil.withAlpha(safe, 0.22)}`;
+                    preview.style.boxShadow = `0 10px 24px ${colorUtil.withAlpha(safe, 0.22)}`;
                 };
                 const syncPresetActive = () => {
                     [...presetHost.children].forEach(btn => btn.classList.toggle('active', btn.dataset.color === selected));
                 };
                 const applySelection = hex => {
-                    selected = ColorUtil.normalizeHex(hex, defaults.cardDoneColor);
+                    selected = colorUtil.normalizeHex(hex, defaults.cardDoneColor);
                     picker.value = selected;
                     code.textContent = selected.toUpperCase();
                     paintPreview(selected);
                     syncPresetActive();
                 };
 
-                CARD_COLOR_PRESETS.forEach(hex => {
+                cardColorPresets.forEach(hex => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'color-preset';
@@ -769,19 +792,19 @@
                 picker.addEventListener('input', e => applySelection(e.target.value));
                 applySelection(selected);
 
-                const val = await Modal.show({
+                const val = await modal.show({
                     title: '卡片颜色',
                     content: panel,
                     btns: [
-                        { text: '恢复默认', type: 'btn-c', onClick: () => Modal.close(defaults.cardDoneColor) },
+                        { text: '恢复默认', type: 'btn-c', onClick: () => modal.close(defaults.cardDoneColor) },
                         { text: '取消', type: 'btn-c', val: false },
-                        { text: '保存', type: 'btn-p', onClick: () => Modal.close(selected) }
+                        { text: '保存', type: 'btn-p', onClick: () => modal.close(selected) }
                     ]
                 });
                 if (!val) return;
-                State.prefs.cardDoneColor = ColorUtil.normalizeHex(val, defaults.cardDoneColor);
-                State.savePrefs();
-                Toast.show('卡片颜色已更新');
+                state.prefs.cardDoneColor = colorUtil.normalizeHex(val, defaults.cardDoneColor);
+                state.savePrefs();
+                toast.show('卡片颜色已更新');
             },
             buildAsgLayout(title) {
                 const c = document.createElement('div');
@@ -1449,7 +1472,9 @@
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 0);
             },
-            imp() { $('fileIn').click(); },
+            imp() {
+                this.ctx.getFileInput()?.click();
+            },
             normalizeImport(raw) {
                 if (!raw || typeof raw !== 'object') throw new Error('备份文件结构错误');
                 if (!Array.isArray(raw.list) || !Array.isArray(raw.data)) throw new Error('备份缺少 list/data');
@@ -1480,25 +1505,26 @@
                 return { list, data, prefs };
             },
             handleFile(e) {
+                const { state, modal, toast } = this.ctx;
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader(); r.onload = async ev => {
                     try {
                         const d = Actions.normalizeImport(JSON.parse(ev.target.result));
-                        if (await Modal.confirm('覆盖现有数据？')) {
-                            State.list = d.list;
-                            State.data = d.data;
-                            State.prefs = d.prefs;
-                            State.parseRoster();
-                            const repairedIds = State.sanitizeAsgIds();
-                            if (repairedIds) Toast.show('已自动修复异常任务 ID');
-                            if (!State.data.length) State.addAsg('任务 1');
-                            State.rebuildAsgIndex();
-                            State.curId = State.data[0].id;
-                            State.savePrefs();
-                            State.save({ immediate: true, dirtyData: true, dirtyList: true, asgListChanged: true });
-                            Modal.alert('导入成功');
+                        if (await modal.confirm('覆盖现有数据？')) {
+                            state.list = d.list;
+                            state.data = d.data;
+                            state.prefs = d.prefs;
+                            state.parseRoster();
+                            const repairedIds = state.sanitizeAsgIds();
+                            if (repairedIds) toast.show('已自动修复异常任务 ID');
+                            if (!state.data.length) state.addAsg('任务 1');
+                            state.rebuildAsgIndex();
+                            state.curId = state.data[0].id;
+                            state.savePrefs();
+                            state.save({ immediate: true, dirtyData: true, dirtyList: true, asgListChanged: true });
+                            modal.alert('导入成功');
                         }
-                    } catch (err) { Modal.alert('格式错误: ' + err.message); }
+                    } catch (err) { modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
             }
         };
@@ -1508,6 +1534,16 @@
             run: act => Actions[act](),
             handleFile: e => Actions.handleFile(e),
             score: (id, name) => Actions.score(id, name)
+        };
+        Actions.ctx = {
+            state: State,
+            modal: Modal,
+            toast: Toast,
+            debug: Debug,
+            colorUtil: ColorUtil,
+            subjectPresets: SUBJECT_PRESETS,
+            cardColorPresets: CARD_COLOR_PRESETS,
+            getFileInput: () => $('fileIn')
         };
         Toast.init();
         Modal.init(); State.init();
