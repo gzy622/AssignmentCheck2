@@ -4,6 +4,13 @@
             asgMap: new Map(),
             rosterIndexMap: new Map(),
             noEnglishIds: [],
+            view: {
+                init() { },
+                render() { },
+                renderStudent() { },
+                renderProgress() { },
+                isReady() { return false; }
+            },
             _persistTimer: 0,
             _metricsToken: 0,
             _statsCache: new Map(),
@@ -83,7 +90,7 @@
                 this.applyAnim();
                 this.applyCardColor();
                 window.addEventListener('beforeunload', () => this.flushPersist());
-                UI.init();
+                this.view.init();
             },
             normalizePrefs(raw) {
                 const prefs = raw && typeof raw === 'object' ? raw : {};
@@ -211,7 +218,7 @@
                 if (asgListChanged) this._asgListVersion++;
                 if (immediate) this.flushPersist();
                 else this.queuePersist();
-                if (render && UI.isReady) UI.render();
+                if (render && this.view.isReady()) this.view.render();
             },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             savePrefs() {
@@ -251,7 +258,7 @@
             selectAsg(id) {
                 if (!this.asgMap.has(id)) return;
                 this.curId = id;
-                UI.render();
+                this.view.render();
             },
             renameAsg(id, name) {
                 const asg = this.asgMap.get(id);
@@ -361,10 +368,10 @@
                 this.invalidateDerived();
                 this._dirtyData = true;
                 this.queuePersist();
-                UI.renderStudent(id);
+                this.view.renderStudent(id);
                 const prevDone = !!prev.done;
                 const nextDone = !!(r[id]?.done);
-                if (prevDone !== nextDone) UI.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
+                if (prevDone !== nextDone) this.view.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
             }
         };
         const UI = {
@@ -688,6 +695,14 @@
                 this._lastCardPoolSize = currentPoolSize;
                 this.scheduleGridLayout();
             }
+        };
+
+        State.view = {
+            init: () => UI.init(),
+            render: () => UI.render(),
+            renderStudent: id => UI.renderStudent(id),
+            renderProgress: (doneCount, total) => UI.renderProgress(doneCount, total),
+            isReady: () => UI.isReady
         };
 
         const Actions = {
