@@ -4,6 +4,7 @@
                 modal: null,
                 toast: null,
                 debug: null,
+                views: null,
                 colorUtil: null,
                 subjectPresets: [],
                 cardColorPresets: [],
@@ -25,28 +26,10 @@
                 toast.show(`调试面板已${debug.enabled ? '开启' : '关闭'}`);
             },
             async cardColor() {
-                const { state, modal, toast, colorUtil, cardColorPresets } = this.ctx;
+                const { state, modal, toast, views, colorUtil, cardColorPresets } = this.ctx;
                 const defaults = state.normalizePrefs({});
                 let selected = colorUtil.normalizeHex(state.prefs.cardDoneColor, defaults.cardDoneColor);
-                const panel = document.createElement('div');
-                panel.className = 'color-panel';
-                panel.innerHTML = `<div class="color-preview">已登记卡片预览</div>
-                    <div>
-                        <div style="font-size:.84rem;font-weight:700;color:#5a6774;margin-bottom:8px">预设颜色</div>
-                        <div class="color-presets"></div>
-                    </div>
-                    <div>
-                        <div style="font-size:.84rem;font-weight:700;color:#5a6774;margin-bottom:8px">自定义颜色</div>
-                        <div class="color-picker-row">
-                            <input type="color" value="${selected}">
-                            <span class="color-code">${selected}</span>
-                        </div>
-                    </div>
-                    <div class="color-note">颜色会立即用于已登记学生卡片，并写入本地存储；导出备份时也会一起带上。</div>`;
-                const preview = panel.querySelector('.color-preview');
-                const presetHost = panel.querySelector('.color-presets');
-                const picker = panel.querySelector('input[type="color"]');
-                const code = panel.querySelector('.color-code');
+                const { panel, preview, presetHost, picker, code } = views.createColorPanel(selected);
 
                 const paintPreview = hex => {
                     const safe = colorUtil.normalizeHex(hex, defaults.cardDoneColor);
@@ -94,12 +77,7 @@
                 toast.show('卡片颜色已更新');
             },
             buildAsgLayout(title) {
-                const c = document.createElement('div');
-                c.className = 'st-layout';
-                c.style.cssText = 'display:flex;flex-direction:column;height:100%';
-                c.innerHTML = `<div class="st-nav"><h2 class="st-title">${title}</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
-                    <div class="st-scroll-area"></div>`;
-                return { root: c, body: c.querySelector('.st-scroll-area') };
+                return this.ctx.views.createPageLayout(title);
             },
             async add() {
                 const d = new Date(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0');
@@ -330,13 +308,7 @@
                 await Modal.show({ title: '', content: root, type: 'full', autoFocusEl: focusTarget, btns: [] });
             },
             asgManage() {
-                const { root, body } = this.buildAsgLayout('作业项目管理');
-                const wrap = document.createElement('div');
-                wrap.className = 'asg-manage-grid';
-
-                const list = document.createElement('section');
-                list.className = 'asg-manage-grid';
-                wrap.appendChild(list);
+                const { root, list } = this.ctx.views.createAsgManageShell();
 
                 const bindSubjectPresets = (host, input) => {
                     host.replaceChildren();
@@ -452,7 +424,6 @@
                 };
 
                 renderRows();
-                body.appendChild(wrap);
                 Modal.show({ title: '', content: root, type: 'full', btns: [] });
             },
             roster() {
@@ -468,30 +439,7 @@
                 };
                 const entries = State.list.map(parseEntry).filter(Boolean);
 
-                const c = document.createElement('div');
-                c.className = 'st-layout';
-                c.style.cssText = 'display:flex;flex-direction:column;height:100%';
-                c.innerHTML = `<div class="st-nav"><h2 class="st-title">编辑学生名单</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
-                    <div class="st-scroll-area" style="padding:16px;flex:1">
-                        <div class="roster-shell">
-                            <div class="roster-hint-card">直接逐行编辑座位号、姓名和排除标记。可一键自动生成座位号，也可按座位号排序。勾选“排除英语”后，该学生会在英语任务中自动跳过。</div>
-                            <div class="roster-toolbar">
-                                <button class="btn btn-p" type="button" data-act="add">新增一行</button>
-                                <button class="btn btn-c" type="button" data-act="autonum">自动生成座位号</button>
-                                <button class="btn btn-c" type="button" data-act="sort-seat">按座位号排序</button>
-                                <button class="btn btn-c" type="button" data-act="clean">清理空行</button>
-                            </div>
-                            <div class="roster-summary">
-                                <span class="roster-badge" data-role="count"></span>
-                                <span class="roster-badge" data-role="excluded"></span>
-                            </div>
-                            <div class="roster-list" data-role="list"></div>
-                        </div>
-                    </div>`;
-
-                const listEl = c.querySelector('[data-role="list"]');
-                const countEl = c.querySelector('[data-role="count"]');
-                const excludedEl = c.querySelector('[data-role="excluded"]');
+                const { root, listEl, countEl, excludedEl, toolbar } = this.ctx.views.createRosterShell();
                 const getPadLength = () => Math.max(2, String(Math.max(entries.length, 1)).length);
                 const formatSeat = (value, padLength = getPadLength()) => {
                     const text = String(value ?? '').trim();
@@ -572,7 +520,7 @@
                     return normalizedEntries.map(item => `${item.id}${item.name ? ` ${item.name}` : ''}${item.noEnglish ? ' #非英语' : ''}`);
                 };
 
-                c.querySelector('.roster-toolbar').onclick = e => {
+                toolbar.onclick = e => {
                     const btn = e.target.closest('[data-act]');
                     if (!btn) return;
                     const act = btn.dataset.act;
@@ -619,7 +567,7 @@
 
                 renderRows();
                 Modal.show({
-                    title: '', content: c, type: 'full', btns: [{ text: '取消', val: false }, {
+                    title: '', content: root, type: 'full', btns: [{ text: '取消', val: false }, {
                         text: '保存', type: 'btn-p', onClick: () => {
                             try {
                                 State.list = serializeEntries();
@@ -634,12 +582,8 @@
                 });
             },
             stats() {
-                const sel = new Set(State.data.map(a => a.id)), c = document.createElement('div');
-                c.className = 'st-layout';
-                c.innerHTML = `<div class="st-nav"><h2 class="st-title">统计概览</h2><button class="st-close" onclick="Modal.close()">&times;</button></div>
-                    <div class="st-scroll-area"><div class="st-summary" id="stSum"></div><div class="st-filters" id="stFil"></div><div class="st-card-table" id="stTab"></div></div>`;
-
-                const ui = { sum: c.querySelector('#stSum'), fil: c.querySelector('#stFil'), tab: c.querySelector('#stTab') };
+                const sel = new Set(State.data.map(a => a.id));
+                const ui = this.ctx.views.createStatsShell();
                 const statsState = { chipVersion: -1, rowPool: new Map() };
                 ui.fil.onclick = e => { const id = +e.target.dataset.id; if (id) { sel.has(id) ? sel.delete(id) : sel.add(id); upd(); } };
 
@@ -748,7 +692,7 @@
                     });
                     ui.tab.replaceChildren(tableFrag);
                 };
-                upd(); Modal.show({ title: '', content: c, type: 'full', btns: [] });
+                upd(); Modal.show({ title: '', content: ui.root, type: 'full', btns: [] });
             },
             exp() {
                 const blob = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' });
@@ -827,6 +771,7 @@
             modal: Modal,
             toast: Toast,
             debug: Debug,
+            views: ActionViews,
             colorUtil: ColorUtil,
             subjectPresets: SUBJECT_PRESETS,
             cardColorPresets: CARD_COLOR_PRESETS,
