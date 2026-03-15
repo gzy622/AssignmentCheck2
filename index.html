@@ -1175,6 +1175,7 @@
             _taskSelectVersion: -1,
             _lastRenderAsgId: null,
             _lastRosterVersion: -1,
+            _lastCardPoolSize: -1,
             _lastGridMetricsKey: '',
             _gridPaddingX: 0,
             _gridPaddingY: 0,
@@ -1451,7 +1452,12 @@
             render() {
                 const asg = State.cur; if (!asg) return;
                 const prevAsg = State.asgMap.get(this._lastRenderAsgId);
-                const forceFull = this._lastRosterVersion !== State._rosterVersion || !prevAsg || prevAsg.id === asg.id;
+                const currentPoolSize = State.roster.length;
+                const isFirstRender = !prevAsg;
+                const isRosterChanged = this._lastRosterVersion !== State._rosterVersion;
+                const isTaskSwitched = this._lastRenderAsgId != null && this._lastRenderAsgId !== asg.id;
+                const isCardPoolSizeChanged = this._lastCardPoolSize !== currentPoolSize;
+                const forceFull = isFirstRender || isRosterChanged || isTaskSwitched || isCardPoolSizeChanged;
                 this.ensureTaskOptions();
 
                 this.syncCardPool();
@@ -1480,6 +1486,7 @@
                 this.renderProgress(doneCount, total);
                 this._lastRenderAsgId = asg.id;
                 this._lastRosterVersion = State._rosterVersion;
+                this._lastCardPoolSize = currentPoolSize;
                 this.scheduleGridLayout();
             }
         };
