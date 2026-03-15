@@ -1329,8 +1329,13 @@
             ensureTaskOptions() {
                 const sel = this.asgSelectEl;
                 if (this._taskSelectVersion !== State._asgListVersion) {
-                    const optionsHtml = State.data.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                    sel.innerHTML = optionsHtml;
+                    sel.replaceChildren();
+                    State.data.forEach(a => {
+                        const option = document.createElement('option');
+                        option.value = String(a.id);
+                        option.textContent = a.name;
+                        sel.append(option);
+                    });
                     this._taskSelectVersion = State._asgListVersion;
                 }
                 if (sel.value != State.curId) sel.value = String(State.curId);
