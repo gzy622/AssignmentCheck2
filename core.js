@@ -21,7 +21,9 @@ const LS = {
     },
     set(k, v) {
         try {
-            localStorage.setItem(k, JSON.stringify(v));
+            const nextRaw = JSON.stringify(v);
+            if (localStorage.getItem(k) === nextRaw) return;
+            localStorage.setItem(k, nextRaw);
         } catch (err) {
             const msg = `[LS.set] key=${k}`;
             if (typeof Debug !== 'undefined' && Debug.enabled) {
