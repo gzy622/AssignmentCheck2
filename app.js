@@ -18,6 +18,8 @@
             _dirtyList: false,
             _asgListVersion: 0,
             _rosterVersion: 0,
+            _gridDirtyFull: true,
+            _gridDirtyStudentIds: new Set(),
             init() {
                 this.list = LS.get(KEYS.LIST, [
                     '01 蓝慧婷',
@@ -156,6 +158,27 @@
                 this._metricsToken++;
                 this._statsCache.clear();
             },
+            markGridDirty({ full = false, ids = [] } = {}) {
+                if (full) {
+                    this._gridDirtyFull = true;
+                    this._gridDirtyStudentIds.clear();
+                    return;
+                }
+                if (this._gridDirtyFull) return;
+                ids.forEach(id => {
+                    const key = String(id || '').trim();
+                    if (key) this._gridDirtyStudentIds.add(key);
+                });
+            },
+            consumeGridDirty() {
+                const dirty = {
+                    full: this._gridDirtyFull,
+                    ids: this._gridDirtyFull ? [] : Array.from(this._gridDirtyStudentIds)
+                };
+                this._gridDirtyFull = false;
+                this._gridDirtyStudentIds.clear();
+                return dirty;
+            },
             queuePersist() {
                 clearTimeout(this._persistTimer);
                 this._persistTimer = setTimeout(() => this.flushPersist(), 300);
@@ -201,6 +224,7 @@
                 this.noEnglishIds = this.roster.filter(stu => stu.noEnglish).map(stu => stu.id);
                 this._rosterVersion++;
                 this.invalidateDerived();
+                this.markGridDirty({ full: true });
             },
             save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null } = {}) {
                 if (normalizeMode === 'all') {
@@ -253,11 +277,13 @@
                 this.data.push(asg);
                 this.rebuildAsgIndex();
                 this.curId = id;
+                this.markGridDirty({ full: true });
                 this.save({ asgListChanged: true, normalizeMode: 'none' });
             },
             selectAsg(id) {
                 if (!this.asgMap.has(id)) return;
                 this.curId = id;
+                this.markGridDirty({ full: true });
                 this.view.render();
             },
             renameAsg(id, name) {
@@ -274,8 +300,10 @@
                 const safeName = String(payload.name ?? asg.name).trim();
                 const safeSubject = String(payload.subject ?? asg.subject ?? '').trim() || '英语';
                 if (!safeName) return false;
+                const prevSubject = this.getAsgSubject(asg);
                 asg.name = safeName;
                 asg.subject = safeSubject;
+                if (id === this.curId && prevSubject !== safeSubject) this.markGridDirty({ full: true });
                 this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id });
                 return true;
             },
@@ -289,6 +317,7 @@
                     this.curId = fallback.id;
                 }
                 this.rebuildAsgIndex();
+                this.markGridDirty({ full: true });
                 this.save({ asgListChanged: true, normalizeMode: 'none' });
                 return true;
             },
@@ -367,6 +396,7 @@
                 if (!next.done && (next.score == null || next.score === '')) delete r[id];
                 this.invalidateDerived();
                 this._dirtyData = true;
+                this.markGridDirty({ ids: [id] });
                 this.queuePersist();
                 this.view.renderStudent(id);
                 const prevDone = !!prev.done;
@@ -396,7 +426,7 @@
                 this.counterEl = $('counter');
                 this.progressFillEl = $('progressFill');
                 this.asgSelectEl = $('asgSelect');
-                this.asgSelectEl.onchange = e => { State.curId = +e.target.value; this.render(); };
+                this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
@@ -635,41 +665,12 @@
                 }
                 if (sel.value != State.curId) sel.value = String(State.curId);
             },
-            getCardState(asg, stu) {
-                const excluded = !State.isStuIncluded(asg, stu);
-                const rec = asg?.records?.[stu.id] || {};
-                return {
-                    excluded,
-                    done: !excluded && !!rec.done,
-                    score: !excluded && rec.score != null && rec.score !== '' ? String(rec.score) : ''
-                };
-            },
-            shouldRefreshCard(prevAsg, nextAsg, stu) {
-                if (!prevAsg || !nextAsg) return true;
-                const prevState = this.getCardState(prevAsg, stu);
-                const nextState = this.getCardState(nextAsg, stu);
-                return prevState.excluded !== nextState.excluded || prevState.done !== nextState.done || prevState.score !== nextState.score;
-            },
-            getChangedStudentIds(prevAsg, nextAsg) {
-                if (!prevAsg || !nextAsg) return State.roster.map(stu => stu.id);
-                const changed = new Set([
-                    ...Object.keys(prevAsg.records || {}),
-                    ...Object.keys(nextAsg.records || {})
-                ]);
-                if (State.isEnglishAsg(prevAsg) !== State.isEnglishAsg(nextAsg)) {
-                    State.noEnglishIds.forEach(id => changed.add(id));
-                }
-                return changed;
-            },
             render() {
                 const asg = State.cur; if (!asg) return;
-                const prevAsg = State.asgMap.get(this._lastRenderAsgId);
                 const currentPoolSize = State.roster.length;
-                const isFirstRender = !prevAsg;
-                const isRosterChanged = this._lastRosterVersion !== State._rosterVersion;
-                const isTaskSwitched = this._lastRenderAsgId != null && this._lastRenderAsgId !== asg.id;
                 const isCardPoolSizeChanged = this._lastCardPoolSize !== currentPoolSize;
-                const forceFull = isFirstRender || isRosterChanged || isTaskSwitched || isCardPoolSizeChanged;
+                const dirty = State.consumeGridDirty();
+                const forceFull = dirty.full || isCardPoolSizeChanged;
                 this.ensureTaskOptions();
 
                 this.syncCardPool();
@@ -684,12 +685,11 @@
                         this.renderCard(cards[i], stu, rec, excluded);
                     });
                 } else {
-                    this.getChangedStudentIds(prevAsg, asg).forEach(id => {
+                    dirty.ids.forEach(id => {
                         const index = State.rosterIndexMap.get(id);
                         if (index == null) return;
                         const stu = State.roster[index];
                         if (!stu) return;
-                        if (!this.shouldRefreshCard(prevAsg, asg, stu)) return;
                         const rec = asg.records[stu.id] || {};
                         const excluded = !State.isStuIncluded(asg, stu);
                         this.renderCard(cards[index], stu, rec, excluded);
