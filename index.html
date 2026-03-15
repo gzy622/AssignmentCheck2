@@ -868,10 +868,14 @@
                     '49 刘依婷',
                     '50 曾誉宸'
                 ]);
-                this.parseRoster();
-                const rawData = LS.get(KEYS.DATA, []);
-                this.data = Array.isArray(rawData) ? rawData : [];
-                const repairedIds = this.sanitizeAsgIds();
+                try {
+                    this.parseRoster();
+                } catch (err) {
+                    window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
+                    throw err;
+                }
+                this.data = LS.get(KEYS.DATA, []);
+                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
                 this.animations = LS.get(KEYS.ANIM, true);
                 this.debug = !!LS.get(KEYS.DEBUG, false);
                 this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
@@ -964,13 +968,31 @@
                     this._dirtyList = false;
                 }
             },
+            parseRosterLine(rawLine) {
+                const lineText = String(rawLine ?? '').trim();
+                const noEnglish = /\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i.test(lineText);
+                const line = lineText.replace(/\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i, '').trim();
+                const i = line.indexOf(' ');
+                return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
+            },
+            getDuplicateIds(ids) {
+                const seen = new Set();
+                const dup = new Set();
+                ids.forEach(id => {
+                    const key = String(id || '').trim();
+                    if (!key) return;
+                    if (seen.has(key)) dup.add(key);
+                    seen.add(key);
+                });
+                return Array.from(dup);
+            },
+            assertUniqueRosterIds(ids, sourceLabel = '名单') {
+                const dup = this.getDuplicateIds(ids);
+                if (dup.length) throw new Error(`${sourceLabel}存在重复学号: ${dup.join('、')}`);
+            },
             parseRoster() {
-                this.roster = this.list.map(l => {
-                    const noEnglish = /\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i.test(l);
-                    const line = l.replace(/\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i, '').trim();
-                    const i = line.indexOf(' ');
-                    return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
-                }).filter(s => s.id);
+                this.roster = this.list.map(l => this.parseRosterLine(l)).filter(s => s.id);
+                this.assertUniqueRosterIds(this.roster.map(stu => stu.id), '名单');
                 this.rosterIndexMap = new Map(this.roster.map((stu, index) => [stu.id, index]));
                 this.noEnglishIds = this.roster.filter(stu => stu.noEnglish).map(stu => stu.id);
                 this._rosterVersion++;
@@ -2338,14 +2360,15 @@
                         nextAuto++;
                         return id;
                     };
-                    return entries
+                    const normalizedEntries = entries
                         .filter(item => String(item.id || '').trim() || String(item.name || '').trim())
                         .map(item => ({
                             id: formatSeat(item.id, padLength) || nextFreeId(),
                             name: String(item.name || '').trim(),
                             noEnglish: !!item.noEnglish
-                        }))
-                        .map(item => `${item.id}${item.name ? ` ${item.name}` : ''}${item.noEnglish ? ' #非英语' : ''}`);
+                        }));
+                    State.assertUniqueRosterIds(normalizedEntries.map(item => item.id), '保存名单');
+                    return normalizedEntries.map(item => `${item.id}${item.name ? ` ${item.name}` : ''}${item.noEnglish ? ' #非英语' : ''}`);
                 };
 
                 c.querySelector('.roster-toolbar').onclick = e => {
@@ -2397,10 +2420,14 @@
                 Modal.show({
                     title: '', content: c, type: 'full', btns: [{ text: '取消', val: false }, {
                         text: '保存', type: 'btn-p', onClick: () => {
-                            State.list = serializeEntries();
-                            State.parseRoster();
-                            State.save({ dirtyData: false, dirtyList: true, normalizeMode: 'none' });
-                            Modal.close();
+                            try {
+                                State.list = serializeEntries();
+                                State.parseRoster();
+                                State.save({ dirtyData: false, dirtyList: true, normalizeMode: 'none' });
+                                Modal.close();
+                            } catch (err) {
+                                Modal.alert(err.message || '名单保存失败');
+                            }
                         }
                     }]
                 });
@@ -2536,6 +2563,9 @@
                 if (!raw || typeof raw !== 'object') throw new Error('备份文件结构错误');
                 if (!Array.isArray(raw.list) || !Array.isArray(raw.data)) throw new Error('备份缺少 list/data');
                 const list = raw.list.map(v => String(v ?? '').trim()).filter(Boolean);
+                const parsedList = list.map(line => State.parseRosterLine(line)).filter(item => item.id);
+                State.assertUniqueRosterIds(parsedList.map(item => item.id), '导入名单');
+                const idSet = new Set();
                 const data = raw.data.map((a, idx) => {
                     if (!a || typeof a !== 'object') throw new Error(`第 ${idx + 1} 个作业格式错误`);
                     const id = Number(a.id);
