@@ -1,5 +1,3 @@
-        const { $, LS, KEYS, SUBJECT_PRESETS, IS_ANDROID_FIREFOX, CARD_COLOR_PRESETS, ColorUtil, Toast, Debug, BackHandler } = globalThis;
-
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             prefs: { cardDoneColor: '#68c490' },
