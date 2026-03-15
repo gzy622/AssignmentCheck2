@@ -725,6 +725,7 @@
             render() {
                 if (!this.el) return;
                 this.el.textContent = this.enabled ? this.lines.join('\n') || '调试已开启，等待事件...' : '';
+                if (this.enabled) this.el.scrollTop = this.el.scrollHeight;
             }
         };
 
