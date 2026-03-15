@@ -604,7 +604,38 @@
 
     <script>
         const $ = id => document.getElementById(id);
-        const LS = { get: (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d)), set: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
+        const LS = {
+            get(k, d) {
+                const warn = (action, err) => {
+                    const msg = `[LS.${action}] key=${k}`;
+                    if (typeof Debug !== 'undefined' && Debug.enabled) {
+                        Debug.log(`${msg} ${err ? `error=${err.message}` : ''}`.trim());
+                    } else {
+                        console.warn(msg, err || 'fallback to default');
+                    }
+                };
+                const raw = localStorage.getItem(k);
+                if (raw == null) return d;
+                try {
+                    return JSON.parse(raw);
+                } catch (err) {
+                    warn('get', err);
+                    return d;
+                }
+            },
+            set(k, v) {
+                try {
+                    localStorage.setItem(k, JSON.stringify(v));
+                } catch (err) {
+                    const msg = `[LS.set] key=${k}`;
+                    if (typeof Debug !== 'undefined' && Debug.enabled) {
+                        Debug.log(`${msg} error=${err.message}`);
+                    } else {
+                        console.warn(msg, err || 'set failed');
+                    }
+                }
+            }
+        };
         const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug', PREFS: 'tracker_prefs' };
         const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
         const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
