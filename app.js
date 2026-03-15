@@ -73,26 +73,28 @@
                     '49 刘依婷',
                     '50 曾誉宸'
                 ]);
+                this.data = LS.get(KEYS.DATA, []);
+                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
+                this.animations = LS.get(KEYS.ANIM, true);
+                this.debug = !!LS.get(KEYS.DEBUG, false);
+                this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
+                const recovered = this.applyRecoveryDraft();
                 try {
                     this.parseRoster();
                 } catch (err) {
                     window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
                     throw err;
                 }
-                this.data = LS.get(KEYS.DATA, []);
-                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
-                this.animations = LS.get(KEYS.ANIM, true);
-                this.debug = !!LS.get(KEYS.DEBUG, false);
-                this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                 if (!this.data.length) this.addAsg('任务 1');
                 const repairedIds = this.sanitizeAsgIds();
                 this.rebuildAsgIndex();
                 if (repairedIds) Toast.show('已自动修复异常任务 ID');
-                this.curId = this.data[this.data.length - 1].id;
+                this.curId = this.resolveCurId(this.curId);
                 this.applyAnim();
                 this.applyCardColor();
                 window.addEventListener('beforeunload', () => this.flushPersist());
                 this.view.init();
+                if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
             },
             normalizePrefs(raw) {
                 const prefs = raw && typeof raw === 'object' ? raw : {};
@@ -102,6 +104,46 @@
             },
             rebuildAsgIndex() {
                 this.asgMap = new Map(this.data.map(a => [a.id, a]));
+            },
+            resolveCurId(candidate) {
+                if (this.asgMap.has(candidate)) return candidate;
+                return this.data[this.data.length - 1]?.id ?? null;
+            },
+            getRecoveryDraft() {
+                const draft = LS.get(KEYS.DRAFT, null);
+                if (!draft || typeof draft !== 'object') return null;
+                if (!Array.isArray(draft.list) || !Array.isArray(draft.data)) return null;
+                return {
+                    list: draft.list.map(v => String(v ?? '').trim()).filter(Boolean),
+                    data: draft.data.map(a => this.normalizeAsg(a)).filter(Boolean),
+                    prefs: this.normalizePrefs(draft.prefs),
+                    curId: Number(draft.curId)
+                };
+            },
+            applyRecoveryDraft() {
+                const draft = this.getRecoveryDraft();
+                if (!draft) return false;
+                const hasDelta =
+                    JSON.stringify(draft.list) !== JSON.stringify(this.list) ||
+                    JSON.stringify(draft.data) !== JSON.stringify(this.data) ||
+                    JSON.stringify(draft.prefs) !== JSON.stringify(this.prefs) ||
+                    Number(draft.curId) !== Number(this.curId);
+                if (!hasDelta) return false;
+                this.list = draft.list;
+                this.data = draft.data;
+                this.prefs = draft.prefs;
+                this.curId = Number.isFinite(draft.curId) ? draft.curId : this.curId;
+                return true;
+            },
+            saveRecoveryDraft() {
+                LS.set(KEYS.DRAFT, {
+                    version: 1,
+                    updatedAt: Date.now(),
+                    list: this.list,
+                    data: this.data,
+                    prefs: this.normalizePrefs(this.prefs),
+                    curId: this.curId
+                });
             },
             sanitizeAsgIds() {
                 const used = new Set();
@@ -240,6 +282,7 @@
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
                 if (asgListChanged) this._asgListVersion++;
+                if (dirtyData || dirtyList) this.saveRecoveryDraft();
                 if (immediate) this.flushPersist();
                 else this.queuePersist();
                 if (render && this.view.isReady()) this.view.render();
@@ -247,6 +290,7 @@
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             savePrefs() {
                 this.prefs = this.normalizePrefs(this.prefs);
+                this.saveRecoveryDraft();
                 LS.set(KEYS.PREFS, this.prefs);
                 this.applyCardColor();
             },
@@ -397,6 +441,7 @@
                 this.invalidateDerived();
                 this._dirtyData = true;
                 this.markGridDirty({ ids: [id] });
+                this.saveRecoveryDraft();
                 this.queuePersist();
                 this.view.renderStudent(id);
                 const prevDone = !!prev.done;
