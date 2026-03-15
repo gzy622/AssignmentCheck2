@@ -309,6 +309,10 @@
             },
             asgManage() {
                 const { root, list } = this.ctx.views.createAsgManageShell();
+                const asgState = {
+                    pool: new Map(),
+                    mountedIds: new Set()
+                };
 
                 const bindSubjectPresets = (host, input) => {
                     host.replaceChildren();
@@ -326,61 +330,90 @@
                     });
                 };
 
-                const renderRows = () => {
-                    const frag = document.createDocumentFragment();
-                    State.data.slice().reverse().forEach(asg => {
-                        const total = State.getAsgTotalCount(asg);
-                        const done = State.getAsgDoneCount(asg);
-                        const rate = total ? Math.round(done / total * 100) : 0;
-                        const card = document.createElement('article');
-                        card.className = `asg-card ${asg.id === State.curId ? 'current' : ''}`;
-                        card.dataset.id = String(asg.id);
+                const createAsgCard = () => {
+                    const card = document.createElement('article');
+                    card.className = 'asg-card';
+                    card.innerHTML = `<div class="asg-card-head">
+                            <div class="asg-card-meta">
+                                <div class="asg-card-title"></div>
+                                <div class="asg-card-sub">
+                                    <span class="asg-current-badge" hidden>当前项目</span>
+                                    <span class="asg-subject-badge"></span>
+                                    <span data-role="idLabel"></span>
+                                </div>
+                            </div>
+                            <div class="asg-card-stats">
+                                <span class="asg-card-rate"></span>
+                                <span data-role="progress"></span>
+                            </div>
+                        </div>
+                        <div class="asg-card-fields">
+                            <div class="asg-field">
+                                <label>项目名称</label>
+                                <input class="input-ui" data-role="name" placeholder="作业项目名称">
+                            </div>
+                            <div class="asg-field">
+                                <label>科目标签</label>
+                                <input class="input-ui" data-role="subject" placeholder="默认英语">
+                            </div>
+                        </div>
+                        <div class="asg-subject-presets" data-role="presets"></div>
+                        <div class="asg-hint">英语标签会自动排除学生名单中标记为 #非英语 的学生。</div>
+                        <div class="asg-card-actions">
+                            <button class="btn btn-c btn-xs" type="button" data-act="pick">切换</button>
+                            <button class="btn btn-p btn-xs" type="button" data-act="save">保存</button>
+                            <button class="btn btn-d btn-xs" type="button" data-act="del">删除</button>
+                        </div>`;
+                    card._titleEl = card.querySelector('.asg-card-title');
+                    card._currentBadgeEl = card.querySelector('.asg-current-badge');
+                    card._subjectBadgeEl = card.querySelector('.asg-subject-badge');
+                    card._idLabelEl = card.querySelector('[data-role="idLabel"]');
+                    card._rateEl = card.querySelector('.asg-card-rate');
+                    card._progressEl = card.querySelector('[data-role="progress"]');
+                    card._nameInput = card.querySelector('[data-role="name"]');
+                    card._subjectInput = card.querySelector('[data-role="subject"]');
+                    card._presetsEl = card.querySelector('[data-role="presets"]');
+                    return card;
+                };
 
-                        const subject = State.getAsgSubject(asg);
-                        card.innerHTML = `<div class="asg-card-head">
-                                <div class="asg-card-meta">
-                                    <div class="asg-card-title"></div>
-                                    <div class="asg-card-sub">
-                                        <span class="asg-current-badge"${asg.id === State.curId ? '' : ' hidden'}>当前项目</span>
-                                        <span class="asg-subject-badge ${subject === '英语' ? '' : 'non-english'}"></span>
-                                        <span>ID ${asg.id}</span>
-                                    </div>
-                                </div>
-                                <div class="asg-card-stats">
-                                    <span class="asg-card-rate"></span>
-                                    <span>${done}/${total}</span>
-                                </div>
-                            </div>
-                            <div class="asg-card-fields">
-                                <div class="asg-field">
-                                    <label>项目名称</label>
-                                    <input class="input-ui" data-role="name" placeholder="作业项目名称">
-                                </div>
-                                <div class="asg-field">
-                                    <label>科目标签</label>
-                                    <input class="input-ui" data-role="subject" placeholder="默认英语">
-                                </div>
-                            </div>
-                            <div class="asg-subject-presets" data-role="presets"></div>
-                            <div class="asg-hint">英语标签会自动排除学生名单中标记为 #非英语 的学生。</div>
-                            <div class="asg-card-actions">
-                                <button class="btn btn-c btn-xs" type="button" data-act="pick">切换</button>
-                                <button class="btn btn-p btn-xs" type="button" data-act="save">保存</button>
-                                <button class="btn btn-d btn-xs" type="button" data-act="del">删除</button>
-                            </div>`;
-                        card.querySelector('.asg-card-title').textContent = asg.name;
-                        card.querySelector('.asg-subject-badge').textContent = subject;
-                        const rateEl = card.querySelector('.asg-card-rate');
-                        rateEl.textContent = `${rate}%`;
-                        rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : '#16212c';
-                        const nameInput = card.querySelector('[data-role="name"]');
-                        const subjectInput = card.querySelector('[data-role="subject"]');
-                        nameInput.value = asg.name;
-                        subjectInput.value = subject;
-                        bindSubjectPresets(card.querySelector('[data-role="presets"]'), subjectInput);
-                        frag.appendChild(card);
+                const syncAsgCard = (card, asg) => {
+                    const total = State.getAsgTotalCount(asg);
+                    const done = State.getAsgDoneCount(asg);
+                    const rate = total ? Math.round(done / total * 100) : 0;
+                    const subject = State.getAsgSubject(asg);
+                    const isCurrent = asg.id === State.curId;
+                    card.dataset.id = String(asg.id);
+                    card.classList.toggle('current', isCurrent);
+                    card._titleEl.textContent = asg.name;
+                    card._currentBadgeEl.hidden = !isCurrent;
+                    card._subjectBadgeEl.textContent = subject;
+                    card._subjectBadgeEl.classList.toggle('non-english', subject !== '英语');
+                    card._idLabelEl.textContent = `ID ${asg.id}`;
+                    card._rateEl.textContent = `${rate}%`;
+                    card._rateEl.style.color = rate < 60 ? 'var(--danger)' : rate > 90 ? 'var(--success)' : '#16212c';
+                    card._progressEl.textContent = `${done}/${total}`;
+                    if (card._nameInput.value !== asg.name) card._nameInput.value = asg.name;
+                    if (card._subjectInput.value !== subject) card._subjectInput.value = subject;
+                    bindSubjectPresets(card._presetsEl, card._subjectInput);
+                };
+
+                const renderRows = () => {
+                    const nextMounted = new Set();
+                    State.data.slice().reverse().forEach(asg => {
+                        let card = asgState.pool.get(asg.id);
+                        if (!card) {
+                            card = createAsgCard();
+                            asgState.pool.set(asg.id, card);
+                        }
+                        syncAsgCard(card, asg);
+                        list.appendChild(card);
+                        nextMounted.add(asg.id);
                     });
-                    list.replaceChildren(frag);
+                    asgState.mountedIds.forEach(id => {
+                        if (nextMounted.has(id)) return;
+                        asgState.pool.get(id)?.remove();
+                    });
+                    asgState.mountedIds = nextMounted;
                 };
 
                 list.onclick = async e => {
@@ -437,9 +470,17 @@
                         ? { id: clean, name: '', noEnglish }
                         : { id: clean.slice(0, spaceIndex), name: clean.slice(spaceIndex + 1).trim(), noEnglish };
                 };
-                const entries = State.list.map(parseEntry).filter(Boolean);
+                let nextRowId = 1;
+                const entries = State.list.map(parseEntry).filter(Boolean).map(entry => ({ ...entry, _rowId: nextRowId++ }));
 
                 const { root, listEl, countEl, excludedEl, toolbar } = this.ctx.views.createRosterShell();
+                const rosterState = {
+                    pool: new Map(),
+                    mountedIds: new Set(),
+                    emptyEl: document.createElement('div')
+                };
+                rosterState.emptyEl.className = 'roster-empty';
+                rosterState.emptyEl.textContent = '还没有学生，点击“新增一行”开始编辑。';
                 const getPadLength = () => Math.max(2, String(Math.max(entries.length, 1)).length);
                 const formatSeat = (value, padLength = getPadLength()) => {
                     const text = String(value ?? '').trim();
@@ -452,27 +493,49 @@
                     countEl.textContent = `共 ${valid} 人`;
                     excludedEl.textContent = `排除英语 ${excluded} 人`;
                 };
+                const createRosterRow = () => {
+                    const row = document.createElement('div');
+                    row.className = 'roster-row';
+                    row.innerHTML = `<input class="input-ui roster-seat" data-role="id" type="text" inputmode="numeric" placeholder="座位号">
+                        <input class="input-ui roster-name" data-role="name" type="text" placeholder="姓名">
+                        <label class="roster-check"><input data-role="exclude" type="checkbox">排除英语</label>
+                        <button class="btn btn-d btn-xs roster-del" type="button" data-act="remove">删除</button>`;
+                    row._idInput = row.querySelector('[data-role="id"]');
+                    row._nameInput = row.querySelector('[data-role="name"]');
+                    row._excludeInput = row.querySelector('[data-role="exclude"]');
+                    return row;
+                };
+                const syncRosterRow = (row, entry, index) => {
+                    row.dataset.index = String(index);
+                    row.dataset.rowId = String(entry._rowId);
+                    if (row._idInput.value !== (entry.id || '')) row._idInput.value = entry.id || '';
+                    if (row._nameInput.value !== (entry.name || '')) row._nameInput.value = entry.name || '';
+                    if (row._excludeInput.checked !== !!entry.noEnglish) row._excludeInput.checked = !!entry.noEnglish;
+                };
                 const renderRows = () => {
                     syncSummary();
                     if (!entries.length) {
-                        listEl.innerHTML = '<div class="roster-empty">还没有学生，点击“新增一行”开始编辑。</div>';
+                        listEl.replaceChildren(rosterState.emptyEl);
+                        rosterState.mountedIds.forEach(id => rosterState.pool.get(id)?.remove());
+                        rosterState.mountedIds = new Set();
                         return;
                     }
-                    const frag = document.createDocumentFragment();
+                    const nextMounted = new Set();
                     entries.forEach((entry, index) => {
-                        const row = document.createElement('div');
-                        row.className = 'roster-row';
-                        row.dataset.index = String(index);
-                        row.innerHTML = `<input class="input-ui roster-seat" data-role="id" type="text" inputmode="numeric" placeholder="座位号">
-                            <input class="input-ui roster-name" data-role="name" type="text" placeholder="姓名">
-                            <label class="roster-check"><input data-role="exclude" type="checkbox">排除英语</label>
-                            <button class="btn btn-d btn-xs roster-del" type="button" data-act="remove">删除</button>`;
-                        row.querySelector('[data-role="id"]').value = entry.id || '';
-                        row.querySelector('[data-role="name"]').value = entry.name || '';
-                        row.querySelector('[data-role="exclude"]').checked = !!entry.noEnglish;
-                        frag.appendChild(row);
+                        let row = rosterState.pool.get(entry._rowId);
+                        if (!row) {
+                            row = createRosterRow();
+                            rosterState.pool.set(entry._rowId, row);
+                        }
+                        syncRosterRow(row, entry, index);
+                        listEl.appendChild(row);
+                        nextMounted.add(entry._rowId);
                     });
-                    listEl.replaceChildren(frag);
+                    rosterState.mountedIds.forEach(id => {
+                        if (nextMounted.has(id)) return;
+                        rosterState.pool.get(id)?.remove();
+                    });
+                    rosterState.mountedIds = nextMounted;
                 };
                 const autoNumber = () => {
                     const padLength = getPadLength();
@@ -525,7 +588,7 @@
                     if (!btn) return;
                     const act = btn.dataset.act;
                     if (act === 'add') {
-                        entries.push({ id: '', name: '', noEnglish: false });
+                        entries.push({ id: '', name: '', noEnglish: false, _rowId: nextRowId++ });
                         renderRows();
                         requestAnimationFrame(() => listEl.querySelector('.roster-row:last-child [data-role="name"]')?.focus());
                         return;
