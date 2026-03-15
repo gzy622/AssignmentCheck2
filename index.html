@@ -869,13 +869,15 @@
                     '50 曾誉宸'
                 ]);
                 this.parseRoster();
-                this.data = LS.get(KEYS.DATA, []);
-                this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
+                const rawData = LS.get(KEYS.DATA, []);
+                this.data = Array.isArray(rawData) ? rawData : [];
+                const repairedIds = this.sanitizeAsgIds();
                 this.animations = LS.get(KEYS.ANIM, true);
                 this.debug = !!LS.get(KEYS.DEBUG, false);
                 this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                 if (!this.data.length) this.addAsg('任务 1');
                 this.rebuildAsgIndex();
+                if (repairedIds) Toast.show('已自动修复异常任务 ID');
                 this.curId = this.data[this.data.length - 1].id;
                 this.applyAnim();
                 this.applyCardColor();
@@ -891,17 +893,44 @@
             rebuildAsgIndex() {
                 this.asgMap = new Map(this.data.map(a => [a.id, a]));
             },
+            sanitizeAsgIds() {
+                const used = new Set();
+                const cleaned = [];
+                let repaired = false;
+                let nextId = Date.now();
+                this.data.forEach(item => {
+                    const asg = this.normalizeAsg(item);
+                    if (!asg || asg._invalidId) {
+                        repaired = true;
+                        return;
+                    }
+                    if (used.has(asg.id)) {
+                        repaired = true;
+                        while (used.has(nextId)) nextId++;
+                        asg.id = nextId;
+                        nextId++;
+                    }
+                    used.add(asg.id);
+                    cleaned.push(asg);
+                });
+                this.data = cleaned;
+                return repaired;
+            },
             normalizeAsg(asg) {
                 if (!asg || typeof asg !== 'object') return null;
                 const name = String(asg.name || '').trim();
                 const legacyEnglish = /英语/.test(name);
                 const subject = String(asg.subject || '').trim() || (legacyEnglish ? '英语' : '其他');
-                return {
-                    id: Number(asg.id),
+                const id = Number(asg.id);
+                const invalidId = !Number.isFinite(id);
+                const normalized = {
+                    id: invalidId ? null : id,
                     name: name || '未命名任务',
                     subject,
                     records: asg.records && typeof asg.records === 'object' ? asg.records : {}
                 };
+                if (invalidId) normalized._invalidId = true;
+                return normalized;
             },
             normalizeAsgInPlace(asg) {
                 const normalized = this.normalizeAsg(asg);
@@ -949,7 +978,7 @@
             },
             save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null } = {}) {
                 if (normalizeMode === 'all') {
-                    this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
+                    this.sanitizeAsgIds();
                     this.rebuildAsgIndex();
                 } else if (normalizeMode === 'target' && targetAsgId != null) {
                     const asg = this.asgMap.get(targetAsgId) || this.data.find(item => item.id === targetAsgId);
@@ -2507,16 +2536,12 @@
                 if (!raw || typeof raw !== 'object') throw new Error('备份文件结构错误');
                 if (!Array.isArray(raw.list) || !Array.isArray(raw.data)) throw new Error('备份缺少 list/data');
                 const list = raw.list.map(v => String(v ?? '').trim()).filter(Boolean);
-                const idSet = new Set();
                 const data = raw.data.map((a, idx) => {
                     if (!a || typeof a !== 'object') throw new Error(`第 ${idx + 1} 个作业格式错误`);
                     const id = Number(a.id);
                     const name = String(a.name ?? '').trim();
                     const subject = String(a.subject ?? '').trim() || (/英语/.test(name) ? '英语' : '其他');
-                    if (!Number.isFinite(id)) throw new Error(`第 ${idx + 1} 个作业ID无效`);
                     if (!name) throw new Error(`第 ${idx + 1} 个作业名称为空`);
-                    if (idSet.has(id)) throw new Error(`作业ID重复: ${id}`);
-                    idSet.add(id);
                     const recObj = a.records && typeof a.records === 'object' ? a.records : {};
                     const records = {};
                     Object.entries(recObj).forEach(([stuId, rec]) => {
@@ -2543,6 +2568,9 @@
                             State.data = d.data;
                             State.prefs = d.prefs;
                             State.parseRoster();
+                            const repairedIds = State.sanitizeAsgIds();
+                            if (repairedIds) Toast.show('已自动修复异常任务 ID');
+                            if (!State.data.length) State.addAsg('任务 1');
                             State.rebuildAsgIndex();
                             State.curId = State.data[0].id;
                             State.savePrefs();
