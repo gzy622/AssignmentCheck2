@@ -131,7 +131,9 @@
             _lastSignalAt: 0,
             _suppressOnce: false,
             _guardReady: false,
+            _enabled: location.protocol !== 'file:',
             init() {
+                if (!this._enabled) return;
                 this.armGuards();
                 window.addEventListener('popstate', () => this.onBackSignal());
                 window.addEventListener('hashchange', () => this.onHashChange());
@@ -183,6 +185,7 @@
                 this.rearm();
             },
             rearm() {
+                if (!this._enabled) return;
                 setTimeout(() => {
                     if (location.hash !== this._sentinelHash) location.hash = this._sentinelHash;
                     history.pushState({ __trackerGuard__: true, t: Date.now() }, '');
@@ -190,6 +193,7 @@
                 }, 0);
             },
             exitPage() {
+                if (!this._enabled) return;
                 this._suppressOnce = true;
                 history.back();
                 setTimeout(() => {
@@ -411,7 +415,7 @@
                 if (asgListChanged) this._asgListVersion++;
                 if (immediate) this.flushPersist();
                 else this.queuePersist();
-                if (render) UI.render();
+                if (render && UI.isReady) UI.render();
             },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             savePrefs() {
@@ -568,6 +572,7 @@
             }
         };
         const UI = {
+            isReady: false,
             _gridFrozen: false,
             _taskSelectVersion: -1,
             _lastRenderAsgId: null,
@@ -597,6 +602,7 @@
                 this.setupGrid();
                 this.setupGridSizing();
                 State.applyScoring();
+                this.isReady = true;
                 this.render();
             },
             setupGrid() {
