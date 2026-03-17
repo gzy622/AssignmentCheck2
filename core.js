@@ -3,9 +3,14 @@ const $ = id => document.getElementById(id);
 const LS = {
     get(k, d) {
         const raw = localStorage.getItem(k);
-        if (raw == null) return d;
+        if (raw == null) {
+            Debug.log(`[LS.get] key=${k} not found, using default`, 'info');
+            return d;
+        }
         try {
-            return JSON.parse(raw);
+            const val = JSON.parse(raw);
+            Debug.log(`[LS.get] key=${k} success`, 'info');
+            return val;
         } catch (err) {
             Debug.log(`[LS.get] key=${k} error=${err.message}`, 'error');
             return d;
@@ -16,6 +21,7 @@ const LS = {
             const nextRaw = JSON.stringify(v);
             if (localStorage.getItem(k) === nextRaw) return;
             localStorage.setItem(k, nextRaw);
+            Debug.log(`[LS.set] key=${k} success`, 'info');
         } catch (err) {
             Debug.log(`[LS.set] key=${k} error=${err.message}`, 'error');
         }
@@ -72,6 +78,7 @@ const Toast = {
     init() { this.el = $('toast'); },
     show(msg, ms = 1500) {
         if (!this.el) return;
+        Debug.log(`[Toast] show: ${msg}`, 'info');
         this.el.textContent = msg;
         this.el.classList.add('show');
         clearTimeout(this.timer);
@@ -84,6 +91,7 @@ const Debug = {
     contentEl: null,
     enabled: false,
     interactive: false,
+    filter: 'all',
     lines: [],
     _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
     init() {
@@ -99,6 +107,7 @@ const Debug = {
         };
         bind('debugClear', () => this.clear());
         bind('debugLock', () => this.toggleInteractive());
+        bind('debugFilter', () => this.toggleFilter());
         bind('debugClose', () => this.toggle());
         
         this.apply();
@@ -129,11 +138,12 @@ const Debug = {
         }
 
         window.addEventListener('error', e => {
-            this.log(`JS Error: ${e.message}`, 'error');
+            this.log(`[JS Error] ${e.message} at ${e.filename}:${e.lineno}`, 'error');
         });
         window.addEventListener('unhandledrejection', e => {
-            this.log(`Promise Error: ${e.reason}`, 'error');
+            this.log(`[Promise Error] ${e.reason}`, 'error');
         });
+        Debug.log('Debug system initialized', 'info');
     },
     apply() {
         if (!this.el) return;
@@ -148,6 +158,7 @@ const Debug = {
         if (this.el) {
             this.el.classList.toggle('interactive', this.interactive);
             $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
+            this.updateFilterUI();
         }
     },
     toggle() {
@@ -164,29 +175,51 @@ const Debug = {
         this.interactive = !this.interactive;
         this.el?.classList.toggle('interactive', this.interactive);
         $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
+        Debug.log(`Debug interactive=${this.interactive}`, 'info');
+    },
+    toggleFilter() {
+        const levels = ['all', 'info', 'warn', 'error'];
+        const idx = levels.indexOf(this.filter);
+        this.filter = levels[(idx + 1) % levels.length];
+        this.updateFilterUI();
+        this.render();
+        Debug.log(`Filter changed to: ${this.filter}`, 'info');
+    },
+    updateFilterUI() {
+        const btn = $('debugFilter');
+        if (!btn) return;
+        const icons = { all: '🏷️', info: 'ℹ️', warn: '⚠️', error: '❌' };
+        btn.textContent = icons[this.filter] || '🏷️';
+        btn.title = `筛选: ${this.filter}`;
     },
     clear() {
         this.lines = [];
         this.render();
+        Debug.log('Logs cleared', 'info');
     },
     log(msg, level = 'info') {
         if (!this.enabled || !this.el) return;
         const t = new Date();
         const ts = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
         this.lines.push({ ts, msg, level });
-        if (this.lines.length > 50) this.lines.shift();
+        if (this.lines.length > 200) this.lines.shift();
         this.render();
     },
     render() {
         if (!this.contentEl) return;
         if (!this.enabled) { this.contentEl.innerHTML = ''; return; }
-        if (this.lines.length === 0) {
-            this.contentEl.innerHTML = '<div style="color:rgba(148,163,184,0.4);text-align:center;margin-top:20px">等待事件...</div>';
+        
+        const filtered = this.filter === 'all' 
+            ? this.lines 
+            : this.lines.filter(l => l.level === this.filter);
+
+        if (filtered.length === 0) {
+            this.contentEl.innerHTML = `<div style="color:rgba(148,163,184,0.4);text-align:center;margin-top:20px">${this.filter === 'all' ? '等待事件...' : '无匹配日志'}</div>`;
             return;
         }
 
         const frag = document.createDocumentFragment();
-        this.lines.forEach(line => {
+        filtered.forEach(line => {
             const div = document.createElement('div');
             div.className = 'debug-line';
             div.innerHTML = `<span class="debug-ts">${line.ts}</span><span class="debug-lvl-${line.level}">${line.msg}</span>`;
