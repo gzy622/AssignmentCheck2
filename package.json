@@ -1,0 +1,31 @@
+{
+  "name": "assignmentcheck2",
+  "version": "1.0.0",
+  "description": "一个单文件（`index.html`）的课堂作业登记工具，面向教师在课上快速标记作业提交状态和分数。页面无需构建，直接在浏览器中运行。",
+  "main": "action-views.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:e2e"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gzy622/AssignmentCheck2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gzy622/AssignmentCheck2/issues"
+  },
+  "homepage": "https://github.com/gzy622/AssignmentCheck2#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@vitest/coverage-v8": "^4.1.0",
+    "jsdom": "^29.0.0",
+    "vitest": "^4.1.0"
+  }
+}

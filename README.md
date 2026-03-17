@@ -18,22 +18,33 @@
 
 本项目无需安装依赖，直接运行静态页面即可。
 
-### 方式一：直接打开
+...
 
-1. 在文件管理器中双击 `index.html`。
-2. 使用浏览器打开后即可开始登记。
+## 测试说明
 
-### 方式二：本地静态服务（推荐）
+本项目包含完善的单元测试和端到端（E2E）测试。
 
-在项目目录执行：
+### 安装测试环境
 
 ```bash
-python3 -m http.server 8000
+npm install
+npx playwright install chromium
 ```
 
-然后访问：`http://localhost:8000`
+### 运行测试
 
-## 使用说明
+- **运行所有测试**: `npm run test:all`
+- **运行单元测试 (Vitest)**: `npm run test`
+- **运行端到端测试 (Playwright)**: `npm run test:e2e`
+- **生成覆盖率报告**: `npm run test:coverage`
+
+### 测试结构
+
+- `core.test.js`: 基础工具函数测试。
+- `tests/state.test.js`: 应用状态管理逻辑测试。
+- `app.spec.js`: Playwright 端到端用户流程测试。
+
+## 项目结构
 
 ### 顶部操作
 
