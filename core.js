@@ -84,12 +84,38 @@ const Debug = {
     contentEl: null,
     enabled: false,
     lines: [],
+    _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
     init() {
         this.el = $('debugPanel');
         this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
         $('debugClear')?.addEventListener('click', () => this.clear());
         this.apply();
+
+        const header = this.el?.querySelector('.debug-header');
+        if (header) {
+            header.onpointerdown = e => {
+                this._drag.active = true;
+                this._drag.x = e.clientX;
+                this._drag.y = e.clientY;
+                this._drag.lastX = this.el.offsetLeft;
+                this._drag.lastY = this.el.offsetTop;
+                header.setPointerCapture(e.pointerId);
+            };
+            header.onpointermove = e => {
+                if (!this._drag.active) return;
+                const dx = e.clientX - this._drag.x;
+                const dy = e.clientY - this._drag.y;
+                this.el.style.left = `${this._drag.lastX + dx}px`;
+                this.el.style.top = `${this._drag.lastY + dy}px`;
+                this.el.style.right = 'auto';
+                this.el.style.bottom = 'auto';
+            };
+            header.onpointerup = e => {
+                this._drag.active = false;
+                header.releasePointerCapture(e.pointerId);
+            };
+        }
 
         window.addEventListener('error', e => {
             this.log(`JS Error: ${e.message}`, 'error');
@@ -101,6 +127,12 @@ const Debug = {
     apply() {
         if (!this.el) return;
         this.el.classList.toggle('show', this.enabled);
+        if (!this.enabled) {
+            this.el.style.left = '';
+            this.el.style.top = '';
+            this.el.style.right = '';
+            this.el.style.bottom = '';
+        }
         const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = this.enabled ? '开' : '关';
     },
     toggle() {
