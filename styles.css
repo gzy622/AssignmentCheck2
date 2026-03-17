@@ -653,10 +653,12 @@
         .debug-panel.show{display:flex}
         .debug-header{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(148,163,184,0.1);user-select:none;pointer-events:auto;cursor:move}
         .debug-title{font-weight:700;color:rgba(148,163,184,0.8);font-size:10px;letter-spacing:0.05em}
-        #debugClear{background:none;border:none;color:rgba(148,163,184,0.6);cursor:pointer;padding:2px 6px;font-size:14px;transition:0.2s}
-        #debugClear:hover{color:#fff;background:rgba(239,68,68,0.2);border-radius:4px}
-        .debug-content{padding:6px 8px;overflow-y:auto;flex:1;scrollbar-width:thin;white-space:pre-wrap;pointer-events:none}
-        .debug-panel.interactive .debug-content{pointer-events:auto;background:rgba(15,23,42,0.1)}
+        .debug-actions{display:flex;gap:4px;pointer-events:auto}
+        .debug-actions button{background:none;border:none;color:rgba(148,163,184,0.6);cursor:pointer;padding:2px 4px;font-size:12px;transition:0.2s;line-height:1}
+        .debug-actions button:hover{color:#fff;background:rgba(255,255,255,0.1);border-radius:4px}
+        #debugClose{font-size:16px;color:rgba(248,113,113,0.6)}
+        #debugClose:hover{background:rgba(239,68,68,0.2);color:#f87171}
+        .debug-content{padding:6px 8px;overflow-y:auto;flex:1;scrollbar-width:thin;white-space:pre-wrap;pointer-events:none}        .debug-panel.interactive .debug-content{pointer-events:auto;background:rgba(15,23,42,0.1)}
         #debugLock{background:none;border:none;color:rgba(148,163,184,0.6);cursor:pointer;padding:2px 6px;font-size:12px;transition:0.2s}
         #debugLock:hover{color:#fff;background:rgba(255,255,255,0.1);border-radius:4px}
         .debug-panel.interactive #debugLock{color:#fbbf24}        .debug-line{margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.02);padding-bottom:1px}

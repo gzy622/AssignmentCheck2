@@ -90,13 +90,23 @@ const Debug = {
         this.el = $('debugPanel');
         this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
-        $('debugClear')?.addEventListener('click', () => this.clear());
-        $('debugLock')?.addEventListener('click', () => this.toggleInteractive());
+        
+        const bind = (id, fn) => {
+            const btn = $(id);
+            if (!btn) return;
+            btn.onpointerdown = e => e.stopPropagation();
+            btn.onclick = fn;
+        };
+        bind('debugClear', () => this.clear());
+        bind('debugLock', () => this.toggleInteractive());
+        bind('debugClose', () => this.toggle());
+        
         this.apply();
 
         const header = this.el?.querySelector('.debug-header');
         if (header) {
             header.onpointerdown = e => {
+                if (e.target.closest('.debug-actions')) return;
                 this._drag.active = true;
                 this._drag.x = e.clientX;
                 this._drag.y = e.clientY;
