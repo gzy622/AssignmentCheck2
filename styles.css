@@ -671,33 +671,132 @@
         .debug-content::-webkit-scrollbar-track{background:transparent}
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
-        /* 展示模式样式 */
-        .present-mode { background: #f8f9fa; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .present-header { padding: 8px 16px; background: #fff; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .present-title { font-size: 1.1rem; font-weight: 700; color: #333; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .present-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 12px; overflow-y: auto; flex: 1; align-content: start; }
-        .present-item { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); min-height: 0; }
-        .present-item.done { border-left: 3px solid var(--success); background: #f0fdf4; }
-        .present-item.pending { border-left: 3px solid #ddd; color: #999; }
-        .present-stu-info { font-size: 0.95rem; font-weight: 600; display: flex; justify-content: space-between; margin-bottom: 1px; }
-        .present-status { font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
-        .present-score { font-size: 1rem; font-weight: 700; color: var(--success); }
-        .present-badge { padding: 1px 4px; border-radius: 3px; font-size: 0.7rem; }
-        .present-badge.done { background: #e6f4ea; color: var(--success); }
-        .present-badge.pending { background: #f1f3f4; color: #666; }
+        /* 展示模式样式：浅色主题 16:9 全屏网格 */
+        .present-mode { 
+            background: #f1f5f9; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            color: #334155;
+            position: relative;
+        }
+        .present-floating-bar { 
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0,0,0,0.05); 
+            border-radius: 24px;
+            padding: 6px 14px;
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .present-floating-bar:hover {
+            opacity: 1;
+        }
+        .present-title { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: #1e293b; 
+            margin: 0; 
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .present-floating-bar .btn {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border-radius: 12px;
+        }
+        .present-grid { 
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); 
+            grid-template-rows: repeat(5, 1fr); 
+            gap: 4px; 
+            padding: 4px; 
+            height: 100vh; 
+            align-content: stretch;
+            justify-content: stretch;
+        }
+        .present-item { 
+            background: #ffffff; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 6px; 
+            padding: 6px 8px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            gap: 2px; 
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .present-item:hover {
+            background: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
+        }
+        .present-item.done { 
+            border-left: 4px solid #10b981; 
+            background: #f0fdf4; 
+        }
+        .present-item.pending { 
+            border-left: 4px solid #cbd5e1; 
+        }
+        .present-stu-info { 
+            font-size: 1rem; 
+            font-weight: 700; 
+            display: flex; 
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px; 
+        }
+        .present-id {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .present-status { 
+            font-size: 0.8rem; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .present-score { 
+            font-size: 1.1rem; 
+            font-weight: 800; 
+            color: #10b981; 
+        }
+        .present-badge { 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            font-size: 0.65rem; 
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .present-badge.done { 
+            background: #d1fae5; 
+            color: #059669; 
+        }
+        .present-badge.pending { 
+            background: #f1f5f9; 
+            color: #64748b; 
+        }
 
-        @media (orientation: landscape) {
-            .present-header { padding: 4px 12px; }
-            .present-title { font-size: 1rem; }
-            .present-grid { 
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
-                gap: 6px; 
-                padding: 8px; 
+        @media (orientation: portrait) {
+            .present-grid {
+                grid-template-columns: repeat(5, 1fr);
+                grid-template-rows: repeat(10, 1fr);
             }
-            .present-item { padding: 4px 6px; }
-            .present-stu-info { font-size: 0.85rem; }
-            .present-status { font-size: 0.75rem; }
-            .present-score { font-size: 0.9rem; }
-            .present-badge { font-size: 0.65rem; }
         }
 
