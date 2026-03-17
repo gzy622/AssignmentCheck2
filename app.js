@@ -483,7 +483,8 @@
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
                 $('menu').onclick = e => {
-                    const act = e.target.getAttribute('act');
+                    const item = e.target.closest('[act]');
+                    const act = item ? item.getAttribute('act') : null;
                     if (!act || !this.actions.has(act)) return;
                     $('menu').classList.remove('show');
                     this.actions.run(act);
