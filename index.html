@@ -121,15 +121,12 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <div id="debugPanel" class="debug-panel" aria-live="polite">
-        <div class="debug-header">
-            <span class="debug-title">DEBUG</span>
-            <div class="debug-actions">
-                <button id="debugLock" title="锁定/解锁交互">🔒</button>
-                <button id="debugClear" title="清除日志">🗑️</button>
-                <button id="debugClose" title="关闭调试面板">&times;</button>
-            </div>
-        </div>
         <div id="debugContent" class="debug-content"></div>
+        <div class="debug-actions">
+            <button id="debugLock" title="锁定/解锁交互">🔒</button>
+            <button id="debugClear" title="清除日志">🗑️</button>
+            <button id="debugClose" title="关闭面板">&times;</button>
+        </div>
     </div>
 
     <script src="core.js"></script>

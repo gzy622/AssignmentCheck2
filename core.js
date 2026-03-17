@@ -103,32 +103,6 @@ const Debug = {
         
         this.apply();
 
-        const header = this.el?.querySelector('.debug-header');
-        if (header) {
-            header.onpointerdown = e => {
-                if (e.target.closest('.debug-actions')) return;
-                this._drag.active = true;
-                this._drag.x = e.clientX;
-                this._drag.y = e.clientY;
-                this._drag.lastX = this.el.offsetLeft;
-                this._drag.lastY = this.el.offsetTop;
-                header.setPointerCapture(e.pointerId);
-            };
-            header.onpointermove = e => {
-                if (!this._drag.active) return;
-                const dx = e.clientX - this._drag.x;
-                const dy = e.clientY - this._drag.y;
-                this.el.style.left = `${this._drag.lastX + dx}px`;
-                this.el.style.top = `${this._drag.lastY + dy}px`;
-                this.el.style.right = 'auto';
-                this.el.style.bottom = 'auto';
-            };
-            header.onpointerup = e => {
-                this._drag.active = false;
-                header.releasePointerCapture(e.pointerId);
-            };
-        }
-
         window.addEventListener('error', e => {
             this.log(`JS Error: ${e.message}`, 'error');
         });
@@ -146,6 +120,10 @@ const Debug = {
             this.el.style.bottom = '';
         }
         const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = this.enabled ? '开' : '关';
+        if (this.el) {
+            this.el.classList.toggle('interactive', this.interactive);
+            $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
+        }
     },
     toggle() {
         this.enabled = !this.enabled;
