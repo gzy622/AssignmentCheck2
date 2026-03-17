@@ -300,8 +300,8 @@
             },
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
-                $('btnAnim').textContent = `显示动画: ${this.animations ? '开' : '关'}`;
-                $('btnDebug').textContent = `调试面板: ${Debug.enabled ? '开' : '关'}`;
+                const sAnim = $('statusAnim'); if (sAnim) sAnim.textContent = this.animations ? '开' : '关';
+                const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = Debug.enabled ? '开' : '关';
             },
             applyCardColor() {
                 const base = ColorUtil.normalizeHex(this.prefs?.cardDoneColor, '#68c490');
@@ -315,7 +315,7 @@
                 document.documentElement.style.setProperty('--done-card-press-shadow', ColorUtil.withAlpha(base, 0.32));
             },
             applyScoring() {
-                $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
+                const sScore = $('statusScore'); if (sScore) sScore.textContent = this.scoring ? '开' : '关';
                 const btnScore = $('btnScore');
                 if (btnScore) btnScore.classList.toggle('active', !!this.scoring);
             },

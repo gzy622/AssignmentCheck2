@@ -104,7 +104,7 @@ const Debug = {
     apply() {
         if (!this.el) return;
         this.el.classList.toggle('show', this.enabled);
-        $('btnDebug').textContent = `调试面板: ${this.enabled ? '开' : '关'}`;
+        const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = this.enabled ? '开' : '关';
     },
     toggle() {
         this.enabled = !this.enabled;
