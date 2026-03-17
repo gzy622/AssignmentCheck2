@@ -27,4 +27,35 @@ test.describe('AssignmentCheck2 E2E', () => {
         await expect(toast).toBeVisible();
         await expect(toast).toHaveText('测试消息');
     });
+
+    test('should toggle debug panel and clear logs', async ({ page }) => {
+        await page.goto(indexUrl);
+        await page.click('#btnMenu');
+        await page.click('#btnDebug');
+        const debugPanel = page.locator('#debugPanel');
+        await expect(debugPanel).toBeVisible();
+
+        // Check buttons exist
+        await expect(page.locator('#debugLock')).toBeVisible();
+        await expect(page.locator('#debugFilter')).toBeVisible();
+        await expect(page.locator('#debugClear')).toBeVisible();
+        await expect(page.locator('#debugClose')).toBeVisible();
+
+        // Toggle filter
+        await page.click('#debugFilter');
+        // It cycles: all -> info -> warn -> error
+        // Just verify it's clickable and doesn't crash
+        await page.click('#debugFilter');
+        await page.click('#debugFilter');
+        await page.click('#debugFilter');
+
+        // Clear logs
+        await page.click('#debugClear');
+        const debugContent = page.locator('#debugContent');
+        await expect(debugContent).toContainText('Logs cleared');
+
+        // Close panel
+        await page.click('#debugClose');
+        await expect(debugPanel).not.toBeVisible();
+    });
 });

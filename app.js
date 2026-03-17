@@ -25,11 +25,16 @@
                 const recovered = this.applyRecoveryDraft();
                 try {
                     this.parseRoster();
+                    Debug.log('Roster parsed successfully', 'info');
                 } catch (err) {
+                    Debug.log(`Roster parse error: ${err.message}`, 'error');
                     window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
                     throw err;
                 }
-                if (!this.data.length) this.addAsg('任务 1');
+                if (!this.data.length) {
+                    Debug.log('No data found, adding default assignment', 'info');
+                    this.addAsg('任务 1');
+                }
                 const repairedIds = this.sanitizeAsgIds();
                 this._ensureAsgIndex();
                 if (repairedIds) Toast.show('已自动修复异常任务 ID');
@@ -186,7 +191,10 @@
                 this.invalidateDerived();
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
-                if (asgListChanged) this._asgListVersion++;
+                if (asgListChanged) {
+                    this._asgListVersion++;
+                    Debug.log('Assignment list version incremented', 'info');
+                }
                 if (dirtyData || dirtyList) this.saveRecoveryDraft();
                 if (immediate) this._flushPersist(); else this._queuePersist();
                 if (render && this.view.isReady()) this.view.render();
@@ -223,6 +231,7 @@
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
 
             addAsg(n) {
+                Debug.log(`Adding assignment: ${n}`, 'info');
                 let id = Date.now();
                 while (this.asgMap.has(id)) id++;
                 this.data.push(this.normalizeAsg({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} }));
@@ -233,7 +242,11 @@
             },
 
             selectAsg(id) {
-                if (!this.asgMap.has(id)) return;
+                Debug.log(`Selecting assignment: ${id}`, 'info');
+                if (!this.asgMap.has(id)) {
+                    Debug.log(`selectAsg failed: ID ${id} not found`, 'warn');
+                    return;
+                }
                 this.curId = id;
                 this.markGridDirty({ full: true });
                 this.view.render();
@@ -261,9 +274,13 @@
             },
 
             removeAsg(id) {
+                Debug.log(`Removing assignment: ${id}`, 'warn');
                 if (this.data.length <= 1) return false;
                 const idx = this.data.findIndex(a => a.id === id);
-                if (idx === -1) return false;
+                if (idx === -1) {
+                    Debug.log(`removeAsg failed: ID ${id} not found`, 'warn');
+                    return false;
+                }
                 this.data.splice(idx, 1);
                 if (this.curId === id) this.curId = (this.data[Math.max(0, idx - 1)] || this.data[0]).id;
                 this._ensureAsgIndex();
@@ -335,7 +352,6 @@
                 r[id] = { ...r[id], ...val };
                 if (!r[id].done && (r[id].score == null || r[id].score === '')) delete r[id];
                 this.invalidateDerived();
-                this._dirtyData = true;
                 this.markGridDirty({ ids: [id] });
                 this.saveRecoveryDraft();
                 this._queuePersist();

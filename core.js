@@ -8,9 +8,14 @@ const LS = {
     },
     get(k, d) {
         const raw = localStorage.getItem(k);
-        if (raw == null) return d;
+        if (raw == null) {
+            Debug.log(`[LS.get] key=${k} not found, using default`, 'info');
+            return d;
+        }
         try {
-            return JSON.parse(raw);
+            const val = JSON.parse(raw);
+            Debug.log(`[LS.get] key=${k} success`, 'info');
+            return val;
         } catch (err) {
             this._log('get', k, err);
             return d;
@@ -21,6 +26,7 @@ const LS = {
             const nextRaw = JSON.stringify(v);
             if (localStorage.getItem(k) === nextRaw) return;
             localStorage.setItem(k, nextRaw);
+            Debug.log(`[LS.set] key=${k} success`, 'info');
         } catch (err) {
             this._log('set', k, err);
         }
@@ -86,6 +92,7 @@ const Toast = {
     init() { this.el = $('toast'); },
     show(msg, ms = 1500) {
         if (!this.el) return;
+        Debug.log(`[Toast] show: ${msg}`, 'info');
         this.el.textContent = msg;
         this.el.classList.add('show');
         clearTimeout(this.timer);
@@ -94,32 +101,122 @@ const Toast = {
 };
 
 const Debug = {
-    enabled: false,
     el: null,
+    contentEl: null,
+    enabled: false,
+    interactive: false,
+    filter: 'all',
     lines: [],
+    _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
     init() {
         this.el = $('debugPanel');
+        this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
+        
+        const bind = (id, fn) => {
+            const btn = $(id);
+            if (!btn) return;
+            btn.onpointerdown = e => e.stopPropagation();
+            btn.onclick = fn;
+        };
+        bind('debugClear', () => this.clear());
+        bind('debugLock', () => this.toggleInteractive());
+        bind('debugFilter', () => this.toggleFilter());
+        bind('debugClose', () => this.toggle());
+        
         this.apply();
+
+        if (this.el) {
+            this.el.onpointerdown = e => {
+                if (!this.interactive || e.target.closest('.debug-actions')) return;
+                this._drag.active = true;
+                this._drag.x = e.clientX;
+                this._drag.y = e.clientY;
+                this._drag.lastX = this.el.offsetLeft;
+                this._drag.lastY = this.el.offsetTop;
+                this.el.setPointerCapture(e.pointerId);
+            };
+            this.el.onpointermove = e => {
+                if (!this._drag.active) return;
+                const dx = e.clientX - this._drag.x;
+                const dy = e.clientY - this._drag.y;
+                this.el.style.left = `${this._drag.lastX + dx}px`;
+                this.el.style.top = `${this._drag.lastY + dy}px`;
+                this.el.style.right = 'auto';
+                this.el.style.bottom = 'auto';
+            };
+            this.el.onpointerup = e => {
+                this._drag.active = false;
+                this.el.releasePointerCapture(e.pointerId);
+            };
+        }
+
+        window.addEventListener('error', e => {
+            this.log(`[JS Error] ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+        window.addEventListener('unhandledrejection', e => {
+            this.log(`[Promise Error] ${e.reason}`, 'error');
+        });
+        Debug.log('Debug system initialized', 'info');
     },
     apply() {
         if (!this.el) return;
         this.el.classList.toggle('show', this.enabled);
+        if (!this.enabled) {
+            this.el.style.left = '';
+            this.el.style.top = '';
+            this.el.style.right = '';
+            this.el.style.bottom = '';
+        }
         const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = this.enabled ? '开' : '关';
+        if (this.el) {
+            this.el.classList.toggle('interactive', this.interactive);
+            $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
+            this.updateFilterUI();
+        }
     },
     toggle() {
         this.enabled = !this.enabled;
         LS.set(KEYS.DEBUG, this.enabled);
-        if (!this.enabled) this.lines = [];
+        if (!this.enabled) {
+            this.clear();
+            this.interactive = false;
+        }
         this.apply();
         this.render();
     },
-    log(msg) {
+    toggleInteractive() {
+        this.interactive = !this.interactive;
+        this.el?.classList.toggle('interactive', this.interactive);
+        $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
+        Debug.log(`Debug interactive=${this.interactive}`, 'info');
+    },
+    toggleFilter() {
+        const levels = ['all', 'info', 'warn', 'error'];
+        const idx = levels.indexOf(this.filter);
+        this.filter = levels[(idx + 1) % levels.length];
+        this.updateFilterUI();
+        this.render();
+        Debug.log(`Filter changed to: ${this.filter}`, 'info');
+    },
+    updateFilterUI() {
+        const btn = $('debugFilter');
+        if (!btn) return;
+        const icons = { all: '🏷️', info: 'ℹ️', warn: '⚠️', error: '❌' };
+        btn.textContent = icons[this.filter] || '🏷️';
+        btn.title = `筛选: ${this.filter}`;
+    },
+    clear() {
+        this.lines = [];
+        this.render();
+        Debug.log('Logs cleared', 'info');
+    },
+    log(msg, level = 'info') {
         if (!this.enabled || !this.el) return;
         const t = new Date();
         const ts = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
-        this.lines.push(`[${ts}] ${msg}`);
-        if (this.lines.length > 40) this.lines.shift();
+        this.lines.push({ ts, msg, level });
+        if (this.lines.length > 200) this.lines.shift();
         this.render();
     },
     render() {

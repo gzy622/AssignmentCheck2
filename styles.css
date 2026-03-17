@@ -649,9 +649,26 @@
         .toast.show{opacity:1;transform:translate(-50%,0)}
 
 
-        .debug-panel{position:fixed;right:10px;bottom:10px;z-index:1200;width:min(320px,calc(100vw - 20px));max-height:22vh;overflow:auto;display:none;padding:8px 10px;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:rgba(15,23,42,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(15,23,42,.12);color:rgba(226,232,240,.88);font-size:11px;line-height:1.4;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;pointer-events:auto;user-select:text;opacity:.72;overscroll-behavior:contain;scrollbar-width:thin}
-        .debug-panel.show{display:block}
-
+        .debug-panel{position:fixed;right:10px;bottom:10px;z-index:1200;width:min(320px,calc(100vw - 20px));max-height:22vh;display:none;flex-direction:column;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:rgba(15,23,42,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(15,23,42,.12);color:rgba(226,232,240,.88);font-size:11px;line-height:1.4;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;pointer-events:none;user-select:text;opacity:.9;overscroll-behavior:contain;overflow:hidden}
+        .debug-panel.show{display:flex}
+        .debug-panel.interactive{cursor:move;pointer-events:auto}
+        .debug-actions{position:absolute;right:4px;bottom:4px;display:flex;gap:4px;pointer-events:auto;z-index:2}
+        .debug-actions button{background:rgba(255,255,255,0.05);border:none;color:rgba(148,163,184,0.6);cursor:pointer;padding:4px;font-size:12px;transition:0.2s;line-height:1;display:flex;align-items:center;justify-content:center;border-radius:4px;width:20px;height:20px}
+        .debug-actions button:hover{color:#fff;background:rgba(255,255,255,0.12)}
+        #debugClose{color:rgba(248,113,113,0.5);font-size:14px}
+        #debugClose:hover{background:rgba(239,68,68,0.15);color:#f87171}
+        .debug-content{padding:6px 8px;overflow-y:auto;flex:1;scrollbar-width:thin;white-space:pre-wrap;pointer-events:none;padding-bottom:28px;transition:background 0.2s}
+        .debug-panel:hover .debug-content{pointer-events:auto}
+        .debug-panel.interactive .debug-content{pointer-events:auto;background:rgba(15,23,42,0.1)}
+        .debug-panel.interactive #debugLock{color:#fbbf24}        .debug-line{margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.02);padding-bottom:1px;word-break:break-all}
+        .debug-ts{color:rgba(148,163,184,0.5);margin-right:6px;font-size:9px}
+        .debug-lvl-info{color:#a3e635}
+        .debug-lvl-warn{color:#f59e0b}
+        .debug-lvl-error{color:#f87171}
+        .debug-content::-webkit-scrollbar{width:3px}
+        .debug-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:10px}
+        .debug-content:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15)}
+        .debug-content::-webkit-scrollbar-track{background:transparent}
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
         /* 展示模式样式 */
