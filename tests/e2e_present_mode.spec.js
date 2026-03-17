@@ -28,7 +28,7 @@ test.describe('Presentation Mode', () => {
         expect(count).toBeGreaterThan(0);
         
         // Click exit
-        await page.click('button:has-text("退出展示")');
+        await page.click('.present-header button:has-text("退出")');
         
         // Verify presentation mode is closed
         await expect(presentMode).not.toBeVisible();

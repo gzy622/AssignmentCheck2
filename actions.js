@@ -775,8 +775,9 @@
                 const blob = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' });
                 const a = document.createElement('a');
                 const url = URL.createObjectURL(blob);
+                const d = new Date(), y = d.getFullYear(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0');
                 a.href = url;
-                a.download = 'backup.json';
+                a.download = `assignmentcheck2_backup_${y}${m}${dd}.json`;
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(url), 0);
             },
