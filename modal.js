@@ -21,7 +21,7 @@ const Modal = {
 
     init() {
         this.closeBtn.onclick = () => {
-            if (Debug.enabled) Debug.log('点击关闭按钮');
+            Debug.log('点击关闭按钮');
             this.close(false);
         };
         document.addEventListener('keydown', (e) => {
@@ -246,7 +246,7 @@ const Modal = {
         }
 
         this.isOpen = true;
-        if (Debug.enabled) Debug.log(`Modal.show open type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
+        Debug.log(`Modal.show open type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
         this.isClosing = false;
         this._lastLayout = null;
         this.el.classList.add('is-open');
@@ -260,7 +260,7 @@ const Modal = {
 
     close(val) {
         if (!this.isOpen || this.isClosing) return;
-        if (Debug.enabled) Debug.log(`Modal.close val=${val}`);
+        Debug.log(`Modal.close val=${val}`);
         this.isClosing = true;
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
@@ -291,7 +291,7 @@ const Modal = {
 
     forceClose(val = false) {
         if (!this.isOpen) return;
-        if (Debug.enabled) Debug.log(`Modal.forceClose val=${val}`);
+        Debug.log(`Modal.forceClose val=${val}`);
         this.el.classList.remove('is-open', 'is-closing', 'full', 'focus-stable');
         this.isOpen = false;
         this.isClosing = false;
