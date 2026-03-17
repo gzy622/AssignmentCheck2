@@ -316,6 +316,8 @@
             },
             applyScoring() {
                 $('btnScoreMenu').textContent = `打分模式: ${this.scoring ? '开' : '关'}`;
+                const btnScore = $('btnScore');
+                if (btnScore) btnScore.classList.toggle('active', !!this.scoring);
             },
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
             addAsg(n) {
@@ -477,6 +479,7 @@
                 this.asgSelectEl = $('asgSelect');
                 this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
                 $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
+                $('btnScore').onclick = () => this.actions.run('toggleScore');
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
                 $('menu').onclick = e => {

@@ -85,7 +85,7 @@ const ActionViews = {
         root.innerHTML = `
             <div class="present-header">
                 <h2 class="present-title">${title}</h2>
-                <button class="btn btn-c" onclick="Modal.close()">退出展示</button>
+                <button class="btn btn-c btn-xs" onclick="Modal.close()">退出</button>
             </div>
             <div class="present-grid"></div>
         `;
@@ -99,11 +99,11 @@ const ActionViews = {
             item.className = `present-item ${isDone ? 'done' : 'pending'}`;
             item.innerHTML = `
                 <div class="present-stu-info">
-                    <span>${stu.id}</span>
-                    <span>${stu.name}</span>
+                    <span style="flex-shrink:0;margin-right:4px">${stu.id}</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stu.name}</span>
                 </div>
                 <div class="present-status">
-                    <span class="present-badge ${isDone ? 'done' : 'pending'}">${isDone ? '已提交' : '未提交'}</span>
+                    <span class="present-badge ${isDone ? 'done' : 'pending'}">${isDone ? 'OK' : '..'}</span>
                     ${score !== '' ? `<span class="present-score">${score}</span>` : ''}
                 </div>
             `;
