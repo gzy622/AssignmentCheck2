@@ -8,12 +8,12 @@ test.describe('Score Preset Buttons', () => {
     test('clicking 0 or 100 preset button should save score and close modal', async ({ page }) => {
         await page.goto(indexUrl);
         
-        // Enable scoring mode to open modal on click
+        // Enable scoring mode
         await page.click('#btnMenu');
-        await page.click('div[act="scoring"]');
+        await page.click('#btnScoreMenu');
         
-        // Click on a student card (e.g., "01 蓝慧婷")
-        const card = page.locator('.card-item').first();
+        // Click on a student card
+        const card = page.locator('.student-card').first();
         await card.click();
         
         // Verify modal is open
@@ -26,10 +26,8 @@ test.describe('Score Preset Buttons', () => {
         // Verify modal is closed
         await expect(modal).not.toHaveClass(/is-open/);
         
-        // Verify the score is saved (the card should show "100" or be marked as done)
-        // In this app, a card with a score might show the score or change color.
-        // Let's check the record in State via evaluate if needed, or just check UI.
-        const scoreBadge = card.locator('.card-tag');
+        // Verify the score is saved
+        const scoreBadge = card.locator('.card-score');
         await expect(scoreBadge).toHaveText('100');
     });
 
@@ -38,10 +36,10 @@ test.describe('Score Preset Buttons', () => {
         
         // Enable scoring mode
         await page.click('#btnMenu');
-        await page.click('div[act="scoring"]');
+        await page.click('#btnScoreMenu');
         
         // Click on the second student card
-        const card = page.locator('.card-item').nth(1);
+        const card = page.locator('.student-card').nth(1);
         await card.click();
         
         // Click "0" preset button
@@ -52,7 +50,7 @@ test.describe('Score Preset Buttons', () => {
         await expect(modal).not.toHaveClass(/is-open/);
         
         // Verify the score is saved
-        const scoreBadge = card.locator('.card-tag');
+        const scoreBadge = card.locator('.card-score');
         await expect(scoreBadge).toHaveText('0');
     });
 });
