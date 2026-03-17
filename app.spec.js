@@ -37,13 +37,22 @@ test.describe('AssignmentCheck2 E2E', () => {
 
         // Check buttons exist
         await expect(page.locator('#debugLock')).toBeVisible();
+        await expect(page.locator('#debugFilter')).toBeVisible();
         await expect(page.locator('#debugClear')).toBeVisible();
         await expect(page.locator('#debugClose')).toBeVisible();
+
+        // Toggle filter
+        await page.click('#debugFilter');
+        // It cycles: all -> info -> warn -> error
+        // Just verify it's clickable and doesn't crash
+        await page.click('#debugFilter');
+        await page.click('#debugFilter');
+        await page.click('#debugFilter');
 
         // Clear logs
         await page.click('#debugClear');
         const debugContent = page.locator('#debugContent');
-        await expect(debugContent).toContainText('等待事件');
+        await expect(debugContent).toContainText('Logs cleared');
 
         // Close panel
         await page.click('#debugClose');

@@ -22,6 +22,7 @@
             _gridDirtyFull: true,
             _gridDirtyStudentIds: new Set(),
             init() {
+                Debug.log('State initialization started', 'info');
                 this.list = LS.get(KEYS.LIST, [
                     '01 蓝慧婷',
                     '02 陈静',
@@ -74,28 +75,44 @@
                     '49 刘依婷',
                     '50 曾誉宸'
                 ]);
+                Debug.log(`Loaded ${this.list.length} roster items`, 'info');
                 this.data = LS.get(KEYS.DATA, []);
                 this.data = this.data.map(a => this.normalizeAsg(a)).filter(Boolean);
+                Debug.log(`Loaded ${this.data.length} normalized assignments`, 'info');
                 this.animations = LS.get(KEYS.ANIM, true);
                 this.debug = !!LS.get(KEYS.DEBUG, false);
                 this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                 const recovered = this.applyRecoveryDraft();
                 try {
                     this.parseRoster();
+                    Debug.log('Roster parsed successfully', 'info');
                 } catch (err) {
+                    Debug.log(`Roster parse error: ${err.message}`, 'error');
                     window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
                     throw err;
                 }
-                if (!this.data.length) this.addAsg('任务 1');
+                if (!this.data.length) {
+                    Debug.log('No data found, adding default assignment', 'info');
+                    this.addAsg('任务 1');
+                }
                 const repairedIds = this.sanitizeAsgIds();
                 this.rebuildAsgIndex();
-                if (repairedIds) Toast.show('已自动修复异常任务 ID');
+                if (repairedIds) {
+                    Debug.log('Sanitized assignment IDs', 'warn');
+                    Toast.show('已自动修复异常任务 ID');
+                }
                 this.curId = this.resolveCurId(this.curId);
                 this.applyAnim();
                 this.applyCardColor();
-                window.addEventListener('beforeunload', () => this.flushPersist());
+                window.addEventListener('beforeunload', () => {
+                    Debug.log('Window beforeunload: flushing persistence', 'info');
+                    this.flushPersist();
+                });
                 this.view.init();
-                if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
+                if (recovered) {
+                    Debug.log('Recovered draft data', 'info');
+                    Toast.show('已恢复上次未完成的临时登记数据');
+                }
                 
                 const verEl = $('menuVersion');
                 if (verEl) verEl.textContent = `Version: ${VERSION}`;
@@ -273,6 +290,7 @@
                 this.markGridDirty({ full: true });
             },
             save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null } = {}) {
+                Debug.log(`Saving: dirtyData=${dirtyData}, dirtyList=${dirtyList}, immediate=${immediate}`, 'info');
                 if (normalizeMode === 'all') {
                     this.sanitizeAsgIds();
                     this.rebuildAsgIndex();
@@ -285,11 +303,21 @@
                 this.invalidateDerived();
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
-                if (asgListChanged) this._asgListVersion++;
+                if (asgListChanged) {
+                    this._asgListVersion++;
+                    Debug.log('Assignment list version incremented', 'info');
+                }
                 if (dirtyData || dirtyList) this.saveRecoveryDraft();
-                if (immediate) this.flushPersist();
-                else this.queuePersist();
-                if (render && this.view.isReady()) this.view.render();
+                if (immediate) {
+                    Debug.log('Immediate flush to LS', 'info');
+                    this.flushPersist();
+                } else {
+                    this.queuePersist();
+                }
+                if (render && this.view.isReady()) {
+                    Debug.log('Rendering view after save', 'info');
+                    this.view.render();
+                }
             },
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             savePrefs() {
@@ -321,6 +349,7 @@
             },
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
             addAsg(n) {
+                Debug.log(`Adding assignment: ${n}`, 'info');
                 let id = Date.now();
                 while (this.asgMap.has(id)) id++;
                 const asg = this.normalizeAsg({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} });
@@ -331,7 +360,11 @@
                 this.save({ asgListChanged: true, normalizeMode: 'none' });
             },
             selectAsg(id) {
-                if (!this.asgMap.has(id)) return;
+                Debug.log(`Selecting assignment: ${id}`, 'info');
+                if (!this.asgMap.has(id)) {
+                    Debug.log(`selectAsg failed: ID ${id} not found`, 'warn');
+                    return;
+                }
                 this.curId = id;
                 this.markGridDirty({ full: true });
                 this.view.render();
@@ -358,13 +391,18 @@
                 return true;
             },
             removeAsg(id) {
+                Debug.log(`Removing assignment: ${id}`, 'warn');
                 if (this.data.length <= 1) return false;
                 const idx = this.data.findIndex(a => a.id === id);
-                if (idx === -1) return false;
+                if (idx === -1) {
+                    Debug.log(`removeAsg failed: ID ${id} not found`, 'warn');
+                    return false;
+                }
                 this.data.splice(idx, 1);
                 if (this.curId === id) {
                     const fallback = this.data[Math.max(0, idx - 1)] || this.data[0];
                     this.curId = fallback.id;
+                    Debug.log(`Current assignment removed, falling back to ${this.curId}`, 'info');
                 }
                 this.rebuildAsgIndex();
                 this.markGridDirty({ full: true });
@@ -437,15 +475,21 @@
                 return result;
             },
             updRec(id, val) {
+                Debug.log(`Updating record: id=${id}, val=${JSON.stringify(val)}`, 'info');
                 const asg = this.cur;
-                if (!asg) return;
+                if (!asg) {
+                    Debug.log('updRec failed: no current assignment', 'error');
+                    return;
+                }
                 const prev = asg.records[id] || {};
-                const r = this.cur.records;
+                const r = asg.records;
                 r[id] = { ...r[id], ...val };
-                const next = r[id];
-                if (!next.done && (next.score == null || next.score === '')) delete r[id];
+                const next = r[id] || {};
+                if (!next.done && (next.score == null || next.score === '')) {
+                    Debug.log(`Record for ${id} cleared`, 'info');
+                    delete r[id];
+                }
                 this.invalidateDerived();
-                this._dirtyData = true;
                 this.markGridDirty({ ids: [id] });
                 this.saveRecoveryDraft();
                 this.queuePersist();
@@ -453,7 +497,7 @@
                 const prevDone = !!prev.done;
                 const nextDone = !!(r[id]?.done);
                 if (prevDone !== nextDone) this.view.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
-            }
+            },
         };
         const UI = {
             isReady: false,
