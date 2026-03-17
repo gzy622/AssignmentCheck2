@@ -120,7 +120,15 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <div id="debugPanel" class="debug-panel" aria-live="polite"></div>
+    <div id="debugPanel" class="debug-panel" aria-live="polite">
+        <div class="debug-header">
+            <span class="debug-title">DEBUG</span>
+            <div class="debug-actions">
+                <button id="debugClear" title="清除日志">&times;</button>
+            </div>
+        </div>
+        <div id="debugContent" class="debug-content"></div>
+    </div>
 
     <script src="core.js"></script>
     <script src="back-handler.js"></script>

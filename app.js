@@ -509,7 +509,7 @@
                 const handle = (card, long) => {
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
-                    if (Debug.enabled) Debug.log(`卡片触发 id=${id} name=${name} long=${long ? 1 : 0} scoring=${State.scoring ? 1 : 0}`);
+                    Debug.log(`卡片触发 id=${id} name=${name} long=${long ? 1 : 0} scoring=${State.scoring ? 1 : 0}`);
                     if (long || State.scoring) this.actions.score(id, name);
                     else State.updRec(id, { done: !State.cur.records[id]?.done });
                 };
@@ -523,7 +523,7 @@
                 };
                 grid.onpointerdown = e => {
                     const tc = e.target.closest('.student-card');
-                    if (Debug.enabled && isTrackedCard(tc)) Debug.log(`pointerdown id=${tc.dataset.id} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
+                    if (isTrackedCard(tc)) Debug.log(`pointerdown id=${tc.dataset.id} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
                     const c = e.target.closest('.student-card');
                     if (!c) return;
                     pressCard = c;
@@ -542,7 +542,7 @@
                 };
                 grid.onpointerup = e => {
                     const tc = e.target.closest('.student-card');
-                    if (Debug.enabled && isTrackedCard(tc)) Debug.log(`pointerup id=${tc.dataset.id} moved=${moved ? 1 : 0} long=${longPressed ? 1 : 0}`);
+                    if (isTrackedCard(tc)) Debug.log(`pointerup id=${tc.dataset.id} moved=${moved ? 1 : 0} long=${longPressed ? 1 : 0}`);
                     const c = e.target.closest('.student-card');
                     if (c && pressCard === c && !longPressed && !moved) {
                         c.classList.remove('pressing');

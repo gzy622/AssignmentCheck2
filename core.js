@@ -2,20 +2,12 @@ const $ = id => document.getElementById(id);
 
 const LS = {
     get(k, d) {
-        const warn = (action, err) => {
-            const msg = `[LS.${action}] key=${k}`;
-            if (typeof Debug !== 'undefined' && Debug.enabled) {
-                Debug.log(`${msg} ${err ? `error=${err.message}` : ''}`.trim());
-            } else {
-                console.warn(msg, err || 'fallback to default');
-            }
-        };
         const raw = localStorage.getItem(k);
         if (raw == null) return d;
         try {
             return JSON.parse(raw);
         } catch (err) {
-            warn('get', err);
+            Debug.log(`[LS.get] key=${k} error=${err.message}`, 'error');
             return d;
         }
     },
@@ -25,12 +17,7 @@ const LS = {
             if (localStorage.getItem(k) === nextRaw) return;
             localStorage.setItem(k, nextRaw);
         } catch (err) {
-            const msg = `[LS.set] key=${k}`;
-            if (typeof Debug !== 'undefined' && Debug.enabled) {
-                Debug.log(`${msg} error=${err.message}`);
-            } else {
-                console.warn(msg, err || 'set failed');
-            }
+            Debug.log(`[LS.set] key=${k} error=${err.message}`, 'error');
         }
     }
 };
@@ -93,13 +80,23 @@ const Toast = {
 };
 
 const Debug = {
-    enabled: false,
     el: null,
+    contentEl: null,
+    enabled: false,
     lines: [],
     init() {
         this.el = $('debugPanel');
+        this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
+        $('debugClear')?.addEventListener('click', () => this.clear());
         this.apply();
+
+        window.addEventListener('error', e => {
+            this.log(`JS Error: ${e.message}`, 'error');
+        });
+        window.addEventListener('unhandledrejection', e => {
+            this.log(`Promise Error: ${e.reason}`, 'error');
+        });
     },
     apply() {
         if (!this.el) return;
@@ -109,22 +106,40 @@ const Debug = {
     toggle() {
         this.enabled = !this.enabled;
         LS.set(KEYS.DEBUG, this.enabled);
-        if (!this.enabled) this.lines = [];
+        if (!this.enabled) this.clear();
         this.apply();
         this.render();
     },
-    log(msg) {
+    clear() {
+        this.lines = [];
+        this.render();
+    },
+    log(msg, level = 'info') {
         if (!this.enabled || !this.el) return;
         const t = new Date();
         const ts = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
-        this.lines.push(`[${ts}] ${msg}`);
-        if (this.lines.length > 40) this.lines.shift();
+        this.lines.push({ ts, msg, level });
+        if (this.lines.length > 50) this.lines.shift();
         this.render();
     },
     render() {
-        if (!this.el) return;
-        this.el.textContent = this.enabled ? this.lines.join('\n') || '调试已开启，等待事件...' : '';
-        if (this.enabled) this.el.scrollTop = this.el.scrollHeight;
+        if (!this.contentEl) return;
+        if (!this.enabled) { this.contentEl.innerHTML = ''; return; }
+        if (this.lines.length === 0) {
+            this.contentEl.innerHTML = '<div style="color:rgba(148,163,184,0.4);text-align:center;margin-top:20px">等待事件...</div>';
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        this.lines.forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'debug-line';
+            div.innerHTML = `<span class="debug-ts">${line.ts}</span><span class="debug-lvl-${line.level}">${line.msg}</span>`;
+            frag.appendChild(div);
+        });
+        this.contentEl.innerHTML = '';
+        this.contentEl.appendChild(frag);
+        this.contentEl.scrollTop = this.contentEl.scrollHeight;
     }
 };
 

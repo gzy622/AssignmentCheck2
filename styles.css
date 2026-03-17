@@ -649,9 +649,18 @@
         .toast.show{opacity:1;transform:translate(-50%,0)}
 
 
-        .debug-panel{position:fixed;right:10px;bottom:10px;z-index:1200;width:min(320px,calc(100vw - 20px));max-height:22vh;overflow:auto;display:none;padding:8px 10px;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:rgba(15,23,42,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(15,23,42,.12);color:rgba(226,232,240,.88);font-size:11px;line-height:1.4;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;pointer-events:auto;user-select:text;opacity:.72;overscroll-behavior:contain;scrollbar-width:thin}
-        .debug-panel.show{display:block}
-
+        .debug-panel{position:fixed;right:10px;bottom:10px;z-index:1200;width:min(320px,calc(100vw - 20px));max-height:22vh;display:none;flex-direction:column;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:rgba(15,23,42,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(15,23,42,.12);color:rgba(226,232,240,.88);font-size:11px;line-height:1.4;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;pointer-events:auto;user-select:text;opacity:.9;overscroll-behavior:contain;overflow:hidden}
+        .debug-panel.show{display:flex}
+        .debug-header{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(148,163,184,0.1);user-select:none}
+        .debug-title{font-weight:700;color:rgba(148,163,184,0.8);font-size:10px;letter-spacing:0.05em}
+        #debugClear{background:none;border:none;color:rgba(148,163,184,0.6);cursor:pointer;padding:2px 6px;font-size:14px;transition:0.2s}
+        #debugClear:hover{color:#fff;background:rgba(239,68,68,0.2);border-radius:4px}
+        .debug-content{padding:6px 8px;overflow-y:auto;flex:1;scrollbar-width:thin;white-space:pre-wrap}
+        .debug-line{margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.02);padding-bottom:1px}
+        .debug-ts{color:rgba(148,163,184,0.5);margin-right:6px}
+        .debug-lvl-info{color:#a3e635}
+        .debug-lvl-warn{color:#fbbf24}
+        .debug-lvl-error{color:#f87171}
         @keyframes fadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
         /* 展示模式样式 */
