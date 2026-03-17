@@ -83,6 +83,7 @@ const Debug = {
     el: null,
     contentEl: null,
     enabled: false,
+    interactive: false,
     lines: [],
     _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
     init() {
@@ -90,6 +91,7 @@ const Debug = {
         this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
         $('debugClear')?.addEventListener('click', () => this.clear());
+        $('debugLock')?.addEventListener('click', () => this.toggleInteractive());
         this.apply();
 
         const header = this.el?.querySelector('.debug-header');
@@ -138,9 +140,17 @@ const Debug = {
     toggle() {
         this.enabled = !this.enabled;
         LS.set(KEYS.DEBUG, this.enabled);
-        if (!this.enabled) this.clear();
+        if (!this.enabled) {
+            this.clear();
+            this.interactive = false;
+        }
         this.apply();
         this.render();
+    },
+    toggleInteractive() {
+        this.interactive = !this.interactive;
+        this.el?.classList.toggle('interactive', this.interactive);
+        $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
     },
     clear() {
         this.lines = [];
