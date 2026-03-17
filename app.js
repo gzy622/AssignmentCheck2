@@ -1,3 +1,4 @@
+        const VERSION = '1.0.1 (20260316)';
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             prefs: { cardDoneColor: '#68c490' },
@@ -95,6 +96,9 @@
                 window.addEventListener('beforeunload', () => this.flushPersist());
                 this.view.init();
                 if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
+                
+                const verEl = $('menuVersion');
+                if (verEl) verEl.textContent = `Version: ${VERSION}`;
             },
             normalizePrefs(raw) {
                 const prefs = raw && typeof raw === 'object' ? raw : {};

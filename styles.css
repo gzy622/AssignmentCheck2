@@ -315,6 +315,15 @@
             color: var(--danger);
         }
 
+        .menu-info {
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            pointer-events: none;
+            border-top: 1px solid #f1f5f9;
+            margin-top: 4px;
+        }
+
         .color-panel{display:flex;flex-direction:column;gap:16px}
         .color-preview{height:96px;border-radius:16px;border:1px solid rgba(15,23,42,.08);background:linear-gradient(160deg,var(--done-card-start),var(--done-card-end));box-shadow:0 10px 24px var(--done-card-shadow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;font-weight:800;letter-spacing:.02em}
         .color-presets{display:flex;gap:10px;flex-wrap:wrap}
