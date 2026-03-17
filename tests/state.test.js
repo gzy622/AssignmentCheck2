@@ -30,10 +30,42 @@ describe('State', () => {
         expect(normalized.records).toEqual({ '01': 100 });
     });
 
-    it('should add a new assignment', () => {
-        const initialCount = State.data.length;
-        State.addAsg('New Assignment');
-        expect(State.data.length).toBe(initialCount + 1);
-        expect(State.data[State.data.length - 1].name).toBe('New Assignment');
+    it('should calculate stats rows correctly', () => {
+        State.list = [
+            '01 张三',
+            '02 李四 #非英语',
+            '03 王五'
+        ];
+        State.parseRoster();
+        
+        // Add two assignments
+        State.data = [];
+        State.addAsg('Assignment 1'); // English task
+        State.addAsg('Assignment 2'); // Let's make it English too
+        
+        const a1 = State.data[0];
+        const a2 = State.data[1];
+        
+        // 01 done both, 02 none (excluded), 03 done one
+        a1.records = { '01': { done: true }, '02': { done: true }, '03': { done: true } };
+        a2.records = { '01': { done: true }, '02': { done: true }, '03': { done: false } };
+        
+        State.invalidateDerived();
+        const { tgs, rows, avgRate } = State.getStatsRows([a1.id, a2.id]);
+        
+        expect(tgs.length).toBe(2);
+        
+        // Student 02 (李四) is #非英语, so they should be excluded from English tasks.
+        // If they are excluded, their "total" in stats row should be 0, and they should be filtered out.
+        // Student 01: total 2, done 2, rate 100%
+        // Student 03: total 2, done 1, rate 50%
+        
+        expect(rows.length).toBe(2); 
+        expect(rows[0].id).toBe('01');
+        expect(rows[0].rate).toBe(100);
+        expect(rows[1].id).toBe('03');
+        expect(rows[1].rate).toBe(50);
+        
+        expect(avgRate).toBe(75); // (100 + 50) / 2
     });
 });

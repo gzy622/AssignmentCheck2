@@ -54,7 +54,7 @@ const Modal = {
     buildPagePanel(title, content, btns = []) {
         const root = document.createElement('div');
         root.className = 'st-layout';
-        root.style.cssText = 'display:flex;flex-direction:column;height:100%';
+        root.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0';
         root.appendChild(ActionViews.createNav(title, () => this.close(false)));
 
         const scroll = document.createElement('div');

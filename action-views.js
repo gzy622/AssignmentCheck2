@@ -9,7 +9,7 @@ const ActionViews = {
     createShell(title) {
         const root = document.createElement('div');
         root.className = 'st-layout';
-        root.style.cssText = 'display:flex;flex-direction:column;height:100%';
+        root.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:0';
         root.appendChild(this.createNav(title));
         const body = document.createElement('div');
         body.className = 'st-scroll-area';
