@@ -220,9 +220,22 @@ const Debug = {
         this.render();
     },
     render() {
-        if (!this.enabled || !this.el) return;
-        this.el.textContent = this.lines.join('\n') || '调试已开启，等待事件...';
-        this.el.scrollTop = this.el.scrollHeight;
+        if (!this.enabled || !this.el || !this.contentEl) return;
+        const filtered = this.filter === 'all' ? this.lines : this.lines.filter(l => l.level === this.filter);
+        if (filtered.length === 0) {
+            this.contentEl.innerHTML = '<div style="opacity:0.5;padding:10px;text-align:center">暂无日志</div>';
+            return;
+        }
+        const frag = document.createDocumentFragment();
+        filtered.forEach(l => {
+            const div = document.createElement('div');
+            div.className = `debug-line debug-line-${l.level}`;
+            div.innerHTML = `<span class="debug-ts">${l.ts}</span><span class="debug-msg">${l.msg}</span>`;
+            frag.appendChild(div);
+        });
+        this.contentEl.innerHTML = '';
+        this.contentEl.appendChild(frag);
+        this.contentEl.scrollTop = this.contentEl.scrollHeight;
     }
 };
 
