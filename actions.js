@@ -835,6 +835,12 @@
                         }
                     } catch (err) { modal.alert('格式错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
+            },
+            present() {
+                const asg = State.cur;
+                const students = State.roster;
+                const view = ActionViews.createPresentView(asg.name, students, asg.records);
+                Modal.show({ title: '', content: view, type: 'full', btns: [] });
             }
         };
 

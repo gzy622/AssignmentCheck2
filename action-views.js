@@ -78,6 +78,38 @@ const ActionViews = {
             fil: root.querySelector('#stFil'),
             tab: root.querySelector('#stTab')
         };
+    },
+    createPresentView(title, students, records) {
+        const root = document.createElement('div');
+        root.className = 'present-mode';
+        root.innerHTML = `
+            <div class="present-header">
+                <h2 class="present-title">${title}</h2>
+                <button class="btn btn-c" onclick="Modal.close()">退出展示</button>
+            </div>
+            <div class="present-grid"></div>
+        `;
+        const grid = root.querySelector('.present-grid');
+        students.forEach(stu => {
+            const rec = records[stu.id] || {};
+            const isDone = !!rec.done;
+            const score = (rec.score !== undefined && rec.score !== null && rec.score !== '') ? rec.score : '';
+            
+            const item = document.createElement('div');
+            item.className = `present-item ${isDone ? 'done' : 'pending'}`;
+            item.innerHTML = `
+                <div class="present-stu-info">
+                    <span>${stu.id}</span>
+                    <span>${stu.name}</span>
+                </div>
+                <div class="present-status">
+                    <span class="present-badge ${isDone ? 'done' : 'pending'}">${isDone ? '已提交' : '未提交'}</span>
+                    ${score !== '' ? `<span class="present-score">${score}</span>` : ''}
+                </div>
+            `;
+            grid.appendChild(item);
+        });
+        return root;
     }
 };
 
