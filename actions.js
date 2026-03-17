@@ -494,18 +494,17 @@
                     excludedEl.textContent = `排除英语 ${excluded} 人`;
                 };
                 const createRosterRow = () => {
-                    const row = document.createElement('div');
-                    row.className = 'roster-row';
-                    row.innerHTML = `<input class="input-ui roster-seat" data-role="id" type="text" inputmode="numeric" placeholder="座位号">
-                        <input class="input-ui roster-name" data-role="name" type="text" placeholder="姓名">
-                        <label class="roster-check"><input data-role="exclude" type="checkbox">排除英语</label>
-                        <button class="btn btn-d btn-xs roster-del" type="button" data-act="remove">删除</button>`;
-                    row._idInput = row.querySelector('[data-role="id"]');
-                    row._nameInput = row.querySelector('[data-role="name"]');
-                    row._excludeInput = row.querySelector('[data-role="exclude"]');
-                    return row;
-                };
-                const syncRosterRow = (row, entry, index) => {
+                   const row = document.createElement('div');
+                   row.className = 'roster-row';
+                   row.innerHTML = `<input class="input-ui roster-seat" data-role="id" type="text" inputmode="numeric" placeholder="座号">
+                       <input class="input-ui roster-name" data-role="name" type="text" placeholder="姓名">
+                       <label class="roster-check"><input data-role="exclude" type="checkbox">排除英语</label>
+                       <button class="btn btn-d roster-del" type="button" data-act="remove" title="删除条目">&times;</button>`;
+                   row._idInput = row.querySelector('[data-role="id"]');
+                   row._nameInput = row.querySelector('[data-role="name"]');
+                   row._excludeInput = row.querySelector('[data-role="exclude"]');
+                   return row;
+                };                const syncRosterRow = (row, entry, index) => {
                     row.dataset.index = String(index);
                     row.dataset.rowId = String(entry._rowId);
                     if (row._idInput.value !== (entry.id || '')) row._idInput.value = entry.id || '';
