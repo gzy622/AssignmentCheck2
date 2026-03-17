@@ -246,7 +246,7 @@
                             const stu = getCurrentStudent();
                             input.value = value;
                             saveStudent(stu.id, value);
-                            applyCurrentView({ keepFocus: true });
+                            Modal.close(true);
                         };
                     });
 
