@@ -805,6 +805,50 @@
             }
         }
 
+        @media (orientation: landscape) {
+            .present-mode {
+                padding: 0;
+                gap: 0;
+                height: 100dvh;
+            }
+            .present-floating-bar {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                left: auto;
+                z-index: 140;
+                max-width: min(32vw, 360px);
+                opacity: 0.92;
+            }
+            .present-grid {
+                width: 100%;
+                height: 100%;
+                padding: clamp(8px, 0.45vw, 14px);
+                gap: clamp(4px, 0.2vw, 8px);
+            }
+            .present-item {
+                border-radius: clamp(8px, 0.45vw, 14px);
+                padding: clamp(8px, 0.35vw, 14px) clamp(10px, 0.45vw, 16px);
+            }
+            .present-stu-info {
+                font-size: clamp(1rem, 1.05vw, 1.8rem);
+                margin-bottom: clamp(0px, 0.1vw, 2px);
+            }
+            .present-id {
+                font-size: clamp(0.72rem, 0.42vw, 0.95rem);
+            }
+            .present-status {
+                font-size: clamp(0.72rem, 0.4vw, 0.88rem);
+            }
+            .present-score {
+                font-size: clamp(1rem, 1.2vw, 2rem);
+            }
+            .present-badge {
+                padding: clamp(2px, 0.16vw, 4px) clamp(4px, 0.24vw, 8px);
+                font-size: clamp(0.62rem, 0.28vw, 0.82rem);
+            }
+        }
+
         @media (max-width: 680px) {
             .st-scroll-area{padding:12px;gap:12px}
             .st-summary{gap:10px}
