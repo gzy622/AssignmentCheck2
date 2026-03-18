@@ -829,9 +829,10 @@
             }
             .present-floating-bar {
                 position: fixed;
-                top: 10px;
+                bottom: max(10px, env(safe-area-inset-bottom, 0px));
                 right: 10px;
                 left: auto;
+                top: auto;
                 z-index: 140;
                 max-width: min(22vw, 260px);
                 padding: 4px 8px;
