@@ -592,10 +592,10 @@
         .st-metric{background:linear-gradient(145deg,#fff,#f8f9fa);padding:14px;border-radius:14px;border:1px solid rgba(0,0,0,.04);text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.02);display:flex;flex-direction:column;justify-content:center;gap:4px;min-height:118px}
         .st-val{font-size:1.8rem;font-weight:800;color:var(--primary);line-height:1.05;letter-spacing:-1px}
         .st-label{font-size:.75rem;color:var(--muted);font-weight:500;line-height:1.2}
-        .st-filters{display:flex;align-items:center;overflow-x:auto;gap:8px;padding:2px 2px 10px 2px;scrollbar-width:none;position:relative;z-index:2}
+        .st-filters{display:flex;align-items:center;overflow-x:auto;gap:8px;padding:6px 2px 12px 2px;scrollbar-width:none;position:relative;z-index:2;min-height:48px}
         .st-filters::-webkit-scrollbar{display:none}
-        .st-chip{padding:6px 14px;background:#fff;border:1px solid var(--border);border-radius:20px;font-size:.85rem;color:var(--muted);white-space:nowrap;cursor:pointer;transition:.2s;font-weight:500;display:inline-flex;align-items:center;justify-content:center;min-height:32px;line-height:1.1;position:relative}
-        .st-chip.active{background:#e7f1ff;border-color:var(--primary);color:var(--primary);font-weight:600;box-shadow:0 2px 4px rgba(13,110,253,.1);z-index:3;transform:translateY(-1px)}
+        .st-chip{padding:6px 14px;background:#fff;border:1px solid var(--border);border-radius:20px;font-size:.85rem;color:var(--muted);white-space:nowrap;cursor:pointer;transition:.2s;font-weight:500;display:inline-flex;align-items:center;justify-content:center;min-height:36px;line-height:1.1;position:relative;flex-shrink:0;appearance:none;-webkit-appearance:none;box-sizing:border-box}
+        .st-chip.active{background:#e7f1ff;border-color:var(--primary);color:var(--primary);font-weight:600;box-shadow:0 2px 4px rgba(13,110,253,.1);z-index:3}
         .st-card-table{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.03);overflow:hidden;border:1px solid var(--border);min-width:0;position:relative;z-index:1}
         .st-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 50px;padding:12px 16px;border-bottom:1px solid #f8f9fa;align-items:center;gap:10px;min-width:0}
         .st-head{background:#f8f9fa;font-size:.75rem;color:var(--muted);font-weight:600;padding:8px 16px;letter-spacing:.5px;text-transform:uppercase}
