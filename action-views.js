@@ -1,4 +1,25 @@
 const ActionViews = {
+    getPresentGridMetrics(count) {
+        const total = Math.max(1, Number(count) || 1);
+        const viewportWidth = Math.max(window.innerWidth || 0, window.visualViewport?.width || 0, 320);
+        const viewportHeight = Math.max(window.innerHeight || 0, window.visualViewport?.height || 0, 320);
+        const isPortrait = viewportHeight >= viewportWidth;
+        const maxCols = Math.min(total, isPortrait ? 6 : 10);
+        let best = { cols: 1, rows: total, score: 0 };
+
+        for (let cols = 1; cols <= maxCols; cols++) {
+            const rows = Math.ceil(total / cols);
+            const cellWidth = viewportWidth / cols;
+            const cellHeight = viewportHeight / rows;
+            const shapePenalty = isPortrait ? Math.abs(cellWidth / cellHeight - 0.92) : Math.abs(cellWidth / cellHeight - 1.28);
+            const emptyPenalty = (cols * rows - total) * (isPortrait ? 16 : 30);
+            const score = Math.min(cellWidth, cellHeight * (isPortrait ? 0.96 : 1.1)) - shapePenalty * 22 - emptyPenalty;
+            if (score > best.score) best = { cols, rows, score };
+        }
+
+        return { cols: best.cols, rows: best.rows };
+    },
+
     createNav(title, onClose) {
         const nav = document.createElement('div');
         nav.className = 'st-nav';
@@ -87,18 +108,22 @@ const ActionViews = {
             </div>
             <div class="present-grid"></div>
         `;
+        const metrics = this.getPresentGridMetrics(students.length);
+        root.style.setProperty('--present-cols', metrics.cols);
+        root.style.setProperty('--present-rows', metrics.rows);
         const grid = root.querySelector('.present-grid');
         students.forEach(stu => {
             const rec = records[stu.id] || {}, isDone = !!rec.done, score = (rec.score ?? '') !== '' ? rec.score : '';
             const item = document.createElement('div');
             item.className = `present-item ${isDone ? 'done' : 'pending'}`;
+            const scoreClass = String(score).length >= 3 ? 'present-score compact' : 'present-score';
             item.innerHTML = `
                 <div class="present-stu-info">
                     <span class="present-name">${stu.name}</span>
                     <span class="present-id">${stu.id}</span>
                 </div>
                 <div class="present-status">
-                    ${score !== '' ? `<span class="present-score">${score}</span>` : ''}
+                    ${score !== '' ? `<span class="${scoreClass}">${score}</span>` : ''}
                 </div>
             `;
             grid.appendChild(item);
