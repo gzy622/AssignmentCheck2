@@ -43,11 +43,13 @@ test.describe('Mobile layout', () => {
         const bar = page.locator('.present-floating-bar');
         const grid = page.locator('.present-grid');
         const firstItem = page.locator('.present-item').first();
+        const badge = page.locator('.present-badge').first();
 
         await expect(presentMode).toBeVisible();
         await expect(bar).toBeVisible();
         await expect(grid).toBeVisible();
         await expect(firstItem).toBeVisible();
+        await expect(badge).toBeHidden();
 
         const presentBox = await presentMode.boundingBox();
         const barBox = await bar.boundingBox();

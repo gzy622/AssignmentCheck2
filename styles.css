@@ -831,7 +831,7 @@
                 padding: clamp(8px, 0.35vw, 14px) clamp(10px, 0.45vw, 16px);
             }
             .present-stu-info {
-                font-size: clamp(1rem, 1.05vw, 1.8rem);
+                font-size: clamp(0.86rem, 0.88vw, 1.38rem);
                 margin-bottom: clamp(0px, 0.1vw, 2px);
             }
             .present-id {
@@ -844,8 +844,7 @@
                 font-size: clamp(1rem, 1.2vw, 2rem);
             }
             .present-badge {
-                padding: clamp(2px, 0.16vw, 4px) clamp(4px, 0.24vw, 8px);
-                font-size: clamp(0.62rem, 0.28vw, 0.82rem);
+                display: none;
             }
         }
 
