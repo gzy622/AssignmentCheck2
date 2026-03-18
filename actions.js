@@ -118,33 +118,88 @@
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
                 const { root, listEl, countEl, excludedEl, toolbar } = this.ctx.views.createRosterShell(), pool = new Map();
                 let mounted = new Set();
-                const upd = () => {
-                    const valid = entries.filter(e => e.id || e.name);
-                    countEl.textContent = `共 ${valid.length} 人`; excludedEl.textContent = `排除英语 ${valid.filter(e => e.noEnglish).length} 人`;
+                const renderSummary = () => {
+                    let validCount = 0, excludedCount = 0;
+                    entries.forEach(e => {
+                        if (!e.id && !e.name) return;
+                        validCount++;
+                        if (e.noEnglish) excludedCount++;
+                    });
+                    countEl.textContent = `共 ${validCount} 人`;
+                    excludedEl.textContent = `排除英语 ${excludedCount} 人`;
+                };
+                const renderAllRows = () => {
                     const next = new Set();
                     entries.forEach((e, i) => {
-                        let r = pool.get(e._rowId); if (!r) {
-                            r = document.createElement('div'); r.className = 'roster-row';
+                        let r = pool.get(e._rowId);
+                        if (!r) {
+                            r = document.createElement('div');
+                            r.className = 'roster-row';
                             r.innerHTML = `<input class="input-ui roster-seat" data-r="id" placeholder="座号"><input class="input-ui roster-name" data-r="name" placeholder="姓名"><label class="roster-check"><input type="checkbox" data-r="ex">排除</label><button class="btn btn-d roster-del" data-act="del">&times;</button>`;
                             pool.set(e._rowId, r);
                         }
-                        r.dataset.idx = i; r.querySelector('[data-r="id"]').value = e.id; r.querySelector('[data-r="name"]').value = e.name; r.querySelector('[data-r="ex"]').checked = !!e.noEnglish;
-                        listEl.appendChild(r); next.add(e._rowId);
+                        r.dataset.idx = i;
+                        r.querySelector('[data-r="id"]').value = e.id;
+                        r.querySelector('[data-r="name"]').value = e.name;
+                        r.querySelector('[data-r="ex"]').checked = !!e.noEnglish;
+                        listEl.appendChild(r);
+                        next.add(e._rowId);
                     });
-                    mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;
+                    mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
+                    mounted = next;
+                    renderSummary();
                 };
                 toolbar.onclick = e => {
                     const act = e.target.closest('[data-act]')?.dataset.act;
-                    if (act === 'add') { entries.push({ id: '', name: '', noEnglish: false, _rowId: nextId++ }); upd(); listEl.lastElementChild.querySelector('[data-r="name"]').focus(); }
-                    else if (act === 'autonum') { entries.forEach((e, i) => e.id = String(i + 1).padStart(2, '0')); upd(); }
-                    else if (act === 'sort-seat') { entries.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })); upd(); }
-                    else if (act === 'clean') { for (let i = entries.length - 1; i >= 0; i--) if (!entries[i].id && !entries[i].name) entries.splice(i, 1); upd(); }
+                    if (act === 'add') {
+                        entries.push({ id: '', name: '', noEnglish: false, _rowId: nextId++ });
+                        renderAllRows();
+                        listEl.lastElementChild.querySelector('[data-r="name"]').focus();
+                    }
+                    else if (act === 'autonum') {
+                        entries.forEach((e, i) => e.id = String(i + 1).padStart(2, '0'));
+                        renderAllRows();
+                    }
+                    else if (act === 'sort-seat') {
+                        entries.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+                        renderAllRows();
+                    }
+                    else if (act === 'clean') {
+                        for (let i = entries.length - 1; i >= 0; i--) if (!entries[i].id && !entries[i].name) entries.splice(i, 1);
+                        renderAllRows();
+                    }
                 };
-                listEl.oninput = e => { const r = e.target.closest('.roster-row'), i = +r.dataset.idx; if (e.target.dataset.r === 'id') entries[i].id = e.target.value; else if (e.target.dataset.r === 'name') entries[i].name = e.target.value; upd(); };
-                listEl.onchange = e => { if (e.target.dataset.r === 'ex') { const r = e.target.closest('.roster-row'); entries[+r.dataset.idx].noEnglish = e.target.checked; upd(); } };
-                listEl.onclick = e => { if (e.target.closest('[data-act="del"]')) { entries.splice(+e.target.closest('.roster-row').dataset.idx, 1); upd(); } };
-                upd(); Modal.show({ title: '', content: root, type: 'full', btns: [{ text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => {
-                    try { State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`); State.parseRoster(); State.save({ dirtyData: false, dirtyList: true }); Modal.close(true); }
+                listEl.oninput = e => {
+                    const r = e.target.closest('.roster-row');
+                    if (!r) return;
+                    const i = Number(r.dataset.idx);
+                    if (!Number.isFinite(i)) return;
+                    if (e.target.dataset.r === 'id') entries[i].id = e.target.value;
+                    else if (e.target.dataset.r === 'name') entries[i].name = e.target.value;
+                    renderSummary();
+                };
+                listEl.onchange = e => {
+                    if (e.target.dataset.r !== 'ex') return;
+                    const r = e.target.closest('.roster-row');
+                    if (!r) return;
+                    const i = Number(r.dataset.idx);
+                    if (!Number.isFinite(i)) return;
+                    entries[i].noEnglish = e.target.checked;
+                    renderSummary();
+                };
+                listEl.onclick = e => {
+                    const del = e.target.closest('[data-act="del"]');
+                    if (!del) return;
+                    const row = del.closest('.roster-row');
+                    if (!row) return;
+                    const i = Number(row.dataset.idx);
+                    if (!Number.isFinite(i)) return;
+                    entries.splice(i, 1);
+                    renderAllRows();
+                };
+                renderAllRows();
+                Modal.show({ title: '', content: root, type: 'full', btns: [{ text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => {
+                    try { State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`); State.parseRoster(); State.save({ dirtyData: false, dirtyList: true, invalidateDerived: false }); Modal.close(true); }
                     catch (err) { Modal.alert(err.message); }
                 }}]});
             },
@@ -183,7 +238,7 @@
                     try {
                         const d = JSON.parse(ev.target.result); if (!d.list || !d.data || !await Modal.confirm('覆盖现有数据？')) return;
                         Object.assign(State, { list: d.list, data: d.data, prefs: State.normalizePrefs(d.prefs) });
-                        State.parseRoster(); State.sanitizeAsgIds(); State.rebuildAsgIndex(); State.curId = State.data[0].id; State.save({ immediate: true, asgListChanged: true }); Modal.alert('导入成功');
+                        State.parseRoster(); State.sanitizeAsgIds(); State.rebuildAsgIndex(); State.curId = State.data[0].id; State.save({ immediate: true, asgListChanged: true, invalidateDerived: false }); Modal.alert('导入成功');
                     } catch (err) { Modal.alert('错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
             },

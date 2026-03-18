@@ -7,6 +7,8 @@
             noEnglishIds: [],
             view: { init() { }, render() { }, renderStudent() { }, renderProgress() { }, isReady() { return false; } },
             _persistTimer: 0,
+            _draftTimer: 0,
+            _draftDirty: false,
             _metricsToken: 0,
             _statsCache: new Map(),
             _dirtyData: false,
@@ -85,7 +87,24 @@
                 return true;
             },
 
+            queueRecoveryDraft() {
+                clearTimeout(this._draftTimer);
+                this._draftDirty = true;
+                this._draftTimer = setTimeout(() => this.flushRecoveryDraft(), 300);
+            },
+
+            flushRecoveryDraft() {
+                clearTimeout(this._draftTimer);
+                this._draftTimer = 0;
+                if (!this._draftDirty) return;
+                this._draftDirty = false;
+                this.saveRecoveryDraft();
+            },
+
             saveRecoveryDraft() {
+                clearTimeout(this._draftTimer);
+                this._draftTimer = 0;
+                this._draftDirty = false;
                 LS.set(KEYS.DRAFT, { version: 1, updatedAt: Date.now(), list: this.list, data: this.data, prefs: this.normalizePrefs(this.prefs), curId: this.curId });
             },
 
@@ -148,6 +167,7 @@
                 this._persistTimer = 0;
                 if (this._dirtyData) { LS.set(KEYS.DATA, this.data); this._dirtyData = false; }
                 if (this._dirtyList) { LS.set(KEYS.LIST, this.list); this._dirtyList = false; }
+                this.flushRecoveryDraft();
             },
             flushPersist() { this._flushPersist(); }, // Maintain API
 
@@ -181,21 +201,21 @@
                 this.markGridDirty({ full: true });
             },
 
-            save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null } = {}) {
+            save({ render = true, immediate = false, dirtyData = true, dirtyList = false, asgListChanged = false, normalizeMode = 'all', targetAsgId = null, invalidateDerived = true } = {}) {
                 if (normalizeMode === 'all') { this.sanitizeAsgIds(); this._ensureAsgIndex(); }
                 else if (normalizeMode === 'target' && targetAsgId != null) {
                     const asg = this.asgMap.get(targetAsgId) || this.data.find(item => item.id === targetAsgId);
                     if (asg) this.normalizeAsgInPlace(asg);
                 } else if (normalizeMode === 'none') { this._ensureAsgIndex(); }
 
-                this.invalidateDerived();
+                if (invalidateDerived) this.invalidateDerived();
                 if (dirtyData) this._dirtyData = true;
                 if (dirtyList) this._dirtyList = true;
                 if (asgListChanged) {
                     this._asgListVersion++;
                     Debug.log('Assignment list version incremented', 'info');
                 }
-                if (dirtyData || dirtyList) this.saveRecoveryDraft();
+                if (dirtyData || dirtyList) this.queueRecoveryDraft();
                 if (immediate) this._flushPersist(); else this._queuePersist();
                 if (render && this.view.isReady()) this.view.render();
             },
@@ -203,7 +223,7 @@
             saveAnim() { LS.set(KEYS.ANIM, this.animations); this.applyAnim(); },
             savePrefs() {
                 this.prefs = this.normalizePrefs(this.prefs);
-                this.saveRecoveryDraft();
+                this.queueRecoveryDraft();
                 LS.set(KEYS.PREFS, this.prefs);
                 this.applyCardColor();
             },
@@ -238,7 +258,7 @@
                 this._ensureAsgIndex();
                 this.curId = id;
                 this.markGridDirty({ full: true });
-                this.save({ asgListChanged: true, normalizeMode: 'none' });
+                this.save({ asgListChanged: true, normalizeMode: 'none', invalidateDerived: false });
             },
 
             selectAsg(id) {
@@ -256,7 +276,7 @@
                 const asg = this.asgMap.get(id);
                 if (!asg || !(name || '').trim()) return false;
                 asg.name = name.trim();
-                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id });
+                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id, invalidateDerived: false });
                 return true;
             },
 
@@ -269,7 +289,7 @@
                 const prevSub = this.getAsgSubject(asg);
                 Object.assign(asg, { name: safeName, subject: safeSubject });
                 if (id === this.curId && prevSub !== safeSubject) this.markGridDirty({ full: true });
-                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id });
+                this.save({ asgListChanged: true, normalizeMode: 'target', targetAsgId: id, invalidateDerived: prevSub !== safeSubject });
                 return true;
             },
 
@@ -285,7 +305,7 @@
                 if (this.curId === id) this.curId = (this.data[Math.max(0, idx - 1)] || this.data[0]).id;
                 this._ensureAsgIndex();
                 this.markGridDirty({ full: true });
-                this.save({ asgListChanged: true, normalizeMode: 'none' });
+                this.save({ asgListChanged: true, normalizeMode: 'none', invalidateDerived: false });
                 return true;
             },
 
@@ -376,7 +396,7 @@
                 const nextRecord = r[id] ? { ...r[id] } : null;
                 this.invalidateDerived();
                 this.markGridDirty({ ids: [id] });
-                this.saveRecoveryDraft();
+                this.queueRecoveryDraft();
                 this._queuePersist();
                 this.view.renderStudent(id);
                 this.logRecordChange(asg, id, prevRecord, nextRecord, meta);

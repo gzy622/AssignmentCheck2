@@ -115,9 +115,8 @@ const Modal = {
             const kbd = Math.max(0, Math.round(window.innerHeight - (vv ? vv.height + vv.offsetTop : window.innerHeight)));
             top = vpT; bot = kbd;
         }
-        const next = { vpH, top, bot };
-        if (this._lastLayout && JSON.stringify(next) === JSON.stringify(this._lastLayout)) return;
-        this._lastLayout = next;
+        if (this._lastLayout && this._lastLayout.vpH === vpH && this._lastLayout.top === top && this._lastLayout.bot === bot) return;
+        this._lastLayout = { vpH, top, bot };
         const s = this.el.style;
         s.setProperty('--modal-vh', `${vpH}px`);
         s.setProperty('--modal-top-gap', `${top}px`);

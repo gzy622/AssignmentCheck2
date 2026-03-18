@@ -1,9 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('State', () => {
     beforeEach(() => {
-        // Clear state before each test if necessary
-        // Since State is global, we might need to reset its properties
+        State._draftTimer = 0;
+        State._draftDirty = false;
+    });
+
+    afterEach(() => {
+        if (Modal.isOpen) Modal.forceClose(false);
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+        clearTimeout(State._draftTimer);
+        State._draftTimer = 0;
+        State._draftDirty = false;
     });
 
     it('should parse roster correctly', () => {
@@ -98,5 +107,89 @@ describe('State', () => {
             expect.stringContaining('完成 未完成 -> 已完成'),
             'warn'
         );
+    });
+
+    it('should batch recovery draft writes until flushed', () => {
+        vi.useFakeTimers();
+        State.list = ['01 张三'];
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.prefs = State.normalizePrefs({ cardDoneColor: '#123456' });
+        State.curId = 1;
+
+        const setSpy = vi.spyOn(LS, 'set').mockImplementation(() => {});
+
+        State.queueRecoveryDraft();
+        State.queueRecoveryDraft();
+
+        expect(setSpy).not.toHaveBeenCalled();
+
+        State.flushRecoveryDraft();
+
+        expect(setSpy).toHaveBeenCalledTimes(1);
+        expect(setSpy).toHaveBeenCalledWith(
+            KEYS.DRAFT,
+            expect.objectContaining({
+                version: 1,
+                list: ['01 张三'],
+                curId: 1
+            })
+        );
+
+        vi.advanceTimersByTime(500);
+        expect(setSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep stats cache on rename but refresh it on subject change', () => {
+        State.list = [
+            '01 张三',
+            '02 李四 #非英语'
+        ];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({
+                id: 1,
+                name: '英语作业',
+                subject: '英语',
+                records: {
+                    '01': { done: true },
+                    '02': { done: true }
+                }
+            })
+        ];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        const invalidateSpy = vi.spyOn(State, 'invalidateDerived');
+
+        expect(State.getAsgTotalCount(State.cur)).toBe(1);
+
+        State.renameAsg(1, '新名字');
+
+        expect(invalidateSpy).not.toHaveBeenCalled();
+        expect(State.getAsgTotalCount(State.cur)).toBe(1);
+
+        State.updateAsgMeta(1, { name: '语文作业', subject: '语文' });
+
+        expect(invalidateSpy).toHaveBeenCalledTimes(1);
+        expect(State.getAsgTotalCount(State.cur)).toBe(2);
+    });
+
+    it('should update roster summary without rebuilding rows on input', () => {
+        State.list = Array.from({ length: 50 }, (_, i) => `${String(i + 1).padStart(2, '0')} 学生${i + 1}`);
+        Actions.roster();
+
+        const listEl = document.querySelector('.roster-list');
+        const countEl = document.querySelector('[data-role="count"]');
+        const firstRow = listEl.querySelector('.roster-row');
+        const [idInput, nameInput] = firstRow.querySelectorAll('[data-r]');
+        const appendSpy = vi.spyOn(listEl, 'appendChild');
+
+        idInput.value = '';
+        idInput.dispatchEvent(new Event('input', { bubbles: true }));
+        nameInput.value = '';
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(appendSpy).not.toHaveBeenCalled();
+        expect(countEl.textContent).toBe('共 49 人');
     });
 });
