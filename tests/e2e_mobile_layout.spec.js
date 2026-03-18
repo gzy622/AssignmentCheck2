@@ -15,21 +15,29 @@ test.describe('Mobile layout', () => {
         const summary = page.locator('.st-summary');
         const filters = page.locator('.st-filters');
         const table = page.locator('.st-card-table');
+        const chip = page.locator('.st-chip').first();
 
         await expect(summary).toBeVisible();
         await expect(filters).toBeVisible();
         await expect(table).toBeVisible();
+        await expect(chip).toBeVisible();
+
+        await chip.click();
 
         const summaryBox = await summary.boundingBox();
         const filtersBox = await filters.boundingBox();
         const tableBox = await table.boundingBox();
+        const chipBox = await chip.boundingBox();
 
         expect(summaryBox).not.toBeNull();
         expect(filtersBox).not.toBeNull();
         expect(tableBox).not.toBeNull();
+        expect(chipBox).not.toBeNull();
 
         expect(filtersBox.y).toBeGreaterThan(summaryBox.y + summaryBox.height - 4);
         expect(tableBox.y).toBeGreaterThan(filtersBox.y + filtersBox.height - 4);
+        expect(chipBox.y).toBeGreaterThanOrEqual(filtersBox.y);
+        expect(chipBox.y + chipBox.height).toBeLessThanOrEqual(filtersBox.y + filtersBox.height + 4);
     });
 
     test('present mode landscape keeps the grid full screen', async ({ page }) => {
