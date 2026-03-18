@@ -94,7 +94,7 @@ const ActionViews = {
             item.className = `present-item ${isDone ? 'done' : 'pending'}`;
             item.innerHTML = `
                 <div class="present-stu-info">
-                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${stu.name}</span>
+                    <span class="present-name">${stu.name}</span>
                     <span class="present-id">${stu.id}</span>
                 </div>
                 <div class="present-status">

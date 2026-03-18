@@ -743,6 +743,7 @@
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); 
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
+            position: relative;
         }
         .present-item:hover {
             background: #f8fafc;
@@ -762,41 +763,40 @@
             font-weight: 700; 
             display: flex; 
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             margin-bottom: 2px; 
+            min-width: 0;
+            padding-right: 2.4em;
+        }
+        .present-name {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .present-id {
             font-size: 0.75rem;
             color: #64748b;
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            line-height: 1;
         }
         .present-status { 
             font-size: 0.8rem; 
             display: flex; 
-            justify-content: flex-end; 
+            justify-content: center; 
             align-items: center; 
             min-height: 1.1em;
+            flex: 1;
         }
         .present-score { 
             font-size: 1.1rem; 
             font-weight: 800; 
             color: #10b981; 
-        }
-        .present-badge { 
-            padding: 2px 4px; 
-            border-radius: 4px; 
-            font-size: 0.65rem; 
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-        .present-badge.done { 
-            background: #d1fae5; 
-            color: #059669; 
-        }
-        .present-badge.pending { 
-            background: #f1f5f9; 
-            color: #64748b; 
+            line-height: 1;
         }
 
         @media (orientation: portrait) {
@@ -814,12 +814,25 @@
             }
             .present-floating-bar {
                 position: fixed;
-                top: 12px;
-                right: 12px;
+                top: 10px;
+                right: 10px;
                 left: auto;
                 z-index: 140;
-                max-width: min(32vw, 360px);
-                opacity: 0.92;
+                max-width: min(26vw, 300px);
+                padding: 4px 8px;
+                gap: 6px;
+                border-radius: 16px;
+                opacity: 0.82;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            }
+            .present-title {
+                max-width: min(14vw, 140px);
+                font-size: clamp(0.72rem, 0.48vw, 0.9rem);
+            }
+            .present-floating-bar .btn {
+                padding: 4px 8px;
+                font-size: clamp(0.68rem, 0.42vw, 0.82rem);
+                border-radius: 10px;
             }
             .present-grid {
                 width: 100%;
@@ -829,23 +842,25 @@
             }
             .present-item {
                 border-radius: clamp(8px, 0.45vw, 14px);
-                padding: clamp(8px, 0.35vw, 14px) clamp(10px, 0.45vw, 16px);
+                padding: clamp(8px, 0.35vw, 14px) clamp(8px, 0.36vw, 14px) clamp(6px, 0.28vw, 10px);
             }
             .present-stu-info {
-                font-size: clamp(0.74rem, 0.72vw, 1.08rem);
-                margin-bottom: clamp(0px, 0.1vw, 2px);
+                font-size: clamp(0.58rem, 0.52vw, 0.84rem);
+                font-weight: 650;
+                margin-bottom: clamp(1px, 0.12vw, 4px);
+                padding-right: clamp(20px, 1.4vw, 30px);
             }
             .present-id {
-                font-size: clamp(0.72rem, 0.42vw, 0.95rem);
+                top: clamp(7px, 0.34vw, 12px);
+                right: clamp(8px, 0.4vw, 12px);
+                font-size: clamp(0.48rem, 0.38vw, 0.72rem);
+                letter-spacing: 0.01em;
             }
             .present-status {
-                font-size: clamp(0.72rem, 0.4vw, 0.88rem);
+                min-height: 0;
             }
             .present-score {
-                font-size: clamp(1rem, 1.2vw, 2rem);
-            }
-            .present-badge {
-                display: none;
+                font-size: clamp(1.05rem, 1.55vw, 2.3rem);
             }
         }
 
