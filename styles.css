@@ -773,8 +773,9 @@
         .present-status { 
             font-size: 0.8rem; 
             display: flex; 
-            justify-content: space-between; 
+            justify-content: flex-end; 
             align-items: center; 
+            min-height: 1.1em;
         }
         .present-score { 
             font-size: 1.1rem; 
@@ -831,7 +832,7 @@
                 padding: clamp(8px, 0.35vw, 14px) clamp(10px, 0.45vw, 16px);
             }
             .present-stu-info {
-                font-size: clamp(0.86rem, 0.88vw, 1.38rem);
+                font-size: clamp(0.74rem, 0.72vw, 1.08rem);
                 margin-bottom: clamp(0px, 0.1vw, 2px);
             }
             .present-id {

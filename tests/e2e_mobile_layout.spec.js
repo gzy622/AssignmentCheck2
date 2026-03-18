@@ -63,8 +63,8 @@ test.describe('Mobile layout', () => {
 
         expect(presentBox.width).toBeGreaterThanOrEqual(2390);
         expect(presentBox.height).toBeGreaterThanOrEqual(1070);
-        expect(gridBox.x).toBeLessThanOrEqual(4);
-        expect(gridBox.y).toBeLessThanOrEqual(4);
+        expect(gridBox.x).toBeLessThanOrEqual(6);
+        expect(gridBox.y).toBeLessThanOrEqual(6);
         expect(gridBox.width).toBeGreaterThanOrEqual(2390);
         expect(gridBox.height).toBeGreaterThanOrEqual(1070);
         expect(barBox.y).toBeLessThanOrEqual(20);

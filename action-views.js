@@ -98,7 +98,6 @@ const ActionViews = {
                     <span class="present-id">${stu.id}</span>
                 </div>
                 <div class="present-status">
-                    <span class="present-badge ${isDone ? 'done' : 'pending'}">${isDone ? 'OK' : '..'}</span>
                     ${score !== '' ? `<span class="present-score">${score}</span>` : ''}
                 </div>
             `;
