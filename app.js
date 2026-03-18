@@ -1,4 +1,13 @@
-        const VERSION = '1.0.2 (20260317)';
+        const VERSION = (() => {
+            const now = new Date();
+            const pad = value => String(value).padStart(2, '0');
+            const y = now.getFullYear();
+            const m = pad(now.getMonth() + 1);
+            const d = pad(now.getDate());
+            const h = pad(now.getHours());
+            const mm = pad(now.getMinutes());
+            return `${y}${m}${d}-${h}${mm}`;
+        })();
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             prefs: { cardDoneColor: '#68c490' },
