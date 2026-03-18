@@ -1,8 +1,10 @@
+# Repo instruction files are intentionally untracked.
 AGENTS.md
+GEMINI.md
+
 .vscode/
 node_modules/
 playwright-report/
 test-results/
 blob-report/
 coverage/
-GEMINI.md

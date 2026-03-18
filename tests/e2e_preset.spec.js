@@ -53,4 +53,22 @@ test.describe('Score Preset Buttons', () => {
         const scoreBadge = card.locator('.card-score');
         await expect(scoreBadge).toHaveText('0');
     });
+
+    test('debug panel should show detailed score change log', async ({ page }) => {
+        await page.goto(indexUrl);
+
+        await page.click('#btnMenu');
+        await page.click('#btnDebug');
+        await page.click('#btnMenu');
+        await page.click('#btnScoreMenu');
+
+        const card = page.locator('.student-card').first();
+        await card.click();
+        await page.click('button[data-act="preset-100"]');
+
+        const debugContent = page.locator('#debugContent');
+        await expect(debugContent).toContainText('动作=preset-100');
+        await expect(debugContent).toContainText('分数 空 -> 100');
+        await expect(debugContent).toContainText('完成 未完成 -> 已完成');
+    });
 });

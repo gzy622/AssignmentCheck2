@@ -345,17 +345,41 @@
                 return result;
             },
 
-            updRec(id, val) {
+            formatDebugRecordValue(value, emptyLabel = '空') {
+                return value == null || value === '' ? emptyLabel : String(value);
+            },
+
+            logRecordChange(asg, id, prevRecord, nextRecord, meta = {}) {
+                const prevScore = prevRecord?.score ?? null;
+                const nextScore = nextRecord?.score ?? null;
+                const prevDone = !!prevRecord?.done;
+                const nextDone = !!nextRecord?.done;
+                const scoreChanged = prevScore !== nextScore;
+                const doneChanged = prevDone !== nextDone;
+                if (!scoreChanged && !doneChanged) return;
+                const student = this.roster.find(item => item.id === id) || { id, name: meta.studentName || '' };
+                const parts = [];
+                if (scoreChanged) parts.push(`分数 ${this.formatDebugRecordValue(prevScore)} -> ${this.formatDebugRecordValue(nextScore)}`);
+                if (doneChanged) parts.push(`完成 ${prevDone ? '已完成' : '未完成'} -> ${nextDone ? '已完成' : '未完成'}`);
+                const action = meta.action ? ` 动作=${meta.action}` : '';
+                const source = meta.source ? ` 来源=${meta.source}` : '';
+                Debug.log(`[记录变更] 任务=${asg?.name || '未命名任务'} 学生=${student.id} ${student.name || ''}${action}${source} ${parts.join('，')}`.trim(), scoreChanged && doneChanged ? 'warn' : 'info');
+            },
+
+            updRec(id, val, meta = {}) {
                 const asg = this.cur; if (!asg) return;
-                const prevDone = !!asg.records[id]?.done;
+                const prevRecord = asg.records[id] ? { ...asg.records[id] } : null;
+                const prevDone = !!prevRecord?.done;
                 const r = asg.records;
                 r[id] = { ...r[id], ...val };
                 if (!r[id].done && (r[id].score == null || r[id].score === '')) delete r[id];
+                const nextRecord = r[id] ? { ...r[id] } : null;
                 this.invalidateDerived();
                 this.markGridDirty({ ids: [id] });
                 this.saveRecoveryDraft();
                 this._queuePersist();
                 this.view.renderStudent(id);
+                this.logRecordChange(asg, id, prevRecord, nextRecord, meta);
                 if (prevDone !== !!asg.records[id]?.done) this.view.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
             }
         };
@@ -387,7 +411,7 @@
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
                     if (long || State.scoring) this.actions.score(id, name);
-                    else State.updRec(id, { done: !State.cur.records[id]?.done });
+                    else State.updRec(id, { done: !State.cur.records[id]?.done }, { source: 'grid', action: 'toggle-done', studentName: name });
                 };
                 this.gridEl.onpointerdown = e => {
                     const c = e.target.closest('.student-card'); if (!c) return;

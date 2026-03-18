@@ -68,4 +68,35 @@ describe('State', () => {
         
         expect(avgRate).toBe(75); // (100 + 50) / 2
     });
+
+    it('should log detailed score changes when updating records', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        State.view = {
+            init: vi.fn(),
+            render: vi.fn(),
+            renderStudent: vi.fn(),
+            renderProgress: vi.fn(),
+            isReady: () => false
+        };
+        const logSpy = vi.spyOn(Debug, 'log').mockImplementation(() => {});
+
+        State.updRec('01', { score: '100', done: true }, { source: 'score-panel', action: 'preset-100', studentName: '张三' });
+
+        expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('动作=preset-100'),
+            'warn'
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('分数 空 -> 100'),
+            'warn'
+        );
+        expect(logSpy).toHaveBeenCalledWith(
+            expect.stringContaining('完成 未完成 -> 已完成'),
+            'warn'
+        );
+    });
 });

@@ -53,26 +53,33 @@
                     hIdx.textContent = `${idx + 1} / ${students.length}`; inp.value = r.score ?? '';
                     if (k) Modal.scheduleFocus(inp);
                 };
-                const save = (fD = null) => {
+                const logPanel = (message, level = 'info') => {
+                    Debug.log(`[打分面板] 任务=${asg.name} 学生=${students[idx]?.id || ''} ${students[idx]?.name || ''} ${message}`.trim(), level);
+                };
+                const save = (fD = null, action = 'save') => {
                     const s = students[idx], r = asg.records[s.id] || {};
-                    State.updRec(s.id, { score: inp.value.trim() || null, done: fD === null ? (inp.value.trim() ? true : !!r.done) : fD });
+                    State.updRec(s.id, { score: inp.value.trim() || null, done: fD === null ? (inp.value.trim() ? true : !!r.done) : fD }, { source: 'score-panel', action, studentName: s.name });
                 };
                 body.onclick = e => {
                     const t = e.target, step = +t.dataset.step, act = t.dataset.act;
-                    if (step) { inp.value = String(Number(inp.value || 0) + step); }
-                    else if (act === 'preset-0') { inp.value = '0'; save(); Modal.close(true); }
-                    else if (act === 'preset-100') { inp.value = '100'; save(); Modal.close(true); }
-                    else if (act === 'done') { save(!asg.records[students[idx].id]?.done); upd(true); }
-                    else if (act === 'clear') { save(false); inp.value = ''; upd(true); }
-                    else if (act === 'save') { save(); Modal.close(true); }
-                    else if (act === 'next') { save(); if (idx < students.length - 1) { idx++; upd(true); } else Modal.close(true); }
-                    else if (act === 'copy' && idx > 0) { inp.value = asg.records[students[idx-1].id]?.score ?? ''; Modal.scheduleFocus(inp); }
-                    else if (act === 'close') { save(); Modal.close(true); }
+                    if (step) {
+                        const prevValue = inp.value || '0';
+                        inp.value = String(Number(inp.value || 0) + step);
+                        logPanel(`动作=adjust-step 变更=${prevValue} -> ${inp.value}`);
+                    }
+                    else if (act === 'preset-0') { inp.value = '0'; save(null, 'preset-0'); Modal.close(true); }
+                    else if (act === 'preset-100') { inp.value = '100'; save(null, 'preset-100'); Modal.close(true); }
+                    else if (act === 'done') { save(!asg.records[students[idx].id]?.done, 'toggle-done'); upd(true); }
+                    else if (act === 'clear') { save(false, 'clear'); inp.value = ''; upd(true); }
+                    else if (act === 'save') { save(null, 'save-close'); Modal.close(true); }
+                    else if (act === 'next') { save(null, 'save-next'); if (idx < students.length - 1) { idx++; upd(true); logPanel(`动作=navigate-next 目标=${students[idx].id} ${students[idx].name || ''}`); } else Modal.close(true); }
+                    else if (act === 'copy' && idx > 0) { inp.value = asg.records[students[idx-1].id]?.score ?? ''; logPanel(`动作=copy-previous 取值=${inp.value || '空'}`); Modal.scheduleFocus(inp); }
+                    else if (act === 'close') { save(null, 'close'); Modal.close(true); }
                 };
                 inp.onkeydown = e => {
-                    if (e.key === 'Enter') { save(); Modal.close(true); }
-                    if (e.key === 'ArrowDown') { save(); if (idx < students.length - 1) { idx++; upd(true); } }
-                    if (e.key === 'ArrowUp') { save(); if (idx > 0) { idx--; upd(true); } }
+                    if (e.key === 'Enter') { save(null, 'enter'); Modal.close(true); }
+                    if (e.key === 'ArrowDown') { save(null, 'arrow-down'); if (idx < students.length - 1) { idx++; upd(true); logPanel(`动作=arrow-down 目标=${students[idx].id} ${students[idx].name || ''}`); } }
+                    if (e.key === 'ArrowUp') { save(null, 'arrow-up'); if (idx > 0) { idx--; upd(true); logPanel(`动作=arrow-up 目标=${students[idx].id} ${students[idx].name || ''}`); } }
                 };
                 upd(); await Modal.show({ title: '', content: root, type: 'full', autoFocusEl: inp });
             },
