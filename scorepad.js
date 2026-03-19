@@ -26,7 +26,7 @@ const ScorePad = {
         this.el.innerHTML = `
             <div class="scorepad-handle"></div>
             <div class="scorepad-display-row">
-                <input type="text" class="scorepad-display input-ui" inputmode="none" placeholder="点击此处手动输入" readonly>
+                <input type="text" class="scorepad-display input-ui" placeholder="点击此处手动输入" readonly>
             </div>
             <div class="scorepad-keypad">
                 <div class="scorepad-row">

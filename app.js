@@ -1,4 +1,4 @@
-        const VERSION = '20260319-1104';
+        const VERSION = '20260319-1819';
         const State = {
             list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
             prefs: { cardDoneColor: '#68c490' },
