@@ -114,16 +114,18 @@ const ActionViews = {
         const grid = root.querySelector('.present-grid');
         students.forEach(stu => {
             const rec = records[stu.id] || {}, isDone = !!rec.done, score = (rec.score ?? '') !== '' ? rec.score : '';
+            const note = rec.note || '';
+            const displayValue = score !== '' ? score : note;
             const item = document.createElement('div');
             item.className = `present-item ${isDone ? 'done' : 'pending'}`;
-            const scoreClass = String(score).length >= 3 ? 'present-score compact' : 'present-score';
+            const valueClass = String(displayValue).length >= 3 ? 'present-value compact' : 'present-value';
             item.innerHTML = `
                 <div class="present-stu-info">
-                    <span class="present-name">${stu.name}</span>
                     <span class="present-id">${stu.id}</span>
+                    <span class="present-name">${stu.name}</span>
                 </div>
                 <div class="present-status">
-                    ${score !== '' ? `<span class="${scoreClass}">${score}</span>` : ''}
+                    ${displayValue !== '' ? `<span class="${valueClass}">${displayValue}</span>` : ''}
                 </div>
             `;
             grid.appendChild(item);
