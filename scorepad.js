@@ -107,6 +107,19 @@ const ScorePad = {
                 }
             }
         });
+
+        // 全局键盘事件监听（回车确认、ESC退出）
+        this._handleKeyDown = (e) => {
+            if (!this.isOpen) return;
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this._saveAndClose();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.hide();
+            }
+        };
+        document.addEventListener('keydown', this._handleKeyDown);
     },
 
     _onPointerDown(e) {
