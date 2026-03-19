@@ -31,57 +31,21 @@
                 if (n) State.addAsg(n);
             },
             async del() { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) State.removeAsg(State.curId); else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); },
-            async score(id, name) {
-                const asg = State.cur, students = State.roster.filter(s => State.isStuIncluded(asg, s));
-                let idx = students.findIndex(s => s.id === id); if (idx === -1) return;
-                const { root, body } = this.ctx.views.createPageLayout('登记分数');
-                body.innerHTML = `<div class="score-layout">
-                    <section class="score-hero"><div class="score-hero-main"><div class="score-hero-title"></div><div class="score-hero-sub"><span class="score-chip"></span><span class="score-chip"></span><span class="score-chip"></span></div></div><div class="score-index"></div></section>
-                    <section class="score-section">
-                        <div class="score-section-head"><div class="score-inline-actions"><button class="btn btn-c btn-xs" data-step="-1">-1</button><button class="btn btn-c btn-xs" data-step="1">+1</button></div></div>
-                        <div class="score-input-row"><input class="input-ui score-input" inputmode="numeric" placeholder="输入分数">
-                            <div class="score-inline-actions"><button class="btn btn-c" data-act="preset-0">0</button><button class="btn btn-c" data-act="preset-100">100</button><button class="btn btn-c" data-act="done">标记完成</button><button class="btn btn-c" data-act="clear">清空</button></div>
-                        </div>
-                    </section>
-                    <section class="score-section"><div class="score-toolbar"><button class="btn btn-p" data-act="save">保存并关闭</button><button class="btn btn-p" data-act="next">保存并下一位</button><button class="btn btn-c" data-act="copy">沿用前一位</button><button class="btn btn-c" data-act="close">关闭</button></div></section>
-                </div>`;
-                const hT = body.querySelector('.score-hero-title'), [hAsg, hDone, hSc] = body.querySelectorAll('.score-chip'), hIdx = body.querySelector('.score-index'), inp = body.querySelector('input');
-                const upd = (k = false) => {
-                    const s = students[idx], r = asg.records[s.id] || {}, d = !!r.done;
-                    hT.textContent = `${s.id} ${s.name || name || ''}`; hAsg.textContent = asg.name; hDone.textContent = d ? '已完成' : '未完成';
-                    hDone.className = `score-chip ${d ? 'done' : 'pending'}`; hSc.textContent = r.score != null && r.score !== '' ? `当前分数 ${r.score}` : '未录入';
-                    hIdx.textContent = `${idx + 1} / ${students.length}`; inp.value = r.score ?? '';
-                    if (k) Modal.scheduleFocus(inp);
-                };
-                const logPanel = (message, level = 'info') => {
-                    Debug.log(`[打分面板] 任务=${asg.name} 学生=${students[idx]?.id || ''} ${students[idx]?.name || ''} ${message}`.trim(), level);
-                };
-                const save = (fD = null, action = 'save') => {
-                    const s = students[idx], r = asg.records[s.id] || {};
-                    State.updRec(s.id, { score: inp.value.trim() || null, done: fD === null ? (inp.value.trim() ? true : !!r.done) : fD }, { source: 'score-panel', action, studentName: s.name });
-                };
-                body.onclick = e => {
-                    const t = e.target, step = +t.dataset.step, act = t.dataset.act;
-                    if (step) {
-                        const prevValue = inp.value || '0';
-                        inp.value = String(Number(inp.value || 0) + step);
-                        logPanel(`动作=adjust-step 变更=${prevValue} -> ${inp.value}`);
+            score(id, name) {
+                const card = document.querySelector(`.student-card[data-id="${id}"]`);
+                if (card) {
+                    const rect = card.getBoundingClientRect();
+                    ScorePad.show(id, name, rect);
+                } else {
+                    const allCards = document.querySelectorAll('.student-card');
+                    for (const c of allCards) {
+                        if (c.dataset.id === id) {
+                            const rect = c.getBoundingClientRect();
+                            ScorePad.show(id, name, rect);
+                            break;
+                        }
                     }
-                    else if (act === 'preset-0') { inp.value = '0'; save(null, 'preset-0'); Modal.close(true); }
-                    else if (act === 'preset-100') { inp.value = '100'; save(null, 'preset-100'); Modal.close(true); }
-                    else if (act === 'done') { save(!asg.records[students[idx].id]?.done, 'toggle-done'); upd(true); }
-                    else if (act === 'clear') { save(false, 'clear'); inp.value = ''; upd(true); }
-                    else if (act === 'save') { save(null, 'save-close'); Modal.close(true); }
-                    else if (act === 'next') { save(null, 'save-next'); if (idx < students.length - 1) { idx++; upd(true); logPanel(`动作=navigate-next 目标=${students[idx].id} ${students[idx].name || ''}`); } else Modal.close(true); }
-                    else if (act === 'copy' && idx > 0) { inp.value = asg.records[students[idx-1].id]?.score ?? ''; logPanel(`动作=copy-previous 取值=${inp.value || '空'}`); Modal.scheduleFocus(inp); }
-                    else if (act === 'close') { save(null, 'close'); Modal.close(true); }
-                };
-                inp.onkeydown = e => {
-                    if (e.key === 'Enter') { save(null, 'enter'); Modal.close(true); }
-                    if (e.key === 'ArrowDown') { save(null, 'arrow-down'); if (idx < students.length - 1) { idx++; upd(true); logPanel(`动作=arrow-down 目标=${students[idx].id} ${students[idx].name || ''}`); } }
-                    if (e.key === 'ArrowUp') { save(null, 'arrow-up'); if (idx > 0) { idx--; upd(true); logPanel(`动作=arrow-up 目标=${students[idx].id} ${students[idx].name || ''}`); } }
-                };
-                upd(); await Modal.show({ title: '', content: root, type: 'full', autoFocusEl: inp });
+                }
             },
             asgManage() {
                 const { root, list } = this.ctx.views.createAsgManageShell(), pool = new Map();
