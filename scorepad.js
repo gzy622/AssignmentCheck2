@@ -222,6 +222,12 @@ const ScorePad = {
     },
 
     _saveAndClose() {
+        // 先关闭输入法（让输入框失去焦点）
+        const display = this.el.querySelector('.scorepad-display');
+        if (display) {
+            display.readOnly = true;
+            display.blur();
+        }
         if (this.currentId) {
             State.updRec(this.currentId, {
                 score: this.value || null,
