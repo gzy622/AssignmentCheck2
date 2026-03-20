@@ -1080,7 +1080,7 @@
             transition: none;
         }
         .bottom-sheet.is-open {
-            transform: translateY(0);
+            transform: translateY(calc(0px - var(--keyboard-height, 0px)));
         }
 
         .bottom-sheet-handle {

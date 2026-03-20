@@ -306,6 +306,39 @@ const BottomSheet = {
         wrapper.appendChild(input);
 
         return new Promise(resolve => {
+            let viewportHandler = null;
+            let isInputFocused = false;
+
+            const updateKeyboardHeight = () => {
+                if (!sheet.panel) return;
+                const vv = window.visualViewport;
+                if (!vv) return;
+                const kbdHeight = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+                sheet.panel.style.setProperty('--keyboard-height', `${kbdHeight}px`);
+            };
+
+            const bindViewportTracking = () => {
+                viewportHandler = () => {
+                    if (isInputFocused) updateKeyboardHeight();
+                };
+                window.addEventListener('resize', viewportHandler, { passive: true });
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', viewportHandler, { passive: true });
+                    window.visualViewport.addEventListener('scroll', viewportHandler, { passive: true });
+                }
+            };
+
+            const unbindViewportTracking = () => {
+                if (viewportHandler) {
+                    window.removeEventListener('resize', viewportHandler);
+                    if (window.visualViewport) {
+                        window.visualViewport.removeEventListener('resize', viewportHandler);
+                        window.visualViewport.removeEventListener('scroll', viewportHandler);
+                    }
+                    viewportHandler = null;
+                }
+            };
+
             const sheet = this.create({
                 title,
                 content: wrapper,
@@ -313,15 +346,32 @@ const BottomSheet = {
                     { text: '取消', type: 'btn btn-c', onClick: () => { sheet.hide(); resolve(false); } },
                     { text: '确定', type: 'btn btn-p', primary: true, onClick: () => { sheet.hide(); resolve(input.value); } }
                 ],
-                onClose: () => resolve(false)
+                onClose: () => {
+                    unbindViewportTracking();
+                    resolve(false);
+                }
             });
+
             sheet.show();
+
+            // 绑定视口追踪以检测键盘
+            bindViewportTracking();
 
             // 自动聚焦
             setTimeout(() => {
                 input.focus();
                 input.select();
+                isInputFocused = true;
+                updateKeyboardHeight();
             }, 100);
+
+            // 失焦时取消键盘追踪
+            input.addEventListener('blur', () => {
+                isInputFocused = false;
+                if (sheet.panel) {
+                    sheet.panel.style.setProperty('--keyboard-height', '0px');
+                }
+            });
 
             // Enter 键提交
             input.addEventListener('keydown', e => {
