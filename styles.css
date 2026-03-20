@@ -1044,3 +1044,97 @@
             font-size: 1rem;
             font-weight: 600;
         }
+
+        /* Bottom Sheet 底部滑出面板框架 */
+        .bottom-sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            z-index: 990;
+            pointer-events: none;
+            transition: background 0.25s ease;
+        }
+        .bottom-sheet-backdrop.is-open {
+            background: rgba(0, 0, 0, 0.35);
+            pointer-events: auto;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
+            z-index: 991;
+            padding: 0 16px max(20px, env(safe-area-inset-bottom));
+            transform: translateY(calc(100% + var(--slide-offset, 0px)));
+            transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 85vh;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+        .bottom-sheet.dragging {
+            transition: none;
+        }
+        .bottom-sheet.is-open {
+            transform: translateY(0);
+        }
+
+        .bottom-sheet-handle {
+            width: 40px;
+            height: 5px;
+            background: #d0d5dd;
+            border-radius: 999px;
+            margin: 10px auto;
+            cursor: grab;
+        }
+        .bottom-sheet-handle:active {
+            cursor: grabbing;
+        }
+
+        .bottom-sheet-header {
+            padding: 12px 4px 8px;
+            text-align: center;
+        }
+        .bottom-sheet-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #16212c;
+        }
+
+        .bottom-sheet-body {
+            padding: 12px 4px;
+        }
+
+        .bottom-sheet-footer {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            padding-top: 8px;
+        }
+        .bottom-sheet-footer .btn {
+            height: 44px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .bottom-sheet-confirm-text,
+        .bottom-sheet-alert-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #495057;
+            text-align: center;
+            padding: 16px 8px;
+        }
+
+        .bottom-sheet-prompt-wrapper {
+            padding: 8px 4px;
+        }
+        .bottom-sheet-prompt-input {
+            font-size: 1.1rem;
+            padding: 14px 16px;
+        }

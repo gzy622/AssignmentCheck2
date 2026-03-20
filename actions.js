@@ -25,12 +25,12 @@
             async add() {
                 const d = new Date(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0'), def = `${m}${dd}作业`, alt = `${m}${dd}小测`;
                 const c = document.createElement('div');
-                c.innerHTML = `<input class="input-ui" value="${def}"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-c btn-xs" data-v="">清空</button><button class="btn btn-c btn-xs" data-v="${alt}">${alt}</button></div>`;
+                c.innerHTML = `<input class="input-ui bottom-sheet-prompt-input" value="${def}"><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-c btn-xs" data-v="">清空</button><button class="btn btn-c btn-xs" data-v="${alt}">${alt}</button></div>`;
                 const inp = c.firstChild; c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
-                const n = await Modal.show({ title: '新建任务', content: c, autoFocusEl: inp, btns: [{ text: '取消', val: false }, { text: '确定', type: 'btn-p', onClick: () => Modal.close(inp.value) }] });
+                const n = await BottomSheet.prompt('新建任务', def, 'text');
                 if (n) State.addAsg(n);
             },
-            async del() { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) State.removeAsg(State.curId); else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); },
+            async del() { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) State.removeAsg(State.curId); else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); },
             score(id, name) {
                 const card = document.querySelector(`.student-card[data-id="${id}"]`);
                 if (card) {
@@ -73,8 +73,8 @@
                 list.onclick = async e => {
                     const b = e.target.closest('[data-act]'), c = b?.closest('.asg-card'), id = +c?.dataset.id; if (!id) return;
                     if (b.dataset.act === 'pick') { State.selectAsg(id); upd(); }
-                    else if (b.dataset.act === 'save') { if (State.updateAsgMeta(id, { name: c.querySelector('[data-r="name"]').value, subject: c.querySelector('[data-r="sub"]').value })) upd(); else Modal.alert('名称不能为空'); }
-                    else if (b.dataset.act === 'del') { if (State.data.length > 1 && await Modal.confirm('删除此任务？')) { State.removeAsg(id); upd(); } else if (State.data.length <= 1) Modal.alert('至少保留一个任务'); }
+                    else if (b.dataset.act === 'save') { if (State.updateAsgMeta(id, { name: c.querySelector('[data-r="name"]').value, subject: c.querySelector('[data-r="sub"]').value })) upd(); else BottomSheet.alert('名称不能为空'); }
+                    else if (b.dataset.act === 'del') { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) { State.removeAsg(id); upd(); } else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); }
                 };
                 upd(); Modal.show({ title: '', content: root, type: 'full' });
             },
@@ -200,10 +200,10 @@
                 const f = e.target.files[0]; if (!f) return;
                 const r = new FileReader(); r.onload = async ev => {
                     try {
-                        const d = JSON.parse(ev.target.result); if (!d.list || !d.data || !await Modal.confirm('覆盖现有数据？')) return;
+                        const d = JSON.parse(ev.target.result); if (!d.list || !d.data || !await BottomSheet.confirm('覆盖现有数据？')) return;
                         Object.assign(State, { list: d.list, data: d.data, prefs: State.normalizePrefs(d.prefs) });
-                        State.parseRoster(); State.sanitizeAsgIds(); State.rebuildAsgIndex(); State.curId = State.data[0].id; State.save({ immediate: true, asgListChanged: true, invalidateDerived: false }); Modal.alert('导入成功');
-                    } catch (err) { Modal.alert('错误: ' + err.message); }
+                        State.parseRoster(); State.sanitizeAsgIds(); State.rebuildAsgIndex(); State.curId = State.data[0].id; State.save({ immediate: true, asgListChanged: true, invalidateDerived: false }); BottomSheet.alert('导入成功');
+                    } catch (err) { BottomSheet.alert('错误: ' + err.message); }
                 }; r.readAsText(f); e.target.value = '';
             },
             present() { Modal.show({ title: '', content: ActionViews.createPresentView(State.cur.name, State.roster, State.cur.records), type: 'full' }); }
