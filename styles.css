@@ -203,8 +203,16 @@
         }
 
         .student-card.scoring {
-            border: 2px dashed var(--primary);
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+            border: 2px dashed #1f6fff !important;
+            box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
+            z-index: 992;
+        }
+
+        .score-highlight-clone {
+            position: fixed;
+            z-index: 992;
+            pointer-events: none;
+            margin: 0;
         }
 
         .student-card.done {
@@ -664,7 +672,15 @@
         .asg-pill{padding:6px 11px;border-radius:999px;border:1px solid #d8e1ec;background:#fff;color:#5b6775;cursor:pointer;font-size:.8rem;font-weight:600;transition:.15s;line-height:1.1}
         .asg-pill.active{background:#17324d;color:#fff;border-color:#17324d;box-shadow:0 6px 16px rgba(23,50,77,.18)}
         .asg-card-actions{display:flex;gap:6px;flex-wrap:wrap}
+        .asg-card-confirm{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:#fff3f2;border:1px solid rgba(220,53,69,.2);color:#a32634;font-size:.8rem;font-weight:600}
         .asg-hint{font-size:.74rem;line-height:1.45;color:#7a8795}
+        .import-shell{display:flex;flex-direction:column;gap:12px}
+        .import-note{font-size:.82rem;line-height:1.5;color:#5a6774;background:#f7faff;border:1px solid #dfe9f8;border-radius:12px;padding:12px}
+        .import-actions{display:flex;gap:8px;flex-wrap:wrap}
+        .import-file{font-size:.8rem;color:#4d5d6d;background:#f8fafc;border:1px solid #e8eef5;border-radius:10px;padding:10px 12px;word-break:break-all}
+        .import-status{font-size:.82rem;line-height:1.45;border-radius:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e8eef5;color:#5f6f7f}
+        .import-status.ok{background:#f2fcf5;border-color:#cdeed7;color:#237a42}
+        .import-status.err{background:#fff4f2;border-color:#ffd8d3;color:#b24132}
 
         .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
         .toast.show{opacity:1;transform:translate(-50%,0)}

@@ -1,5 +1,6 @@
         const Actions = {
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
+            _importCtx: null,
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
             toggleAnim() { const { state } = this.ctx; state.animations = !state.animations; state.saveAnim(); },
             toggleDebug() { const { debug, toast } = this.ctx; debug.toggle(); toast.show(`调试面板已${debug.enabled ? '开启' : '关闭'}`); },
@@ -23,14 +24,9 @@
                 if (val) { state.prefs.cardDoneColor = colorUtil.normalizeHex(val, defaults.cardDoneColor); state.savePrefs(); toast.show('卡片颜色已更新'); }
             },
             async add() {
-                const d = new Date(), m = (d.getMonth() + 1 + '').padStart(2, '0'), dd = (d.getDate() + '').padStart(2, '0'), def = `${m}${dd}作业`, alt = `${m}${dd}小测`;
-                const c = document.createElement('div');
-                c.innerHTML = `<input class="input-ui bottom-sheet-prompt-input" value="${def}"><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-c btn-xs" data-v="">清空</button><button class="btn btn-c btn-xs" data-v="${alt}">${alt}</button></div>`;
-                const inp = c.firstChild; c.onclick = e => { const v = e.target.dataset.v; if (v != null) { inp.value = v; inp.focus(); } };
-                const n = await BottomSheet.prompt('新建任务', def, 'text');
-                if (n) State.addAsg(n);
+                this.asgManage();
             },
-            async del() { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) State.removeAsg(State.curId); else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); },
+            async del() { this.asgManage(); },
             score(id, name) {
                 const card = document.querySelector(`.student-card[data-id="${id}"]`);
                 if (card) {
@@ -48,8 +44,31 @@
                 }
             },
             asgManage() {
-                const { root, list } = this.ctx.views.createAsgManageShell(), pool = new Map();
+                const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
                 let mounted = new Set();
+                let pendingDeleteId = null;
+                const now = new Date();
+                const mm = `${now.getMonth() + 1}`.padStart(2, '0');
+                const dd = `${now.getDate()}`.padStart(2, '0');
+                const defaultName = `${mm}${dd}作业`;
+                const altName = `${mm}${dd}小测`;
+                const createAsg = () => {
+                    const name = (newNameInput.value || '').trim();
+                    if (!name) return BottomSheet.alert('任务名称不能为空');
+                    State.addAsg(name);
+                    newNameInput.value = '';
+                    newNameInput.placeholder = defaultName;
+                    upd();
+                };
+                newNameInput.placeholder = defaultName;
+                newAltBtn.textContent = altName;
+                newAltBtn.onclick = () => { newNameInput.value = altName; newNameInput.focus(); };
+                newCreateBtn.onclick = createAsg;
+                newNameInput.addEventListener('keydown', e => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    createAsg();
+                });
                 const upd = () => {
                     const next = new Set();
                     State.data.slice().reverse().forEach(asg => {
@@ -57,7 +76,8 @@
                             c = document.createElement('article'); c.className = 'asg-card';
                             c.innerHTML = `<div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
                                 <div class="asg-card-fields"><div class="asg-f"><label>名称</label><input class="input-ui" data-r="name"></div><div class="asg-f"><label>科目</label><input class="input-ui" data-r="sub"></div></div><div class="asg-presets"></div>
-                                <div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="pick">切换</button><button class="btn btn-p btn-xs" data-act="save">保存</button><button class="btn btn-d btn-xs" data-act="del">删除</button></div>`;
+                                <div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="pick">切换</button><button class="btn btn-p btn-xs" data-act="save">保存</button><button class="btn btn-d btn-xs" data-act="del">删除</button></div>
+                                <div class="asg-card-confirm" data-role="confirm" hidden>确认删除该任务？<div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="cancel-del">取消</button><button class="btn btn-d btn-xs" data-act="confirm-del">确认删除</button></div></div>`;
                             pool.set(asg.id, c);
                         }
                         const t = State.getAsgTotalCount(asg), d = State.getAsgDoneCount(asg), r = t ? Math.round(d / t * 100) : 0, sub = State.getAsgSubject(asg), cur = asg.id === State.curId;
@@ -66,15 +86,28 @@
                         const rE = c.querySelector('.asg-rate'); rE.textContent = `${r}%`; rE.style.color = r < 60 ? 'var(--danger)' : r > 90 ? 'var(--success)' : 'inherit';
                         c.querySelector('.asg-prog').textContent = `${d}/${t}`; c.querySelector('[data-r="name"]').value = asg.name; c.querySelector('[data-r="sub"]').value = sub;
                         const p = c.querySelector('.asg-presets'); p.innerHTML = ''; SUBJECT_PRESETS.forEach(s => { const b = document.createElement('button'); b.className = `asg-pill ${sub === s ? 'active' : ''}`; b.textContent = s; b.onclick = () => { c.querySelector('[data-r="sub"]').value = s; upd(); }; p.appendChild(b); });
+                        c.querySelector('[data-role="confirm"]').hidden = pendingDeleteId !== asg.id;
                         list.appendChild(c); next.add(asg.id);
                     });
                     mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;
                 };
-                list.onclick = async e => {
+                list.onclick = e => {
                     const b = e.target.closest('[data-act]'), c = b?.closest('.asg-card'), id = +c?.dataset.id; if (!id) return;
                     if (b.dataset.act === 'pick') { State.selectAsg(id); upd(); }
                     else if (b.dataset.act === 'save') { if (State.updateAsgMeta(id, { name: c.querySelector('[data-r="name"]').value, subject: c.querySelector('[data-r="sub"]').value })) upd(); else BottomSheet.alert('名称不能为空'); }
-                    else if (b.dataset.act === 'del') { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) { State.removeAsg(id); upd(); } else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); }
+                    else if (b.dataset.act === 'del') {
+                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
+                        pendingDeleteId = id;
+                        upd();
+                    } else if (b.dataset.act === 'cancel-del') {
+                        pendingDeleteId = null;
+                        upd();
+                    } else if (b.dataset.act === 'confirm-del') {
+                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
+                        State.removeAsg(id);
+                        pendingDeleteId = null;
+                        upd();
+                    }
                 };
                 upd(); Modal.show({ title: '', content: root, type: 'full' });
             },
@@ -195,16 +228,70 @@
                 const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a'), d = new Date();
                 a.href = URL.createObjectURL(b); a.download = `backup_${d.getFullYear()}${(d.getMonth()+1+'').padStart(2,'0')}${(d.getDate()+'').padStart(2,'0')}.json`; a.click();
             },
-            imp() { this.ctx.getFileInput()?.click(); },
-            handleFile(e) {
-                const f = e.target.files[0]; if (!f) return;
-                const r = new FileReader(); r.onload = async ev => {
+            imp() {
+                const ui = this.ctx.views.createImportShell();
+                const setStatus = (text, type = '') => {
+                    ui.statusEl.textContent = text;
+                    ui.statusEl.className = `import-status${type ? ` ${type}` : ''}`;
+                };
+                this._importCtx = {
+                    payload: null,
+                    onFileParsed: ({ fileName, payload }) => {
+                        ui.fileEl.textContent = fileName;
+                        ui.applyBtn.disabled = !payload;
+                        this._importCtx.payload = payload || null;
+                        if (!payload) return setStatus('文件无效，请选择包含 list 与 data 的备份文件。', 'err');
+                        setStatus(`已载入文件，待导入：名单 ${payload.list.length} 条，任务 ${payload.data.length} 条。`);
+                    },
+                    onFileError: msg => {
+                        ui.fileEl.textContent = '未选择文件';
+                        ui.applyBtn.disabled = true;
+                        this._importCtx.payload = null;
+                        setStatus(msg, 'err');
+                    }
+                };
+                ui.pickBtn.onclick = () => this.ctx.getFileInput()?.click();
+                ui.applyBtn.onclick = () => {
+                    const payload = this._importCtx?.payload;
+                    if (!payload) return setStatus('请先选择有效备份文件。', 'err');
                     try {
-                        const d = JSON.parse(ev.target.result); if (!d.list || !d.data || !await BottomSheet.confirm('覆盖现有数据？')) return;
-                        Object.assign(State, { list: d.list, data: d.data, prefs: State.normalizePrefs(d.prefs) });
-                        State.parseRoster(); State.sanitizeAsgIds(); State.rebuildAsgIndex(); State.curId = State.data[0].id; State.save({ immediate: true, asgListChanged: true, invalidateDerived: false }); BottomSheet.alert('导入成功');
-                    } catch (err) { BottomSheet.alert('错误: ' + err.message); }
-                }; r.readAsText(f); e.target.value = '';
+                        this.applyImportData(payload);
+                        setStatus('导入完成，当前数据已覆盖并保存。', 'ok');
+                    } catch (err) {
+                        setStatus(`导入失败：${err.message}`, 'err');
+                    }
+                };
+                Modal.show({ title: '', content: ui.root, type: 'full' });
+            },
+            parseImportData(raw) {
+                if (!raw || typeof raw !== 'object' || !Array.isArray(raw.list) || !Array.isArray(raw.data)) return null;
+                return { list: raw.list, data: raw.data, prefs: State.normalizePrefs(raw.prefs) };
+            },
+            applyImportData(payload) {
+                Object.assign(State, { list: payload.list, data: payload.data, prefs: payload.prefs });
+                State.parseRoster();
+                State.sanitizeAsgIds();
+                if (!State.data.length) throw new Error('备份中不包含任务数据');
+                State.rebuildAsgIndex();
+                State.curId = State.resolveCurId(State.data[0].id);
+                State.save({ immediate: true, asgListChanged: true, invalidateDerived: false });
+            },
+            handleFile(e) {
+                const ctx = this._importCtx;
+                const f = e.target.files[0];
+                if (!ctx || !f) return;
+                const r = new FileReader();
+                r.onload = ev => {
+                    try {
+                        const parsed = this.parseImportData(JSON.parse(ev.target.result));
+                        if (!parsed) throw new Error('文件格式不符合备份规范');
+                        ctx.onFileParsed({ fileName: f.name, payload: parsed });
+                    } catch (err) {
+                        ctx.onFileError(`解析失败：${err.message}`);
+                    }
+                };
+                r.readAsText(f);
+                e.target.value = '';
             },
             present() { Modal.show({ title: '', content: ActionViews.createPresentView(State.cur.name, State.roster, State.cur.records), type: 'full' }); }
         };
