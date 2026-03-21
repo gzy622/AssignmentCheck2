@@ -8,6 +8,7 @@ const ScorePad = {
     originalGridTransform: null,
     _pointerStartY: 0,
     _pointerCurrentY: 0,
+    _activePointerId: null,
     _isDragging: false,
     highlightCloneEl: null,
 
@@ -127,15 +128,17 @@ const ScorePad = {
         const handle = this.el.querySelector('.scorepad-handle');
         if (e.target === handle || handle.contains(e.target)) {
             this._isDragging = true;
+            this._activePointerId = e.pointerId;
             this._pointerStartY = e.clientY;
             this._pointerCurrentY = e.clientY;
             this.el.classList.add('dragging');
+            if (this.el.setPointerCapture) this.el.setPointerCapture(e.pointerId);
             e.preventDefault();
         }
     },
 
     _onPointerMove(e) {
-        if (!this._isDragging) return;
+        if (!this._isDragging || e.pointerId !== this._activePointerId) return;
         this._pointerCurrentY = e.clientY;
         const delta = this._pointerCurrentY - this._pointerStartY;
         if (delta > 0) {
@@ -146,8 +149,10 @@ const ScorePad = {
     },
 
     _onPointerUp(e) {
-        if (!this._isDragging) return;
+        if (!this._isDragging || e.pointerId !== this._activePointerId) return;
         this._isDragging = false;
+        this._activePointerId = null;
+        if (this.el.hasPointerCapture?.(e.pointerId)) this.el.releasePointerCapture(e.pointerId);
         this.el.classList.remove('dragging');
         const delta = this._pointerCurrentY - this._pointerStartY;
         if (delta > 80) {
@@ -216,6 +221,8 @@ const ScorePad = {
         this._clearHighlightClone();
 
         this._restoreGrid();
+        this._isDragging = false;
+        this._activePointerId = null;
         this.currentId = null;
         this.currentName = null;
         this.value = '';
