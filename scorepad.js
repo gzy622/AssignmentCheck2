@@ -178,6 +178,12 @@ const ScorePad = {
         return null;
     },
 
+    _formatStudentLabel(id, name) {
+        const sid = String(id ?? '').trim();
+        const sname = String(name ?? '').trim();
+        return [sid, sname].filter(Boolean).join(' ');
+    },
+
     show(id, name, rect) {
         if (this.isOpen) return;
         this.isOpen = true;
@@ -187,6 +193,10 @@ const ScorePad = {
         const asg = State.cur;
         const rec = asg?.records[id] || {};
         this.value = rec.score != null ? String(rec.score) : '';
+        const display = this.el.querySelector('.scorepad-display');
+        if (display) {
+            display.placeholder = this._formatStudentLabel(id, name) || '点击此处手动输入';
+        }
         this._updateDisplay();
 
         const card = this._getCardById(id);
@@ -240,6 +250,8 @@ const ScorePad = {
     _updateDisplay() {
         const display = this.el.querySelector('.scorepad-display');
         display.value = this.value;
+        if (!this.currentId) return;
+        display.placeholder = this._formatStudentLabel(this.currentId, this.currentName) || '点击此处手动输入';
     },
 
     _saveAndClose() {
