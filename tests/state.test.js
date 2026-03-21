@@ -220,4 +220,65 @@ describe('State', () => {
 
         expect(UI.actions.score).toHaveBeenCalledWith('01', '张三');
     });
+
+    it('should render subject select and no preset buttons in assignment manager', () => {
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        Actions.asgManage();
+
+        expect(document.querySelector('.asg-card select[data-r="sub"]')).toBeTruthy();
+        expect(document.querySelector('.asg-card [data-act="pick"]')).toBeNull();
+        expect(document.querySelector('.asg-card .asg-pill')).toBeNull();
+        expect(document.querySelector('.asg-card [data-act="save"]')).toBeNull();
+    });
+
+    it('should auto save assignment name after input', () => {
+        vi.useFakeTimers();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        Actions.asgManage();
+
+        const nameInput = document.querySelector('.asg-card [data-r="name"]');
+        nameInput.value = '新的任务名';
+        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+        vi.advanceTimersByTime(300);
+
+        expect(State.asgMap.get(1).name).toBe('新的任务名');
+    });
+
+    it('should switch assignment when clicking assignment card blank area', () => {
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} }),
+            State.normalizeAsg({ id: 2, name: '作业 2', subject: '数学', records: {} })
+        ];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        Actions.asgManage();
+
+        const targetCard = document.querySelector('.asg-card[data-id="2"] .asg-card-head');
+        targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(State.curId).toBe(2);
+    });
+
+    it('should show toast instead of confirm dialog when deleting the last assignment', async () => {
+        State.data = [State.normalizeAsg({ id: 1, name: '唯一作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        const toastSpy = vi.spyOn(Toast, 'show').mockImplementation(() => {});
+        const confirmSpy = vi.spyOn(Modal, 'confirm');
+
+        Actions.asgManage();
+        document.querySelector('.asg-card-delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await Promise.resolve();
+
+        expect(toastSpy).toHaveBeenCalledWith('至少保留一个任务');
+        expect(confirmSpy).not.toHaveBeenCalled();
+    });
 });

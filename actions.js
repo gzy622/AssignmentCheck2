@@ -45,8 +45,9 @@
             },
             asgManage() {
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
+                const { modal, toast, subjectPresets } = this.ctx;
                 let mounted = new Set();
-                let pendingDeleteId = null;
+                const draftTimers = new Map();
                 const now = new Date();
                 const mm = `${now.getMonth() + 1}`.padStart(2, '0');
                 const dd = `${now.getDate()}`.padStart(2, '0');
@@ -58,6 +59,67 @@
                     State.addAsg(name);
                     newNameInput.value = '';
                     newNameInput.placeholder = defaultName;
+                    upd();
+                };
+                const clearDraftTimer = id => {
+                    if (!draftTimers.has(id)) return;
+                    clearTimeout(draftTimers.get(id));
+                    draftTimers.delete(id);
+                };
+                const renderCardMeta = (card, asg) => {
+                    if (!card || !asg) return;
+                    const t = State.getAsgTotalCount(asg), d = State.getAsgDoneCount(asg), r = t ? Math.round(d / t * 100) : 0, sub = State.getAsgSubject(asg), cur = asg.id === State.curId;
+                    card.dataset.id = asg.id;
+                    card.classList.toggle('current', cur);
+                    card.querySelector('.asg-t').textContent = asg.name;
+                    card.querySelector('.asg-cur').hidden = !cur;
+                    const subBadge = card.querySelector('.asg-sub');
+                    subBadge.textContent = sub;
+                    subBadge.classList.toggle('non-english', sub !== '英语');
+                    const rateEl = card.querySelector('.asg-rate');
+                    rateEl.textContent = `${r}%`;
+                    rateEl.style.color = r < 60 ? 'var(--danger)' : r > 90 ? 'var(--success)' : 'inherit';
+                    card.querySelector('.asg-prog').textContent = `${d}/${t}`;
+                    card.querySelector('[data-r="name"]').value = asg.name;
+                    card.querySelector('[data-r="sub"]').value = sub;
+                };
+                const saveCardMeta = (card, { strict = false } = {}) => {
+                    const id = +card?.dataset.id;
+                    if (!id) return false;
+                    clearDraftTimer(id);
+                    const nameInput = card.querySelector('[data-r="name"]');
+                    const nextName = String(nameInput?.value || '').trim();
+                    const nextSubject = card.querySelector('[data-r="sub"]')?.value;
+                    const asg = State.asgMap.get(id) || State.data.find(item => item.id === id);
+                    if (!asg) return false;
+                    if (!nextName) {
+                        if (!strict) return false;
+                        nameInput.value = asg.name;
+                        renderCardMeta(card, asg);
+                        toast.show('任务名称不能为空');
+                        return false;
+                    }
+                    if (!State.updateAsgMeta(id, { name: nextName, subject: nextSubject })) return false;
+                    renderCardMeta(card, State.asgMap.get(id) || asg);
+                    return true;
+                };
+                const queueCardMetaSave = card => {
+                    const id = +card?.dataset.id;
+                    if (!id) return;
+                    clearDraftTimer(id);
+                    draftTimers.set(id, setTimeout(() => {
+                        draftTimers.delete(id);
+                        saveCardMeta(card);
+                    }, 250));
+                };
+                const requestDelete = async id => {
+                    clearDraftTimer(id);
+                    if (State.data.length <= 1) return toast.show('至少保留一个任务');
+                    const asg = State.asgMap.get(id) || State.data.find(item => item.id === id);
+                    const ok = await modal.confirm(`确认删除“${asg?.name || '该任务'}”？`);
+                    if (!ok) return;
+                    if (State.data.length <= 1) return toast.show('至少保留一个任务');
+                    State.removeAsg(id);
                     upd();
                 };
                 newNameInput.placeholder = defaultName;
@@ -74,41 +136,63 @@
                     State.data.slice().reverse().forEach(asg => {
                         let c = pool.get(asg.id); if (!c) {
                             c = document.createElement('article'); c.className = 'asg-card';
-                            c.innerHTML = `<div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
-                                <div class="asg-card-fields"><div class="asg-f"><label>名称</label><input class="input-ui" data-r="name"></div><div class="asg-f"><label>科目</label><input class="input-ui" data-r="sub"></div></div><div class="asg-presets"></div>
-                                <div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="pick">切换</button><button class="btn btn-p btn-xs" data-act="save">保存</button><button class="btn btn-d btn-xs" data-act="del">删除</button></div>
-                                <div class="asg-card-confirm" data-role="confirm" hidden>确认删除该任务？<div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="cancel-del">取消</button><button class="btn btn-d btn-xs" data-act="confirm-del">确认删除</button></div></div>`;
+                            c.innerHTML = `<button class="asg-card-delete" type="button" data-act="del" aria-label="删除任务" title="删除任务">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M8 6V4h8v2"></path>
+                                        <path d="M19 6l-1 14H6L5 6"></path>
+                                        <path d="M10 11v6"></path>
+                                        <path d="M14 11v6"></path>
+                                    </svg>
+                                </button>
+                                <div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
+                                <div class="asg-card-fields"><div class="asg-f"><label>名称</label><input class="input-ui" data-r="name"></div><div class="asg-f"><label>科目</label><select class="input-ui" data-r="sub"></select></div></div>`;
+                            const subSelect = c.querySelector('[data-r="sub"]');
+                            subjectPresets.forEach(subject => {
+                                const option = document.createElement('option');
+                                option.value = subject;
+                                option.textContent = subject;
+                                subSelect.appendChild(option);
+                            });
                             pool.set(asg.id, c);
                         }
-                        const t = State.getAsgTotalCount(asg), d = State.getAsgDoneCount(asg), r = t ? Math.round(d / t * 100) : 0, sub = State.getAsgSubject(asg), cur = asg.id === State.curId;
-                        c.dataset.id = asg.id; c.classList.toggle('current', cur); c.querySelector('.asg-t').textContent = asg.name; c.querySelector('.asg-cur').hidden = !cur;
-                        const sB = c.querySelector('.asg-sub'); sB.textContent = sub; sB.classList.toggle('non-english', sub !== '英语');
-                        const rE = c.querySelector('.asg-rate'); rE.textContent = `${r}%`; rE.style.color = r < 60 ? 'var(--danger)' : r > 90 ? 'var(--success)' : 'inherit';
-                        c.querySelector('.asg-prog').textContent = `${d}/${t}`; c.querySelector('[data-r="name"]').value = asg.name; c.querySelector('[data-r="sub"]').value = sub;
-                        const p = c.querySelector('.asg-presets'); p.innerHTML = ''; SUBJECT_PRESETS.forEach(s => { const b = document.createElement('button'); b.className = `asg-pill ${sub === s ? 'active' : ''}`; b.textContent = s; b.onclick = () => { c.querySelector('[data-r="sub"]').value = s; upd(); }; p.appendChild(b); });
-                        c.querySelector('[data-role="confirm"]').hidden = pendingDeleteId !== asg.id;
+                        renderCardMeta(c, asg);
                         list.appendChild(c); next.add(asg.id);
                     });
                     mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;
                 };
-                list.onclick = e => {
-                    const b = e.target.closest('[data-act]'), c = b?.closest('.asg-card'), id = +c?.dataset.id; if (!id) return;
-                    if (b.dataset.act === 'pick') { State.selectAsg(id); upd(); }
-                    else if (b.dataset.act === 'save') { if (State.updateAsgMeta(id, { name: c.querySelector('[data-r="name"]').value, subject: c.querySelector('[data-r="sub"]').value })) upd(); else BottomSheet.alert('名称不能为空'); }
-                    else if (b.dataset.act === 'del') {
-                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
-                        pendingDeleteId = id;
-                        upd();
-                    } else if (b.dataset.act === 'cancel-del') {
-                        pendingDeleteId = null;
-                        upd();
-                    } else if (b.dataset.act === 'confirm-del') {
-                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
-                        State.removeAsg(id);
-                        pendingDeleteId = null;
+                list.onclick = async e => {
+                    const c = e.target.closest('.asg-card'), id = +c?.dataset.id;
+                    if (!id) return;
+                    const act = e.target.closest('[data-act]')?.dataset.act;
+                    if (act === 'del') {
+                        await requestDelete(id);
+                        return;
+                    }
+                    if (!e.target.closest('button, input, select, textarea, label')) {
+                        State.selectAsg(id);
                         upd();
                     }
                 };
+                list.oninput = e => {
+                    if (e.target.dataset.r !== 'name') return;
+                    const c = e.target.closest('.asg-card');
+                    if (!c) return;
+                    c.querySelector('.asg-t').textContent = e.target.value.trim() || '未命名任务';
+                    queueCardMetaSave(c);
+                };
+                list.onchange = e => {
+                    const c = e.target.closest('.asg-card');
+                    if (!c) return;
+                    if (e.target.dataset.r === 'sub') saveCardMeta(c, { strict: true });
+                };
+                list.addEventListener('focusout', e => {
+                    const role = e.target.dataset.r;
+                    if (role !== 'name' && role !== 'sub') return;
+                    const c = e.target.closest('.asg-card');
+                    if (!c) return;
+                    saveCardMeta(c, { strict: role === 'name' });
+                });
                 upd(); Modal.show({ title: '', content: root, type: 'full' });
             },
             roster() {
