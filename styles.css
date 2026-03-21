@@ -979,6 +979,7 @@
             border-radius: 999px;
             margin: 10px auto;
             cursor: grab;
+            touch-action: none;
         }
         .scorepad-handle:active {
             cursor: grabbing;
