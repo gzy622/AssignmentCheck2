@@ -78,7 +78,7 @@ npm run test:coverage
 ├── tests/              # 额外单测与 E2E 测试
 ├── package.json        # 脚本与依赖
 ├── package-lock.json   # 依赖锁定
-└── GEMINI.md           # 仓库协作与输出约束
+└── AGENTS.md           # 智能体协作与修改约束
 ```
 
 ## 适用场景
@@ -86,4 +86,3 @@ npm run test:coverage
 - 课堂作业即时登记
 - 随堂小测提交追踪
 - 需要离线、快速、轻量化记录的教学场景
-

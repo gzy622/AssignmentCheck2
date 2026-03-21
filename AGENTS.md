@@ -1,100 +1,70 @@
-# 作业极速登记 Pro — [AGENTS.md](http://AGENTS.md)
+# AGENTS.md
 
-## Project Overview
+这是本项目给智能体使用的单一规则入口。目标是让后续修改保持一致、可验证、低风险。
 
-轻量化课堂作业登记工具，纯前端实现，无需构建，直接打开 index.html 即可运行。
+## 项目概览
 
-## Start Here
+这是一个轻量化课堂作业登记工具，纯前端实现，无需构建，直接打开 `index.html` 即可运行。
 
-优先阅读以下文件：
+## 优先阅读
 
-- index.html（应用入口）
-- app.js（核心状态与逻辑）
-- core.js（数据与存储）
-- actions.js（业务操作分发）
+进行修改前，优先阅读这些文件：
 
-## Architecture
+- `index.html`：应用入口
+- `boot.js`：启动入口
+- `app.js`：核心状态与逻辑
+- `core.js`：数据、存储与公共工具
+- `actions.js`：业务操作分发
+- `action-views.js`：UI 视图生成
 
-- UI：action-views.js
-- 状态管理：app.js
-- 核心工具与存储：core.js
-- 启动入口：boot.js
-
-## Constraints
+## 关键约束
 
 - 不引入构建工具
-- 必须保持纯前端运行（直接打开 index.html）
-- 数据存储仅使用 localStorage
+- 必须保持纯前端运行方式
+- 数据存储仅使用 `localStorage`
 - 不修改现有数据结构格式
+- 不修改备份文件格式
+- 不修改版本号机制
 
-## Commands
+## 修改原则
 
-测试：
+- 先读相关文件，再动手修改
+- 优先最小改动，复用已有函数
+- 避免新增全局状态
+- 避免重复逻辑
+- 新功能必须补测试
 
-```plaintext
-npm run test
+## 测试与验证
 
+修改后至少完成以下验证：
 
-```
+1. `npm run test`
+2. `npm run test:e2e`
+3. 直接打开 `index.html` 可正常运行
+4. 本地数据读写正常
 
-E2E：
+如需更全面验证，可运行：
 
-```plaintext
-npm run test:e2e
-
-
-```
-
-覆盖率：
-
-```plaintext
+```bash
+npm run test:all
 npm run test:coverage
-
-
 ```
 
-## Verification
+## 测试重点
 
-修改后必须满足：
+- 优先覆盖 `core.js` 和状态管理逻辑
+- 涉及交互流程时补充 E2E 测试
 
-1. 所有测试通过
-2. 页面可正常打开 index.html
-3. 本地数据读写正常
-
-## Do Not Modify
-
-- localStorage 数据结构定义
-- 备份文件格式
-- 版本号机制
-
-## Execution Rules
-
-- 一次性完成完整任务（实现 + 测试）
-- 避免分步骤输出或等待确认
-- 修改前先阅读相关文件
-- 优先采用最小改动策略
-
-## Testing Strategy
-
-- 优先覆盖 core.js 与状态管理逻辑
-- 新功能必须补充对应测试
-
-## Definition of Done
+## 完成标准
 
 - 功能可运行
 - 不破坏现有功能
 - 测试全部通过
 
-## Modification Strategy
-
-- 优先复用已有函数
-- 避免新增全局状态
-- 避免重复逻辑
-
-## Commit Message Rules
+## 输出要求
 
 - 涉及代码修改时，在回复末尾附带 git commit message
-- message 必须存放在代码块内，且仅包含消息主体内容（禁止包含 `git commit -m` 等命令前缀）
-- 格式要求为 `<type>: <描述>`
-- message 使用简体中文
+- message 放在代码块内，只保留消息主体
+- 格式为 `<type>: <描述>`
+- 使用简体中文
 - 不涉及修改时无需提供
