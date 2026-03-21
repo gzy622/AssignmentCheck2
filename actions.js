@@ -26,7 +26,7 @@
             async add() {
                 this.asgManage();
             },
-            async del() { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) State.removeAsg(State.curId); else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); },
+            async del() { this.asgManage(); },
             score(id, name) {
                 const card = document.querySelector(`.student-card[data-id="${id}"]`);
                 if (card) {
@@ -46,6 +46,7 @@
             asgManage() {
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
                 let mounted = new Set();
+                let pendingDeleteId = null;
                 const now = new Date();
                 const mm = `${now.getMonth() + 1}`.padStart(2, '0');
                 const dd = `${now.getDate()}`.padStart(2, '0');
@@ -75,7 +76,8 @@
                             c = document.createElement('article'); c.className = 'asg-card';
                             c.innerHTML = `<div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
                                 <div class="asg-card-fields"><div class="asg-f"><label>名称</label><input class="input-ui" data-r="name"></div><div class="asg-f"><label>科目</label><input class="input-ui" data-r="sub"></div></div><div class="asg-presets"></div>
-                                <div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="pick">切换</button><button class="btn btn-p btn-xs" data-act="save">保存</button><button class="btn btn-d btn-xs" data-act="del">删除</button></div>`;
+                                <div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="pick">切换</button><button class="btn btn-p btn-xs" data-act="save">保存</button><button class="btn btn-d btn-xs" data-act="del">删除</button></div>
+                                <div class="asg-card-confirm" data-role="confirm" hidden>确认删除该任务？<div class="asg-card-actions"><button class="btn btn-c btn-xs" data-act="cancel-del">取消</button><button class="btn btn-d btn-xs" data-act="confirm-del">确认删除</button></div></div>`;
                             pool.set(asg.id, c);
                         }
                         const t = State.getAsgTotalCount(asg), d = State.getAsgDoneCount(asg), r = t ? Math.round(d / t * 100) : 0, sub = State.getAsgSubject(asg), cur = asg.id === State.curId;
@@ -84,15 +86,28 @@
                         const rE = c.querySelector('.asg-rate'); rE.textContent = `${r}%`; rE.style.color = r < 60 ? 'var(--danger)' : r > 90 ? 'var(--success)' : 'inherit';
                         c.querySelector('.asg-prog').textContent = `${d}/${t}`; c.querySelector('[data-r="name"]').value = asg.name; c.querySelector('[data-r="sub"]').value = sub;
                         const p = c.querySelector('.asg-presets'); p.innerHTML = ''; SUBJECT_PRESETS.forEach(s => { const b = document.createElement('button'); b.className = `asg-pill ${sub === s ? 'active' : ''}`; b.textContent = s; b.onclick = () => { c.querySelector('[data-r="sub"]').value = s; upd(); }; p.appendChild(b); });
+                        c.querySelector('[data-role="confirm"]').hidden = pendingDeleteId !== asg.id;
                         list.appendChild(c); next.add(asg.id);
                     });
                     mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;
                 };
-                list.onclick = async e => {
+                list.onclick = e => {
                     const b = e.target.closest('[data-act]'), c = b?.closest('.asg-card'), id = +c?.dataset.id; if (!id) return;
                     if (b.dataset.act === 'pick') { State.selectAsg(id); upd(); }
                     else if (b.dataset.act === 'save') { if (State.updateAsgMeta(id, { name: c.querySelector('[data-r="name"]').value, subject: c.querySelector('[data-r="sub"]').value })) upd(); else BottomSheet.alert('名称不能为空'); }
-                    else if (b.dataset.act === 'del') { if (State.data.length > 1 && await BottomSheet.confirm('删除此任务？')) { State.removeAsg(id); upd(); } else if (State.data.length <= 1) BottomSheet.alert('至少保留一个任务'); }
+                    else if (b.dataset.act === 'del') {
+                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
+                        pendingDeleteId = id;
+                        upd();
+                    } else if (b.dataset.act === 'cancel-del') {
+                        pendingDeleteId = null;
+                        upd();
+                    } else if (b.dataset.act === 'confirm-del') {
+                        if (State.data.length <= 1) return BottomSheet.alert('至少保留一个任务');
+                        State.removeAsg(id);
+                        pendingDeleteId = null;
+                        upd();
+                    }
                 };
                 upd(); Modal.show({ title: '', content: root, type: 'full' });
             },
