@@ -192,4 +192,32 @@ describe('State', () => {
         expect(appendSpy).not.toHaveBeenCalled();
         expect(countEl.textContent).toBe('共 49 人');
     });
+
+    it('should open score action on card click when scoring mode is enabled', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        State.scoring = true;
+
+        UI.gridEl = document.createElement('div');
+        UI.actions = {
+            has: vi.fn(),
+            run: vi.fn(),
+            handleFile: vi.fn(),
+            score: vi.fn()
+        };
+        UI.setupGrid();
+
+        const card = UI.createCard();
+        card.dataset.id = '01';
+        card.dataset.name = '张三';
+        card.dataset.excluded = '0';
+        UI.gridEl.appendChild(card);
+
+        card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(UI.actions.score).toHaveBeenCalledWith('01', '张三');
+    });
 });

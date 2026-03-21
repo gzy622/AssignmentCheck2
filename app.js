@@ -421,7 +421,7 @@
                 Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyScoring(); this.isReady = true; this.render();
             },
             setupGrid() {
-                let timer = null, pressCard = null, longPressed = false, moved = false, startPos = { x: 0, y: 0 };
+                let timer = null, pressCard = null, longPressed = false, moved = false, suppressClick = false, startPos = { x: 0, y: 0 };
                 const cancelTimer = () => { if (timer) clearTimeout(timer); timer = null; };
                 const resetState = () => { if (pressCard) pressCard.classList.remove('pressing'); cancelTimer(); pressCard = null; longPressed = false; moved = false; };
                 const handle = (card, long) => {
@@ -434,11 +434,18 @@
                     const c = e.target.closest('.student-card'); if (!c) return;
                     pressCard = c; longPressed = false; moved = false; startPos = { x: e.clientX, y: e.clientY };
                     c.classList.add('pressing'); cancelTimer();
-                    timer = setTimeout(() => { timer = null; longPressed = true; c.classList.remove('pressing'); handle(c, true); resetState(); }, 500);
+                    timer = setTimeout(() => {
+                        timer = null;
+                        longPressed = true;
+                        suppressClick = true;
+                        c.classList.remove('pressing');
+                        handle(c, true);
+                        resetState();
+                    }, 500);
                 };
                 this.gridEl.onpointerup = e => {
                     const c = e.target.closest('.student-card');
-                    if (c && pressCard === c && !longPressed && !moved) { c.classList.remove('pressing'); handle(c, false); }
+                    if (c && pressCard === c) c.classList.remove('pressing');
                     resetState();
                 };
                 this.gridEl.onpointermove = e => {
@@ -446,6 +453,11 @@
                     if (Math.abs(e.clientX - startPos.x) > 10 || Math.abs(e.clientY - startPos.y) > 8) { moved = true; pressCard.classList.remove('pressing'); cancelTimer(); }
                 };
                 this.gridEl.onpointercancel = this.gridEl.onpointerleave = resetState;
+                this.gridEl.onclick = e => {
+                    const c = e.target.closest('.student-card');
+                    if (!c || suppressClick) { suppressClick = false; return; }
+                    handle(c, false);
+                };
             },
             setupGridSizing() {
                 this.refreshGridPadding();
