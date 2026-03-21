@@ -8,6 +8,8 @@ const ScorePad = {
     originalGridTransform: null,
     _pointerStartY: 0,
     _pointerCurrentY: 0,
+    _activePointerId: null,
+    _isPointerPrimed: false,
     _isDragging: false,
     highlightCloneEl: null,
 
@@ -124,35 +126,46 @@ const ScorePad = {
     },
 
     _onPointerDown(e) {
-        const handle = this.el.querySelector('.scorepad-handle');
-        if (e.target === handle || handle.contains(e.target)) {
-            this._isDragging = true;
-            this._pointerStartY = e.clientY;
-            this._pointerCurrentY = e.clientY;
-            this.el.classList.add('dragging');
-            e.preventDefault();
-        }
+        if (!e.isPrimary || this._activePointerId != null) return;
+        this._activePointerId = e.pointerId;
+        this._pointerStartY = e.clientY;
+        this._pointerCurrentY = e.clientY;
+        this._isPointerPrimed = true;
     },
 
     _onPointerMove(e) {
-        if (!this._isDragging) return;
+        if (e.pointerId !== this._activePointerId || !this._isPointerPrimed) return;
         this._pointerCurrentY = e.clientY;
         const delta = this._pointerCurrentY - this._pointerStartY;
+        if (!this._isDragging) {
+            if (delta < 8) return;
+            this._isDragging = true;
+            this.el.classList.add('dragging');
+            if (this.el.setPointerCapture) this.el.setPointerCapture(e.pointerId);
+        }
         if (delta > 0) {
             const offset = Math.min(delta, 200);
             this.el.style.setProperty('--slide-offset', `${offset}px`);
+        } else {
+            this.el.style.setProperty('--slide-offset', '0px');
         }
         e.preventDefault();
     },
 
     _onPointerUp(e) {
-        if (!this._isDragging) return;
+        if (e.pointerId !== this._activePointerId) return;
+        const dragged = this._isDragging;
         this._isDragging = false;
-        this.el.classList.remove('dragging');
-        const delta = this._pointerCurrentY - this._pointerStartY;
-        if (delta > 80) {
-            this.hide();
-        } else {
+        this._isPointerPrimed = false;
+        this._activePointerId = null;
+        if (this.el.hasPointerCapture?.(e.pointerId)) this.el.releasePointerCapture(e.pointerId);
+        if (dragged) {
+            this.el.classList.remove('dragging');
+            const delta = this._pointerCurrentY - this._pointerStartY;
+            if (delta > 80) {
+                this.hide();
+                return;
+            }
             this.el.style.setProperty('--slide-offset', '0px');
         }
     },
@@ -216,6 +229,9 @@ const ScorePad = {
         this._clearHighlightClone();
 
         this._restoreGrid();
+        this._isDragging = false;
+        this._isPointerPrimed = false;
+        this._activePointerId = null;
         this.currentId = null;
         this.currentName = null;
         this.value = '';
