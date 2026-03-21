@@ -208,6 +208,13 @@
             z-index: 992;
         }
 
+        .score-highlight-clone {
+            position: fixed;
+            z-index: 992;
+            pointer-events: none;
+            margin: 0;
+        }
+
         .student-card.done {
             background: linear-gradient(160deg, var(--done-card-start), var(--done-card-end));
             border-color: var(--done-card-border);
