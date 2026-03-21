@@ -205,14 +205,6 @@
         .student-card.scoring {
             border: 2px dashed #1f6fff !important;
             box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
-            z-index: 992;
-        }
-
-        .score-highlight-clone {
-            position: fixed;
-            z-index: 992;
-            pointer-events: none;
-            margin: 0;
         }
 
         .student-card.done {
@@ -951,7 +943,7 @@
             transition: background 0.25s ease;
         }
         .scorepad-backdrop.is-open {
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0, 0, 0, 0);
             pointer-events: auto;
         }
 
