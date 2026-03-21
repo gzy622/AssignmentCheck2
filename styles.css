@@ -205,6 +205,7 @@
         .student-card.scoring {
             border: 2px dashed #1f6fff !important;
             box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
+            z-index: 992;
         }
 
         .student-card.done {
