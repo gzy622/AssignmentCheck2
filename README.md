@@ -27,6 +27,11 @@ npm install
 npx playwright install chromium
 ```
 
+## 协作说明
+
+- 仓库根目录的 `AGENTS.md` 是给智能体使用的单一规则入口
+- 页面菜单中的版本号在 `index.html` 里维护，发布或功能变更时同步更新
+
 ## 测试说明
 
 ### 单元测试
