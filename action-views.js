@@ -63,10 +63,28 @@ const ActionViews = {
 
     createAsgManageShell() {
         const { root, body } = this.createShell('作业项目管理');
+        body.innerHTML = `<section class="asg-manage-hero">
+            <div class="asg-manage-hero-head">
+                <div class="asg-manage-hero-title">新建任务</div>
+                <div class="asg-manage-hero-note">在此页完成新增、切换、编辑与删除，统一管理任务。</div>
+            </div>
+            <div class="asg-manage-form">
+                <input class="input-ui" data-role="new-name" placeholder="输入任务名称">
+                <button class="btn btn-c" type="button" data-role="new-alt"></button>
+                <button class="btn btn-p" type="button" data-role="new-create">创建</button>
+            </div>
+        </section>`;
         const list = document.createElement('section');
         list.className = 'asg-manage-grid';
         body.appendChild(list);
-        return { root, body, list };
+        return {
+            root,
+            body,
+            list,
+            newNameInput: body.querySelector('[data-role="new-name"]'),
+            newAltBtn: body.querySelector('[data-role="new-alt"]'),
+            newCreateBtn: body.querySelector('[data-role="new-create"]')
+        };
     },
 
     createRosterShell() {
@@ -96,6 +114,27 @@ const ActionViews = {
         const { root, body } = this.createShell('统计概览');
         body.innerHTML = `<div class="st-summary" id="stSum"></div><div class="st-filters" id="stFil"></div><div class="st-card-table" id="stTab"></div>`;
         return { root, sum: body.querySelector('#stSum'), fil: body.querySelector('#stFil'), tab: body.querySelector('#stTab') };
+    },
+
+    createImportShell() {
+        const { root, body } = this.createShell('导入备份');
+        body.style.padding = '16px';
+        body.innerHTML = `<section class="import-shell">
+            <div class="import-note">导入会直接覆盖当前名单、任务与设置。请先确认备份文件来源正确。</div>
+            <div class="import-actions">
+                <button class="btn btn-c" type="button" data-role="pick">选择备份文件</button>
+                <button class="btn btn-p" type="button" data-role="apply" disabled>确认覆盖并导入</button>
+            </div>
+            <div class="import-file" data-role="file">未选择文件</div>
+            <div class="import-status" data-role="status">等待选择备份文件</div>
+        </section>`;
+        return {
+            root,
+            pickBtn: body.querySelector('[data-role="pick"]'),
+            applyBtn: body.querySelector('[data-role="apply"]'),
+            fileEl: body.querySelector('[data-role="file"]'),
+            statusEl: body.querySelector('[data-role="status"]')
+        };
     },
 
     createPresentView(title, students, records) {
