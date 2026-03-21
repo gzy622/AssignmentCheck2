@@ -461,7 +461,11 @@
                 this._gridPaddingY = parseFloat(s.paddingTop) + parseFloat(s.paddingBottom);
             },
             setGridFrozen(f) { this._gridFrozen = !!f; if (!f) this.scheduleGridLayout(); },
-            scheduleGridLayout() { if (!this._gridFrozen) { cancelAnimationFrame(this._gridLayoutRaf || 0); this._gridLayoutRaf = requestAnimationFrame(() => this.updateGridMetrics()); } },
+            scheduleGridLayout() {
+                if (this._gridFrozen || !this.gridEl) return;
+                cancelAnimationFrame(this._gridLayoutRaf || 0);
+                this._gridLayoutRaf = requestAnimationFrame(() => this.updateGridMetrics());
+            },
             calcGridLayout(count, width, height) {
                 const cols = 5, rows = Math.ceil(Math.max(1, count) / cols);
                 const baseGap = Math.max(4, Math.min(10, Math.round(Math.min(width, height) / 95)));
@@ -472,7 +476,11 @@
                 return { cols, rows, gap: g, w: Math.max(18, s.w), h: Math.max(18, s.h), id: Math.max(12, Math.min(44, b * 0.34)), idC: Math.max(9, Math.min(16, b * 0.2)), name: Math.max(9, Math.min(20, b * 0.18)), tag: Math.max(8, Math.min(13, b * 0.12)), pad: Math.max(3, Math.min(8, b * 0.08)), rad: Math.max(8, Math.min(16, b * 0.15)) };
             },
             updateGridMetrics() {
-                const grid = this.gridEl, count = State.roster.length, w = grid.clientWidth - this._gridPaddingX, h = grid.clientHeight - this._gridPaddingY;
+                const grid = this.gridEl;
+                if (!grid || !grid.isConnected) return;
+                const count = State.roster.length;
+                const w = grid.clientWidth - this._gridPaddingX;
+                const h = grid.clientHeight - this._gridPaddingY;
                 if (!w || !h) return;
                 const m = this.calcGridLayout(count, w, h);
                 const key = `${count}|${m.cols}|${m.rows}|${m.gap}|${m.w.toFixed(2)}|${m.h.toFixed(2)}|${m.id}|${m.name}|${m.tag}|${m.pad}|${m.rad}`;
