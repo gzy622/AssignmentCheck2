@@ -54,8 +54,8 @@
                 const defaultName = `${mm}${dd}作业`;
                 const altName = `${mm}${dd}小测`;
                 const createAsg = () => {
-                    const name = (newNameInput.value || '').trim();
-                    if (!name) return bottomSheet.alert('任务名称不能为空');
+                    const name = (newNameInput.value || '').trim() || (newNameInput.placeholder || '').trim();
+                    if (!name) return toast.show('任务名称不能为空');
                     State.addAsg(name);
                     newNameInput.value = '';
                     newNameInput.placeholder = defaultName;
