@@ -45,7 +45,7 @@
             },
             asgManage() {
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
-                const { modal, toast, subjectPresets } = this.ctx;
+                const { modal, bottomSheet, toast, subjectPresets } = this.ctx;
                 let mounted = new Set();
                 const draftTimers = new Map();
                 const now = new Date();
@@ -55,7 +55,7 @@
                 const altName = `${mm}${dd}小测`;
                 const createAsg = () => {
                     const name = (newNameInput.value || '').trim();
-                    if (!name) return BottomSheet.alert('任务名称不能为空');
+                    if (!name) return bottomSheet.alert('任务名称不能为空');
                     State.addAsg(name);
                     newNameInput.value = '';
                     newNameInput.placeholder = defaultName;
@@ -116,7 +116,7 @@
                     clearDraftTimer(id);
                     if (State.data.length <= 1) return toast.show('至少保留一个任务');
                     const asg = State.asgMap.get(id) || State.data.find(item => item.id === id);
-                    const ok = await modal.confirm(`确认删除“${asg?.name || '该任务'}”？`);
+                    const ok = await bottomSheet.confirm(`确认删除“${asg?.name || '该任务'}”？`);
                     if (!ok) return;
                     if (State.data.length <= 1) return toast.show('至少保留一个任务');
                     State.removeAsg(id);
@@ -198,6 +198,7 @@
             roster() {
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
                 const { root, listEl, countEl, excludedEl, toolbar } = this.ctx.views.createRosterShell(), pool = new Map();
+                const { bottomSheet } = this.ctx;
                 let mounted = new Set();
                 const renderSummary = () => {
                     let validCount = 0, excludedCount = 0;
@@ -281,7 +282,7 @@
                 renderAllRows();
                 Modal.show({ title: '', content: root, type: 'full', btns: [{ text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => {
                     try { State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`); State.parseRoster(); State.save({ dirtyData: false, dirtyList: true, invalidateDerived: false }); Modal.close(true); }
-                    catch (err) { Modal.alert(err.message); }
+                    catch (err) { bottomSheet.alert(err.message); }
                 }}]});
             },
             stats() {
@@ -381,5 +382,5 @@
         };
 
         UI.actions = { has: a => typeof Actions[a] === 'function', run: a => Actions[a](), handleFile: e => Actions.handleFile(e), score: (id, name) => Actions.score(id, name) };
-        Actions.ctx = { state: State, modal: Modal, toast: Toast, debug: Debug, views: ActionViews, colorUtil: ColorUtil, subjectPresets: SUBJECT_PRESETS, cardColorPresets: CARD_COLOR_PRESETS, getFileInput: () => $('fileIn') };
+        Actions.ctx = { state: State, modal: Modal, bottomSheet: BottomSheet, toast: Toast, debug: Debug, views: ActionViews, colorUtil: ColorUtil, subjectPresets: SUBJECT_PRESETS, cardColorPresets: CARD_COLOR_PRESETS, getFileInput: () => $('fileIn') };
         globalThis.Actions = Actions;

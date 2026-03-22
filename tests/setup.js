@@ -20,6 +20,8 @@ const files = [
     'core.js',
     'back-handler.js',
     'modal.js',
+    'bottom-sheet.js',
+    'scorepad.js',
     'app.js',
     'action-views.js',
     'actions.js',

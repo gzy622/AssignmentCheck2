@@ -272,7 +272,7 @@ describe('State', () => {
         State.curId = 1;
 
         const toastSpy = vi.spyOn(Toast, 'show').mockImplementation(() => {});
-        const confirmSpy = vi.spyOn(Modal, 'confirm');
+        const confirmSpy = vi.spyOn(BottomSheet, 'confirm');
 
         Actions.asgManage();
         document.querySelector('.asg-card-delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
