@@ -272,13 +272,70 @@ describe('State', () => {
         State.curId = 1;
 
         const toastSpy = vi.spyOn(Toast, 'show').mockImplementation(() => {});
-        const confirmSpy = vi.spyOn(BottomSheet, 'confirm');
 
         Actions.asgManage();
+        const modalSpy = vi.spyOn(Modal, 'show');
         document.querySelector('.asg-card-delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
         await Promise.resolve();
 
         expect(toastSpy).toHaveBeenCalledWith('至少保留一个任务');
-        expect(confirmSpy).not.toHaveBeenCalled();
+        expect(modalSpy).not.toHaveBeenCalled();
+    });
+
+    it('should delete assignment after full screen confirm', async () => {
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} }),
+            State.normalizeAsg({ id: 2, name: '作业 2', subject: '数学', records: {} })
+        ];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        Actions.asgManage();
+        const modalSpy = vi.spyOn(Modal, 'show').mockResolvedValue(true);
+
+        document.querySelector('.asg-card[data-id="2"] .asg-card-delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await Promise.resolve();
+
+        expect(modalSpy).toHaveBeenCalledWith(expect.objectContaining({
+            title: '删除作业项目'
+        }));
+        expect(State.asgMap.has(2)).toBe(false);
+        expect(State.data).toHaveLength(1);
+    });
+
+    it('should create assignment with input placeholder when name input is empty', () => {
+        State.data = [State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        Actions.asgManage();
+
+        const nameInput = document.querySelector('[data-role="new-name"]');
+        const createBtn = document.querySelector('[data-role="new-create"]');
+        const placeholderName = '使用占位文本';
+        nameInput.value = '';
+        nameInput.placeholder = placeholderName;
+        createBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(State.data).toHaveLength(2);
+        expect(State.cur.name).toBe(placeholderName);
+    });
+
+    it('should show toast when creating assignment without input and placeholder', () => {
+        State.data = [State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        const toastSpy = vi.spyOn(Toast, 'show').mockImplementation(() => {});
+        Actions.asgManage();
+
+        const nameInput = document.querySelector('[data-role="new-name"]');
+        const createBtn = document.querySelector('[data-role="new-create"]');
+        nameInput.value = '';
+        nameInput.placeholder = '';
+        createBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(toastSpy).toHaveBeenCalledWith('任务名称不能为空');
+        expect(State.data).toHaveLength(1);
     });
 });
