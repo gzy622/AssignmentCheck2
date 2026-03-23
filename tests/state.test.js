@@ -374,4 +374,23 @@ describe('State', () => {
         expect(toastSpy).toHaveBeenCalledWith('任务名称不能为空');
         expect(State.data).toHaveLength(1);
     });
+
+    it('should freeze grid layout while scorepad is open', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+
+        const freezeSpy = vi.spyOn(UI, 'setGridFrozen');
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+        expect(freezeSpy).toHaveBeenNthCalledWith(1, true);
+        expect(UI._gridFrozen).toBe(true);
+
+        ScorePad.hide();
+        expect(freezeSpy).toHaveBeenNthCalledWith(2, false);
+        expect(UI._gridFrozen).toBe(false);
+    });
 });

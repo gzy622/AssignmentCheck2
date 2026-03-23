@@ -187,6 +187,7 @@ const ScorePad = {
     show(id, name, rect) {
         if (this.isOpen) return;
         this.isOpen = true;
+        UI.setGridFrozen(true);
         this.currentId = id;
         this.currentName = name;
 
@@ -239,6 +240,7 @@ const ScorePad = {
         this._clearHighlightClone();
 
         this._restoreGrid();
+        UI.setGridFrozen(false);
         this._isDragging = false;
         this._isPointerPrimed = false;
         this._activePointerId = null;
