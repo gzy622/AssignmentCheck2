@@ -33,3 +33,10 @@ describe('ColorUtil', () => {
         expect(mixed).toBe('#800080');
     });
 });
+
+describe('formatBackupFileName', () => {
+    it('should generate a detailed backup file name with project slug', () => {
+        const fileName = formatBackupFileName(new Date(2026, 2, 23, 14, 5, 7));
+        expect(fileName).toBe('assignmentcheck2_backup_20260323_140507.json');
+    });
+});

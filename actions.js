@@ -326,8 +326,8 @@
                 upd(); Modal.show({ title: '', content: ui.root, type: 'full' });
             },
             exp() {
-                const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a'), d = new Date();
-                a.href = URL.createObjectURL(b); a.download = `backup_${d.getFullYear()}${(d.getMonth()+1+'').padStart(2,'0')}${(d.getDate()+'').padStart(2,'0')}.json`; a.click();
+                const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a');
+                a.href = URL.createObjectURL(b); a.download = formatBackupFileName(new Date()); a.click();
             },
             imp() {
                 const ui = this.ctx.views.createImportShell();

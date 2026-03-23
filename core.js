@@ -37,6 +37,7 @@ const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim',
 const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
 const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
 const CARD_COLOR_PRESETS = ['#68c490', '#8ecae6', '#f4a261', '#e9c46a', '#c084fc', '#f28482'];
+const APP_NAME_SLUG = 'assignmentcheck2';
 const DEFAULT_ROSTER = [
     '01 蓝慧婷', '02 陈静', '03 李智豪', '04 朱佑豪', '05 张伟芬',
     '06 许俊熠', '07 李凤君', '08 黄文涛', '09 黄泺绮', '10 利子见',
@@ -84,6 +85,16 @@ const ColorUtil = {
         const { r, g, b } = this.hexToRgb(hex);
         return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, Number(alpha) || 0))})`;
     }
+};
+
+const formatBackupFileName = (date = new Date()) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${APP_NAME_SLUG}_backup_${y}${m}${d}_${hh}${mm}${ss}.json`;
 };
 
 const Toast = {
@@ -246,7 +257,9 @@ Object.assign(globalThis, {
     SUBJECT_PRESETS,
     IS_ANDROID_FIREFOX,
     CARD_COLOR_PRESETS,
+    APP_NAME_SLUG,
     ColorUtil,
+    formatBackupFileName,
     Toast,
     Debug
 });
