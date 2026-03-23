@@ -16,15 +16,15 @@ test.describe('Score Preset Buttons', () => {
         const card = page.locator('.student-card').first();
         await card.click();
         
-        // Verify modal is open
-        const modal = page.locator('#modal');
-        await expect(modal).toHaveClass(/is-open/);
+        // Verify scorepad is open
+        const scorepad = page.locator('.scorepad');
+        await expect(scorepad).toHaveClass(/is-open/);
         
         // Click "100" preset button
         await page.click('button[data-act="preset-100"]');
         
-        // Verify modal is closed
-        await expect(modal).not.toHaveClass(/is-open/);
+        // Verify scorepad is closed
+        await expect(scorepad).not.toHaveClass(/is-open/);
         
         // Verify the score is saved
         const scoreBadge = card.locator('.card-score');
@@ -45,9 +45,9 @@ test.describe('Score Preset Buttons', () => {
         // Click "0" preset button
         await page.click('button[data-act="preset-0"]');
         
-        // Verify modal is closed
-        const modal = page.locator('#modal');
-        await expect(modal).not.toHaveClass(/is-open/);
+        // Verify scorepad is closed
+        const scorepad = page.locator('.scorepad');
+        await expect(scorepad).not.toHaveClass(/is-open/);
         
         // Verify the score is saved
         const scoreBadge = card.locator('.card-score');

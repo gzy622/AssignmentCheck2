@@ -5,6 +5,7 @@ const ScorePad = {
     currentId: null,
     currentName: null,
     value: '',
+    submitAction: 'confirm',
     originalGridTransform: null,
     _pointerStartY: 0,
     _pointerCurrentY: 0,
@@ -52,6 +53,10 @@ const ScorePad = {
                     <button class="scorepad-key" data-val="0">0</button>
                     <button class="scorepad-key action" data-val="backspace">⌫</button>
                 </div>
+            </div>
+            <div class="scorepad-presets">
+                <button class="btn btn-c" type="button" data-act="preset-0">记 0 分</button>
+                <button class="btn btn-p" type="button" data-act="preset-100">记 100 分</button>
             </div>
             <div class="scorepad-toolbar">
                 <button class="btn btn-c" data-action="cancel">取消</button>
@@ -108,6 +113,13 @@ const ScorePad = {
                 } else if (action === 'cancel') {
                     this.hide();
                 }
+            }
+
+            const presetBtn = e.target.closest('[data-act]');
+            if (presetBtn) {
+                const act = presetBtn.dataset.act;
+                if (act === 'preset-0') this._applyPreset('0');
+                else if (act === 'preset-100') this._applyPreset('100');
             }
         });
 
@@ -194,6 +206,7 @@ const ScorePad = {
         const asg = State.cur;
         const rec = asg?.records[id] || {};
         this.value = rec.score != null ? String(rec.score) : '';
+        this.submitAction = 'confirm';
         const display = this.el.querySelector('.scorepad-display');
         if (display) {
             display.placeholder = this._formatStudentLabel(id, name) || '点击此处手动输入';
@@ -247,6 +260,7 @@ const ScorePad = {
         this.currentId = null;
         this.currentName = null;
         this.value = '';
+        this.submitAction = 'confirm';
     },
 
     _updateDisplay() {
@@ -269,11 +283,18 @@ const ScorePad = {
                 done: this.value ? true : !!State.cur.records[this.currentId]?.done
             }, {
                 source: 'scorepad',
-                action: 'confirm',
+                action: this.submitAction || 'confirm',
                 studentName: this.currentName
             });
         }
         this.hide();
+    },
+
+    _applyPreset(value) {
+        this.value = value;
+        this.submitAction = `preset-${value}`;
+        this._updateDisplay();
+        this._saveAndClose();
     },
 
     _adjustGridForPanel(rect) {

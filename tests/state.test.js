@@ -393,4 +393,27 @@ describe('State', () => {
         expect(freezeSpy).toHaveBeenNthCalledWith(2, false);
         expect(UI._gridFrozen).toBe(false);
     });
+
+    it('should save preset score with preset action from scorepad', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+        UI.gridEl.appendChild(UI.createCard());
+        UI.renderCard(UI.gridEl.children[0], State.roster[0], {}, false);
+
+        const updRecSpy = vi.spyOn(State, 'updRec');
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+        document.querySelector('button[data-act="preset-100"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(updRecSpy).toHaveBeenCalledWith('01', { score: '100', done: true }, expect.objectContaining({
+            source: 'scorepad',
+            action: 'preset-100',
+            studentName: '张三'
+        }));
+        expect(ScorePad.isOpen).toBe(false);
+    });
 });

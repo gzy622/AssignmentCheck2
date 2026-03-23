@@ -1047,6 +1047,18 @@
             background: #dee2e6;
         }
 
+        .scorepad-presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .scorepad-presets .btn {
+            height: 42px;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
         .scorepad-toolbar {
             display: grid;
             grid-template-columns: 1fr 1fr;
