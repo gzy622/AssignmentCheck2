@@ -45,7 +45,7 @@
             },
             asgManage() {
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
-                const { modal, bottomSheet, toast, subjectPresets } = this.ctx;
+                const { modal, toast, subjectPresets } = this.ctx;
                 let mounted = new Set();
                 const draftTimers = new Map();
                 const now = new Date();
@@ -116,7 +116,23 @@
                     clearDraftTimer(id);
                     if (State.data.length <= 1) return toast.show('至少保留一个任务');
                     const asg = State.asgMap.get(id) || State.data.find(item => item.id === id);
-                    const ok = await bottomSheet.confirm(`确认删除“${asg?.name || '该任务'}”？`);
+                    const total = asg ? State.getAsgTotalCount(asg) : 0;
+                    const done = asg ? State.getAsgDoneCount(asg) : 0;
+                    const info = document.createElement('div');
+                    info.className = 'modal-page-text';
+                    info.innerHTML = `<div style="font-size:1rem;font-weight:700;color:#1f2937;margin-bottom:8px">确认删除该作业项目</div>
+                        <div style="color:#4b5563;line-height:1.6">名称：${asg?.name || '未命名任务'}</div>
+                        <div style="color:#4b5563;line-height:1.6">科目：${State.getAsgSubject(asg)}</div>
+                        <div style="color:#4b5563;line-height:1.6">进度：${done}/${total}</div>
+                        <div style="color:#4b5563;line-height:1.6">ID：${id}</div>`;
+                    const ok = await modal.show({
+                        title: '删除作业项目',
+                        content: info,
+                        btns: [
+                            { text: '取消', type: 'btn-c', val: false },
+                            { text: '确认删除', type: 'btn-d', val: true }
+                        ]
+                    });
                     if (!ok) return;
                     if (State.data.length <= 1) return toast.show('至少保留一个任务');
                     State.removeAsg(id);
