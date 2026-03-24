@@ -9,8 +9,7 @@ test.describe('Score Preset Buttons', () => {
         await page.goto(indexUrl);
         
         // Enable scoring mode
-        await page.click('#btnMenu');
-        await page.click('#btnScoreMenu');
+        await page.click('#btnScore');
         
         // Click on a student card
         const card = page.locator('.student-card').first();
@@ -35,8 +34,7 @@ test.describe('Score Preset Buttons', () => {
         await page.goto(indexUrl);
         
         // Enable scoring mode
-        await page.click('#btnMenu');
-        await page.click('#btnScoreMenu');
+        await page.click('#btnScore');
         
         // Click on the second student card
         const card = page.locator('.student-card').nth(1);
@@ -59,8 +57,7 @@ test.describe('Score Preset Buttons', () => {
 
         await page.click('#btnMenu');
         await page.click('#btnDebug');
-        await page.click('#btnMenu');
-        await page.click('#btnScoreMenu');
+        await page.click('#btnScore');
 
         const card = page.locator('.student-card').first();
         await card.click();
