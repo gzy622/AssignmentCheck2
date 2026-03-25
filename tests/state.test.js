@@ -74,8 +74,48 @@ describe('State', () => {
         expect(rows[0].rate).toBe(100);
         expect(rows[1].id).toBe('03');
         expect(rows[1].rate).toBe(50);
-        
+
         expect(avgRate).toBe(75); // (100 + 50) / 2
+    });
+
+    it('should include only numeric score series in stats rows', () => {
+        State.list = [
+            '01 张三',
+            '02 李四'
+        ];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({
+                id: 1,
+                name: '作业一',
+                subject: '语文',
+                records: {
+                    '01': { done: true, score: '80' },
+                    '02': { done: true, score: '缺考' }
+                }
+            }),
+            State.normalizeAsg({
+                id: 2,
+                name: '作业二',
+                subject: '语文',
+                records: {
+                    '01': { done: true, score: '92' },
+                    '02': { done: true }
+                }
+            })
+        ];
+        State.rebuildAsgIndex();
+        State.invalidateDerived();
+
+        const { rows } = State.getStatsRows([1, 2]);
+        const row01 = rows.find(item => item.id === '01');
+        const row02 = rows.find(item => item.id === '02');
+
+        expect(row01.scoreSeries).toEqual([
+            expect.objectContaining({ asgId: 1, score: 80 }),
+            expect.objectContaining({ asgId: 2, score: 92 })
+        ]);
+        expect(row02.scoreSeries).toEqual([]);
     });
 
     it('should log detailed score changes when updating records', () => {

@@ -112,8 +112,103 @@ const ActionViews = {
 
     createStatsShell() {
         const { root, body } = this.createShell('统计概览');
-        body.innerHTML = `<div class="st-summary" id="stSum"></div><div class="st-filters" id="stFil"></div><div class="st-card-table" id="stTab"></div>`;
-        return { root, sum: body.querySelector('#stSum'), fil: body.querySelector('#stFil'), tab: body.querySelector('#stTab') };
+        body.innerHTML = `<section class="st-overview-card">
+                <div class="st-overview-head">
+                    <div>
+                        <div class="st-overview-title">长期统计视图</div>
+                        <div class="st-overview-note">完成率已并入学生信息；可在下方快速切换数十条作业项目。</div>
+                    </div>
+                    <div class="st-overview-side" data-role="selection"></div>
+                </div>
+                <div class="st-summary" id="stSum"></div>
+            </section>
+            <section class="st-filter-card">
+                <div class="st-filter-head">
+                    <div class="st-filter-title">作业筛选</div>
+                    <div class="st-filter-actions">
+                        <button class="btn btn-c btn-xs" type="button" data-role="all">全选</button>
+                        <button class="btn btn-c btn-xs" type="button" data-role="none">清空</button>
+                        <button class="btn btn-c btn-xs" type="button" data-role="current">仅当前</button>
+                    </div>
+                </div>
+                <div class="st-filters" id="stFil"></div>
+            </section>
+            <div class="st-card-table" id="stTab"></div>`;
+        return {
+            root,
+            sum: body.querySelector('#stSum'),
+            fil: body.querySelector('#stFil'),
+            tab: body.querySelector('#stTab'),
+            selection: body.querySelector('[data-role="selection"]'),
+            selectAllBtn: body.querySelector('[data-role="all"]'),
+            clearBtn: body.querySelector('[data-role="none"]'),
+            currentBtn: body.querySelector('[data-role="current"]')
+        };
+    },
+
+    createScoreTrendChart(scoreSeries) {
+        if (!Array.isArray(scoreSeries) || !scoreSeries.length) return null;
+        const svgNs = 'http://www.w3.org/2000/svg';
+        const width = 152;
+        const height = 48;
+        const padX = 8;
+        const padY = 6;
+        const values = scoreSeries.map(item => item.score);
+        const minScore = Math.min(...values);
+        const maxScore = Math.max(...values);
+        const range = Math.max(1, maxScore - minScore);
+        const step = scoreSeries.length > 1 ? (width - padX * 2) / (scoreSeries.length - 1) : 0;
+        const points = scoreSeries.map((item, index) => {
+            const x = padX + step * index;
+            const normalized = maxScore === minScore ? 0.5 : (item.score - minScore) / range;
+            const y = height - padY - normalized * (height - padY * 2);
+            return { ...item, x, y };
+        });
+
+        const wrap = document.createElement('div');
+        wrap.className = 'st-score-chart';
+        wrap.setAttribute('aria-label', '成绩变化折线图');
+
+        const svg = document.createElementNS(svgNs, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('class', 'st-score-svg');
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-hidden', 'true');
+
+        const baseline = document.createElementNS(svgNs, 'line');
+        baseline.setAttribute('x1', String(padX));
+        baseline.setAttribute('x2', String(width - padX));
+        baseline.setAttribute('y1', String(height - padY));
+        baseline.setAttribute('y2', String(height - padY));
+        baseline.setAttribute('class', 'st-score-axis');
+        svg.appendChild(baseline);
+
+        if (points.length > 1) {
+            const path = document.createElementNS(svgNs, 'path');
+            path.setAttribute('class', 'st-score-line');
+            path.setAttribute('d', points.map((point, index) => `${index ? 'L' : 'M'} ${point.x} ${point.y}`).join(' '));
+            svg.appendChild(path);
+        }
+
+        points.forEach(point => {
+            const circle = document.createElementNS(svgNs, 'circle');
+            circle.setAttribute('cx', String(point.x));
+            circle.setAttribute('cy', String(point.y));
+            circle.setAttribute('r', '3');
+            circle.setAttribute('class', 'st-score-point');
+            circle.setAttribute('title', `${point.asgName}：${point.score}`);
+            svg.appendChild(circle);
+        });
+
+        const meta = document.createElement('div');
+        meta.className = 'st-score-meta';
+        meta.textContent = points.length === 1
+            ? `成绩 ${points[0].score}`
+            : `${points[0].score} → ${points[points.length - 1].score}`;
+
+        wrap.appendChild(svg);
+        wrap.appendChild(meta);
+        return wrap;
     },
 
     createImportShell() {

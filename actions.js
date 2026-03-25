@@ -304,21 +304,42 @@
             stats() {
                 const sel = new Set(State.data.map(a => a.id)), ui = this.ctx.views.createStatsShell(), pool = new Map();
                 let mounted = new Set();
+                ui.selectAllBtn.onclick = () => { State.data.forEach(a => sel.add(a.id)); upd(); };
+                ui.clearBtn.onclick = () => { sel.clear(); upd(); };
+                ui.currentBtn.onclick = () => {
+                    sel.clear();
+                    if (State.curId != null) sel.add(State.curId);
+                    upd();
+                };
                 const upd = () => {
                     const { tgs, rows, avgRate } = State.getStatsRows(Array.from(sel));
-                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${avgRate}%</div><div class="st-label">平均完成率</div></div><div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
+                    ui.selection.textContent = `已选 ${tgs.length}/${State.data.length}`;
+                    ui.sum.innerHTML = `<div class="st-metric"><div class="st-val">${avgRate}%</div><div class="st-label">平均完成率</div></div><div class="st-metric"><div class="st-val">${rows.length}</div><div class="st-label">覆盖学生</div></div><div class="st-metric"><div class="st-val">${tgs.length}</div><div class="st-label">统计任务数</div></div>`;
                     ui.fil.innerHTML = ''; State.data.slice().reverse().forEach(a => { const c = document.createElement('button'); c.type = 'button'; c.className = `st-chip ${sel.has(a.id) ? 'active' : ''}`; c.textContent = a.name; c.onclick = () => { sel.has(a.id) ? sel.delete(a.id) : sel.add(a.id); upd(); }; ui.fil.appendChild(c); });
-                    if (!ui.tab.firstChild) ui.tab.innerHTML = '<div class="st-row st-head"><div>学生</div><div>提交详情</div><div style="text-align:right">完成率</div></div>';
+                    if (!ui.tab.firstChild) ui.tab.innerHTML = '<div class="st-row st-head"><div>学生与完成率</div><div>提交与成绩</div></div>';
                     const next = new Set();
                     rows.forEach(item => {
                         let r = pool.get(item.id); if (!r) {
                             r = document.createElement('div'); r.className = 'st-row';
-                            r.innerHTML = `<div class="st-user"><span class="st-name"></span><span class="st-id"></span></div><div class="st-visual"></div><div class="st-rate"></div>`;
+                            r.innerHTML = `<div class="st-user">
+                                    <div class="st-user-main"><span class="st-name"></span><span class="st-user-rate"></span></div>
+                                    <div class="st-user-meta"><span class="st-id"></span><span class="st-user-progress"></span></div>
+                                </div>
+                                <div class="st-visual-stack"><div class="st-visual"></div><div class="st-score-slot"></div></div>`;
                             pool.set(item.id, r);
                         }
-                        r.querySelector('.st-name').textContent = item.name; r.querySelector('.st-id').textContent = item.id;
+                        r.querySelector('.st-name').textContent = item.name;
+                        r.querySelector('.st-id').textContent = item.id;
+                        r.querySelector('.st-user-progress').textContent = `完成 ${item.dones.filter(Boolean).length}/${item.total}`;
                         const v = r.querySelector('.st-visual'); v.innerHTML = ''; item.dones.forEach(d => { const dot = document.createElement('div'); dot.className = `st-dot ${d ? 'done' : ''}`; v.appendChild(dot); });
-                        const rE = r.querySelector('.st-rate'); rE.textContent = `${item.rate}%`; rE.style.color = item.rate < 60 ? 'var(--danger)' : item.rate > 90 ? 'var(--success)' : 'inherit';
+                        const scoreSlot = r.querySelector('.st-score-slot');
+                        scoreSlot.innerHTML = '';
+                        const trend = this.ctx.views.createScoreTrendChart(item.scoreSeries);
+                        scoreSlot.hidden = !trend;
+                        if (trend) scoreSlot.appendChild(trend);
+                        const rateEl = r.querySelector('.st-user-rate');
+                        rateEl.textContent = `${item.rate}%`;
+                        rateEl.className = `st-user-rate ${item.rate < 60 ? 'low' : item.rate > 90 ? 'high' : 'mid'}`;
                         ui.tab.appendChild(r); next.add(item.id);
                     });
                     mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;

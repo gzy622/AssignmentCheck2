@@ -342,6 +342,12 @@
             getAsgTotalCount(asg) { return this.getAsgMetrics(asg).total; },
             getAsgDoneCount(asg) { return this.getAsgMetrics(asg).done; },
 
+            parseScoreValue(value) {
+                if (value == null || value === '') return null;
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : null;
+            },
+
             getStatsRows(selectedIds) {
                 const keyIds = selectedIds.slice().sort((a, b) => a - b);
                 const cacheKey = `${this._metricsToken}|${keyIds.join(',')}`, cached = this._statsCache.get(cacheKey);
@@ -350,12 +356,19 @@
                 const snapshots = tgs.map(asg => this.getAsgRowSnapshot(asg));
                 const rows = this.roster.map((s, i) => {
                     let total = 0, doneCount = 0;
+                    const scoreSeries = [];
                     const dones = snapshots.map(snap => {
                         if (!snap.included[i]) return null;
                         total++; if (snap.done[i]) doneCount++;
                         return snap.done[i];
                     }).filter(v => v !== null);
-                    return { ...s, dones, rate: total ? Math.round(doneCount / total * 100) : 0, total, i };
+                    tgs.forEach((asg, index) => {
+                        const rec = asg.records?.[s.id];
+                        const score = this.parseScoreValue(rec?.score);
+                        if (score == null || !snapshots[index]?.included[i]) return;
+                        scoreSeries.push({ asgId: asg.id, asgName: asg.name, score, order: index });
+                    });
+                    return { ...s, dones, scoreSeries, rate: total ? Math.round(doneCount / total * 100) : 0, total, i };
                 }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
                 const result = { tgs, rows, avgRate: rows.length ? Math.round(rows.reduce((sum, row) => sum + row.rate, 0) / rows.length) : 0 };
                 this._statsCache.set(cacheKey, result);
