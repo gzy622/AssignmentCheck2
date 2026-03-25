@@ -118,6 +118,21 @@ describe('State', () => {
         expect(row02.scoreSeries).toEqual([]);
     });
 
+    it('should render score trend with a stable score axis', () => {
+        const chart = ActionViews.createScoreTrendChart([
+            { asgId: 1, asgName: '作业一', score: 80 },
+            { asgId: 2, asgName: '作业二', score: 95 }
+        ]);
+
+        const points = [...chart.querySelectorAll('.st-score-point')].map(point =>
+            Number.parseFloat(point.getAttribute('cy'))
+        );
+
+        expect(points).toHaveLength(2);
+        expect(points[0]).toBeCloseTo(13.2, 1);
+        expect(points[1]).toBeCloseTo(7.8, 1);
+    });
+
     it('should log detailed score changes when updating records', () => {
         State.list = ['01 张三'];
         State.parseRoster();

@@ -156,11 +156,13 @@ const ActionViews = {
         const values = scoreSeries.map(item => item.score);
         const minScore = Math.min(...values);
         const maxScore = Math.max(...values);
-        const range = Math.max(1, maxScore - minScore);
+        const axisMin = minScore < 0 ? Math.floor(minScore / 10) * 10 : 0;
+        const axisMax = maxScore > 100 ? Math.ceil(maxScore / 10) * 10 : 100;
+        const range = Math.max(1, axisMax - axisMin);
         const step = scoreSeries.length > 1 ? (width - padX * 2) / (scoreSeries.length - 1) : 0;
         const points = scoreSeries.map((item, index) => {
             const x = padX + step * index;
-            const normalized = maxScore === minScore ? 0.5 : (item.score - minScore) / range;
+            const normalized = (item.score - axisMin) / range;
             const y = height - padY - normalized * (height - padY * 2);
             return { ...item, x, y };
         });
