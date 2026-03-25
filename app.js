@@ -9,7 +9,7 @@
             _draftTimer: 0,
             _draftDirty: false,
             _metricsToken: 0,
-            _statsCache: new Map(),
+            _metricsCache: new Map(),
             _dirtyData: false,
             _dirtyList: false,
             _asgListVersion: 0,
@@ -141,7 +141,7 @@
                 return n;
             },
 
-            invalidateDerived() { this._metricsToken++; this._statsCache.clear(); },
+            invalidateDerived() { this._metricsToken++; this._metricsCache.clear(); },
 
             markGridDirty({ full = false, ids = [] } = {}) {
                 if (full) { this._gridDirtyFull = true; this._gridDirtyStudentIds.clear(); return; }
@@ -312,7 +312,7 @@
 
             getAsgMetrics(asg) {
                 if (!asg) return { total: 0, done: 0 };
-                const cached = this._statsCache.get(asg.id);
+                const cached = this._metricsCache.get(asg.id);
                 if (cached && cached.token === this._metricsToken) return cached.metrics;
                 let total = 0, done = 0;
                 for (const stu of this.roster) {
@@ -320,60 +320,12 @@
                     total++; if (asg.records?.[stu.id]?.done) done++;
                 }
                 const metrics = { total, done };
-                this._statsCache.set(asg.id, { token: this._metricsToken, metrics });
+                this._metricsCache.set(asg.id, { token: this._metricsToken, metrics });
                 return metrics;
-            },
-
-            getAsgRowSnapshot(asg) {
-                if (!asg) return { included: [], done: [] };
-                const cacheKey = `rows:${asg.id}`, cached = this._statsCache.get(cacheKey);
-                if (cached && cached.token === this._metricsToken) return cached.value;
-                const included = new Array(this.roster.length), done = new Array(this.roster.length);
-                this.roster.forEach((stu, i) => {
-                    const isInc = this.isStuIncluded(asg, stu);
-                    included[i] = isInc;
-                    done[i] = isInc && !!asg.records?.[stu.id]?.done;
-                });
-                const value = { included, done };
-                this._statsCache.set(cacheKey, { token: this._metricsToken, value });
-                return value;
             },
 
             getAsgTotalCount(asg) { return this.getAsgMetrics(asg).total; },
             getAsgDoneCount(asg) { return this.getAsgMetrics(asg).done; },
-
-            parseScoreValue(value) {
-                if (value == null || value === '') return null;
-                const parsed = Number(value);
-                return Number.isFinite(parsed) ? parsed : null;
-            },
-
-            getStatsRows(selectedIds) {
-                const keyIds = selectedIds.slice().sort((a, b) => a - b);
-                const cacheKey = `${this._metricsToken}|${keyIds.join(',')}`, cached = this._statsCache.get(cacheKey);
-                if (cached) return cached;
-                const tgs = keyIds.map(id => this.asgMap.get(id)).filter(Boolean);
-                const snapshots = tgs.map(asg => this.getAsgRowSnapshot(asg));
-                const rows = this.roster.map((s, i) => {
-                    let total = 0, doneCount = 0;
-                    const scoreSeries = [];
-                    const dones = snapshots.map(snap => {
-                        if (!snap.included[i]) return null;
-                        total++; if (snap.done[i]) doneCount++;
-                        return snap.done[i];
-                    }).filter(v => v !== null);
-                    tgs.forEach((asg, index) => {
-                        const rec = asg.records?.[s.id];
-                        const score = this.parseScoreValue(rec?.score);
-                        if (score == null || !snapshots[index]?.included[i]) return;
-                        scoreSeries.push({ asgId: asg.id, asgName: asg.name, score, order: index });
-                    });
-                    return { ...s, dones, scoreSeries, rate: total ? Math.round(doneCount / total * 100) : 0, total, i };
-                }).filter(r => r.total > 0).sort((a, b) => b.rate - a.rate || a.i - b.i);
-                const result = { tgs, rows, avgRate: rows.length ? Math.round(rows.reduce((sum, row) => sum + row.rate, 0) / rows.length) : 0 };
-                this._statsCache.set(cacheKey, result);
-                return result;
-            },
 
             formatDebugRecordValue(value, emptyLabel = '空') {
                 return value == null || value === '' ? emptyLabel : String(value);

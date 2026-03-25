@@ -609,45 +609,6 @@
         .st-scroll-area > *{flex-shrink:0}
         .st-layout{display:flex;flex-direction:column;flex:1;min-height:0}
 
-        .st-overview-card,.st-filter-card{background:linear-gradient(180deg,#ffffff,#f8fbff);border:1px solid rgba(15,23,42,.08);border-radius:18px;box-shadow:0 10px 28px rgba(15,23,42,.06);padding:14px}
-        .st-overview-head,.st-filter-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
-        .st-overview-title,.st-filter-title{font-size:.92rem;font-weight:800;color:#17324d;line-height:1.2}
-        .st-overview-note{font-size:.76rem;line-height:1.55;color:#67809a;margin-top:4px}
-        .st-overview-side{padding:7px 10px;border-radius:999px;background:#eef5ff;color:#245ea8;font-size:.78rem;font-weight:800;white-space:nowrap}
-        .st-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:stretch;margin-top:12px}
-        .st-metric{background:linear-gradient(145deg,#f9fbff,#eef4fb);padding:14px 12px;border-radius:16px;border:1px solid rgba(76,102,130,.12);text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.6);display:flex;flex-direction:column;justify-content:center;gap:5px;min-height:92px}
-        .st-val{font-size:1.55rem;font-weight:900;color:#133a63;line-height:1.02;letter-spacing:-.04em}
-        .st-label{font-size:.72rem;color:#6f8092;font-weight:700;line-height:1.2}
-        .st-filter-actions{display:flex;gap:8px;flex-wrap:wrap}
-        .st-filters{display:flex;align-items:center;overflow-x:auto;gap:8px;padding:12px 0 2px;scrollbar-width:thin;scrollbar-color:#c9d7e6 transparent;min-height:50px}
-        .st-filters::-webkit-scrollbar{height:6px}
-        .st-filters::-webkit-scrollbar-thumb{background:#c9d7e6;border-radius:999px}
-        .st-chip{padding:7px 14px;background:linear-gradient(180deg,#fff,#f7fafd);border:1px solid #d7e1ec;border-radius:999px;font-size:.82rem;color:#5b6d80;white-space:nowrap;cursor:pointer;transition:.18s;font-weight:700;display:inline-flex;align-items:center;justify-content:center;min-height:34px;line-height:1.1;position:relative;flex-shrink:0;appearance:none;-webkit-appearance:none;box-sizing:border-box}
-        .st-chip.active{background:linear-gradient(180deg,#1e5fa8,#184f8c);border-color:#184f8c;color:#fff;box-shadow:0 8px 18px rgba(24,79,140,.22)}
-        .st-card-table{background:linear-gradient(180deg,#ffffff,#fbfdff);border-radius:18px;box-shadow:0 14px 30px rgba(15,23,42,.05);overflow:hidden;border:1px solid rgba(15,23,42,.08);min-width:0;position:relative;z-index:1}
-        .st-row{display:grid;grid-template-columns:minmax(148px,.82fr) minmax(0,1.5fr);padding:14px 16px;border-bottom:1px solid #eef3f8;align-items:center;gap:14px;min-width:0}
-        .st-head{background:linear-gradient(180deg,#f7fbff,#eef4f9);font-size:.72rem;color:#6f8092;font-weight:800;padding:10px 16px;letter-spacing:.06em;text-transform:uppercase}
-        .st-user{display:flex;flex-direction:column;gap:6px;min-width:0}
-        .st-user-main,.st-user-meta{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
-        .st-name{font-weight:800;color:#1b2c3f;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-        .st-user-rate{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:4px 8px;border-radius:999px;font-size:.72rem;font-weight:900;line-height:1;background:#edf2f7;color:#5d6f82}
-        .st-user-rate.low{background:#fff1f0;color:#c24138}
-        .st-user-rate.mid{background:#eef5ff;color:#225b96}
-        .st-user-rate.high{background:#edf8f1;color:#22794a}
-        .st-id,.st-user-progress{font-size:.74rem;color:#90a0b0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-        .st-user-progress{font-family:inherit;font-weight:700}
-        .st-visual{display:flex;gap:4px;flex-wrap:wrap;min-height:10px}
-        .st-visual-stack{display:flex;flex-direction:column;gap:8px;min-width:0}
-        .st-dot{width:7px;height:7px;border-radius:999px;background:#dfe7ef;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
-        .st-dot.done{background:linear-gradient(180deg,#4cbc81,#2e9663)}
-        .st-score-slot[hidden]{display:none}
-        .st-score-chart{display:flex;align-items:flex-end;gap:8px;min-width:0;background:#f8fbfe;border:1px solid #e3ebf3;border-radius:12px;padding:6px 8px}
-        .st-score-svg{display:block;flex:1;min-width:96px;height:48px;overflow:visible}
-        .st-score-axis{stroke:#d9e2ec;stroke-width:1}
-        .st-score-line{fill:none;stroke:var(--primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-        .st-score-point{fill:#fff;stroke:var(--primary);stroke-width:2}
-        .st-score-meta{font-size:.72rem;color:#667788;font-weight:800;line-height:1.2;white-space:nowrap;flex-shrink:0}
-
         .asg-row-view{grid-template-columns:minmax(0,1fr) 74px 60px}
         .asg-row-btn{width:100%;border:none;background:#fff;appearance:none;text-align:left}
         .asg-row-btn:focus-visible{outline:2px solid #d0e2ff;outline-offset:-2px}
@@ -937,26 +898,6 @@
         }
 
         @media (max-width: 680px) {
-            .st-scroll-area{padding:12px;gap:12px}
-            .st-overview-card,.st-filter-card{padding:12px;border-radius:16px}
-            .st-overview-side{font-size:.72rem}
-            .st-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-            .st-metric{padding:12px 10px;min-height:84px;border-radius:14px}
-            .st-val{font-size:1.38rem}
-            .st-label{font-size:.7rem}
-            .st-filter-actions{width:100%}
-            .st-filter-actions .btn{flex:1}
-            .st-filters{gap:6px;padding-top:10px;padding-bottom:2px}
-            .st-chip{padding:6px 11px;font-size:.78rem;min-height:30px}
-            .st-head,.st-row{padding-left:12px;padding-right:12px}
-            .st-row{grid-template-columns:minmax(116px,.86fr) minmax(0,1.22fr);gap:8px}
-            .st-user-main,.st-user-meta{gap:6px}
-            .st-name{font-size:.86rem}
-            .st-user-rate{min-width:46px;padding:4px 7px;font-size:.68rem}
-            .st-id,.st-user-progress{font-size:.68rem}
-            .st-score-chart{gap:6px}
-            .st-score-svg{min-width:72px;height:42px}
-            .st-score-meta{font-size:.68rem}
             .present-mode{padding:10px;gap:10px}
             .present-floating-bar{padding:5px 10px;gap:8px;border-radius:18px;opacity:1}
             .present-title{max-width:42vw;font-size:.88rem}

@@ -5,41 +5,6 @@ import { join } from 'path';
 const indexUrl = pathToFileURL(join(process.cwd(), 'index.html')).href;
 
 test.describe('Mobile layout', () => {
-    test('statistics view keeps summary, filters, and table separated', async ({ page }) => {
-        await page.setViewportSize({ width: 430, height: 932 });
-        await page.goto(indexUrl);
-
-        await page.click('#btnMenu');
-        await page.click('button[act="stats"]');
-
-        const summary = page.locator('.st-summary');
-        const filters = page.locator('.st-filters');
-        const table = page.locator('.st-card-table');
-        const chip = page.locator('.st-chip').first();
-
-        await expect(summary).toBeVisible();
-        await expect(filters).toBeVisible();
-        await expect(table).toBeVisible();
-        await expect(chip).toBeVisible();
-
-        await chip.click();
-
-        const summaryBox = await summary.boundingBox();
-        const filtersBox = await filters.boundingBox();
-        const tableBox = await table.boundingBox();
-        const chipBox = await chip.boundingBox();
-
-        expect(summaryBox).not.toBeNull();
-        expect(filtersBox).not.toBeNull();
-        expect(tableBox).not.toBeNull();
-        expect(chipBox).not.toBeNull();
-
-        expect(filtersBox.y).toBeGreaterThan(summaryBox.y + summaryBox.height - 4);
-        expect(tableBox.y).toBeGreaterThan(filtersBox.y + filtersBox.height - 4);
-        expect(chipBox.y).toBeGreaterThanOrEqual(filtersBox.y);
-        expect(chipBox.y + chipBox.height).toBeLessThanOrEqual(filtersBox.y + filtersBox.height + 4);
-    });
-
     test('present mode landscape keeps the grid full screen', async ({ page }) => {
         await page.setViewportSize({ width: 2400, height: 1080 });
         await page.addInitScript(() => {

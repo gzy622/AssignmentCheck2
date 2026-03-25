@@ -39,100 +39,6 @@ describe('State', () => {
         expect(normalized.records).toEqual({ '01': 100 });
     });
 
-    it('should calculate stats rows correctly', () => {
-        State.list = [
-            '01 张三',
-            '02 李四 #非英语',
-            '03 王五'
-        ];
-        State.parseRoster();
-        
-        // Add two assignments
-        State.data = [];
-        State.addAsg('Assignment 1'); // English task
-        State.addAsg('Assignment 2'); // Let's make it English too
-        
-        const a1 = State.data[0];
-        const a2 = State.data[1];
-        
-        // 01 done both, 02 none (excluded), 03 done one
-        a1.records = { '01': { done: true }, '02': { done: true }, '03': { done: true } };
-        a2.records = { '01': { done: true }, '02': { done: true }, '03': { done: false } };
-        
-        State.invalidateDerived();
-        const { tgs, rows, avgRate } = State.getStatsRows([a1.id, a2.id]);
-        
-        expect(tgs.length).toBe(2);
-        
-        // Student 02 (李四) is #非英语, so they should be excluded from English tasks.
-        // If they are excluded, their "total" in stats row should be 0, and they should be filtered out.
-        // Student 01: total 2, done 2, rate 100%
-        // Student 03: total 2, done 1, rate 50%
-        
-        expect(rows.length).toBe(2); 
-        expect(rows[0].id).toBe('01');
-        expect(rows[0].rate).toBe(100);
-        expect(rows[1].id).toBe('03');
-        expect(rows[1].rate).toBe(50);
-
-        expect(avgRate).toBe(75); // (100 + 50) / 2
-    });
-
-    it('should include only numeric score series in stats rows', () => {
-        State.list = [
-            '01 张三',
-            '02 李四'
-        ];
-        State.parseRoster();
-        State.data = [
-            State.normalizeAsg({
-                id: 1,
-                name: '作业一',
-                subject: '语文',
-                records: {
-                    '01': { done: true, score: '80' },
-                    '02': { done: true, score: '缺考' }
-                }
-            }),
-            State.normalizeAsg({
-                id: 2,
-                name: '作业二',
-                subject: '语文',
-                records: {
-                    '01': { done: true, score: '92' },
-                    '02': { done: true }
-                }
-            })
-        ];
-        State.rebuildAsgIndex();
-        State.invalidateDerived();
-
-        const { rows } = State.getStatsRows([1, 2]);
-        const row01 = rows.find(item => item.id === '01');
-        const row02 = rows.find(item => item.id === '02');
-
-        expect(row01.scoreSeries).toEqual([
-            expect.objectContaining({ asgId: 1, score: 80 }),
-            expect.objectContaining({ asgId: 2, score: 92 })
-        ]);
-        expect(row02.scoreSeries).toEqual([]);
-    });
-
-    it('should render score trend with a stable score axis', () => {
-        const chart = ActionViews.createScoreTrendChart([
-            { asgId: 1, asgName: '作业一', score: 80 },
-            { asgId: 2, asgName: '作业二', score: 95 }
-        ]);
-
-        const points = [...chart.querySelectorAll('.st-score-point')].map(point =>
-            Number.parseFloat(point.getAttribute('cy'))
-        );
-
-        expect(points).toHaveLength(2);
-        expect(points[0]).toBeCloseTo(13.2, 1);
-        expect(points[1]).toBeCloseTo(7.8, 1);
-    });
-
     it('should log detailed score changes when updating records', () => {
         State.list = ['01 张三'];
         State.parseRoster();
@@ -194,7 +100,7 @@ describe('State', () => {
         expect(setSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should keep stats cache on rename but refresh it on subject change', () => {
+    it('should keep metrics cache on rename but refresh it on subject change', () => {
         State.list = [
             '01 张三',
             '02 李四 #非英语'
