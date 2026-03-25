@@ -39,6 +39,8 @@ test.describe('Scorepad fast ten mode', () => {
         await expect(scorepad).toHaveClass(/fast-ten-mode/);
         await expect(toggle).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('.scorepad-keypad button[data-val="100"]')).toBeVisible();
+        await expect(page.locator('.scorepad-keypad button[data-val="90"]')).toBeVisible();
+        await expect(page.locator('.scorepad-keypad button[data-val="0"]')).toBeVisible();
         await expect(page.locator('.scorepad-keypad button[data-val="1"]')).toHaveCount(0);
 
         await page.click('.scorepad-keypad button[data-val="100"]');

@@ -1075,9 +1075,6 @@
         .scorepad-key.action:active {
             background: #dee2e6;
         }
-        .scorepad-spacer {
-            height: 48px;
-        }
 
         .scorepad-toolbar {
             display: grid;

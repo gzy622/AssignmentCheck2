@@ -412,6 +412,8 @@ describe('State', () => {
 
         expect(ScorePad.el.classList.contains('fast-ten-mode')).toBe(true);
         expect(document.querySelector('button[data-val="100"]')).toBeTruthy();
+        expect(document.querySelector('button[data-val="90"]')).toBeTruthy();
+        expect(document.querySelector('button[data-val="0"]')).toBeTruthy();
 
         document.querySelector('button[data-val="100"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 

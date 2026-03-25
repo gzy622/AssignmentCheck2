@@ -228,17 +228,19 @@ const ScorePad = {
     _renderKeypad() {
         if (!this.keypadEl) return;
         if (this.fastTenMode) {
-            const values = Array.from({ length: 11 }, (_, i) => String(i * 10));
             const rows = [
-                values.slice(0, 3),
-                values.slice(3, 6),
-                values.slice(6, 9),
-                values.slice(9, 11)
+                ['100', '20', '30'],
+                ['40', '50', '60'],
+                ['70', '80', '90'],
+                ['clear', '0', 'backspace']
             ];
             this.keypadEl.innerHTML = rows.map((row, index) => `
-                <div class="scorepad-row${index === 3 ? ' scorepad-row-compact' : ''}">
-                    ${row.map(value => `<button class="scorepad-key scorepad-key-fast" type="button" data-val="${value}" data-quick="1">${value}</button>`).join('')}
-                    ${index === 3 ? '<div class="scorepad-spacer" aria-hidden="true"></div>' : ''}
+                <div class="scorepad-row">
+                    ${row.map(value => {
+                        if (value === 'clear') return '<button class="scorepad-key action" type="button" data-val="clear">C</button>';
+                        if (value === 'backspace') return '<button class="scorepad-key action" type="button" data-val="backspace">⌫</button>';
+                        return `<button class="scorepad-key scorepad-key-fast" type="button" data-val="${value}" data-quick="1">${value}</button>`;
+                    }).join('')}
                 </div>
             `).join('');
             return;
