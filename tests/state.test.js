@@ -393,4 +393,33 @@ describe('State', () => {
         expect(freezeSpy).toHaveBeenNthCalledWith(2, false);
         expect(UI._gridFrozen).toBe(false);
     });
+
+    it('should switch scorepad to fast ten mode and auto confirm on selection', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+
+        const updRecSpy = vi.spyOn(State, 'updRec').mockImplementation(() => {});
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+
+        expect(document.querySelector('button[data-val="100"]')).toBeNull();
+
+        document.querySelector('button[data-action="toggle-fast-ten"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(ScorePad.el.classList.contains('fast-ten-mode')).toBe(true);
+        expect(document.querySelector('button[data-val="100"]')).toBeTruthy();
+
+        document.querySelector('button[data-val="100"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        expect(updRecSpy).toHaveBeenCalledWith('01', { score: '100', done: true }, expect.objectContaining({
+            source: 'scorepad',
+            action: 'fast-ten',
+            studentName: '张三'
+        }));
+        expect(ScorePad.isOpen).toBe(false);
+    });
 });

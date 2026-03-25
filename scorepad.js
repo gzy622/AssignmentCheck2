@@ -6,6 +6,7 @@ const ScorePad = {
     currentName: null,
     value: '',
     submitAction: 'confirm',
+    fastTenMode: false,
     originalGridTransform: null,
     _pointerStartY: 0,
     _pointerCurrentY: 0,
@@ -31,34 +32,18 @@ const ScorePad = {
             <div class="scorepad-handle"></div>
             <div class="scorepad-display-row">
                 <input type="text" class="scorepad-display input-ui" placeholder="点击此处手动输入" readonly>
+                <button class="scorepad-mode-toggle" type="button" data-action="toggle-fast-ten" aria-pressed="false" title="整十快速打分">×10</button>
             </div>
-            <div class="scorepad-keypad">
-                <div class="scorepad-row">
-                    <button class="scorepad-key" data-val="1">1</button>
-                    <button class="scorepad-key" data-val="2">2</button>
-                    <button class="scorepad-key" data-val="3">3</button>
-                </div>
-                <div class="scorepad-row">
-                    <button class="scorepad-key" data-val="4">4</button>
-                    <button class="scorepad-key" data-val="5">5</button>
-                    <button class="scorepad-key" data-val="6">6</button>
-                </div>
-                <div class="scorepad-row">
-                    <button class="scorepad-key" data-val="7">7</button>
-                    <button class="scorepad-key" data-val="8">8</button>
-                    <button class="scorepad-key" data-val="9">9</button>
-                </div>
-                <div class="scorepad-row">
-                    <button class="scorepad-key action" data-val="clear">C</button>
-                    <button class="scorepad-key" data-val="0">0</button>
-                    <button class="scorepad-key action" data-val="backspace">⌫</button>
-                </div>
-            </div>
+            <div class="scorepad-keypad"></div>
             <div class="scorepad-toolbar">
                 <button class="btn btn-c" data-action="cancel">取消</button>
                 <button class="btn btn-p" data-action="confirm">确认</button>
             </div>
         `;
+
+        this.keypadEl = this.el.querySelector('.scorepad-keypad');
+        this.modeToggleEl = this.el.querySelector('.scorepad-mode-toggle');
+        this._renderKeypad();
 
         const display = this.el.querySelector('.scorepad-display');
         display.onclick = (e) => {
@@ -91,6 +76,13 @@ const ScorePad = {
             const key = e.target.closest('.scorepad-key');
             if (key) {
                 const val = key.dataset.val;
+                if (this.fastTenMode && key.dataset.quick === '1') {
+                    this.value = val;
+                    this.submitAction = 'fast-ten';
+                    this._updateDisplay();
+                    this._saveAndClose();
+                    return;
+                }
                 if (val === 'clear') {
                     this.value = '';
                 } else if (val === 'backspace') {
@@ -104,7 +96,9 @@ const ScorePad = {
             const btn = e.target.closest('[data-action]');
             if (btn) {
                 const action = btn.dataset.action;
-                if (action === 'confirm') {
+                if (action === 'toggle-fast-ten') {
+                    this._setFastTenMode(!this.fastTenMode);
+                } else if (action === 'confirm') {
                     this._saveAndClose();
                 } else if (action === 'cancel') {
                     this.hide();
@@ -191,6 +185,7 @@ const ScorePad = {
         UI.setGridFrozen(true);
         this.currentId = id;
         this.currentName = name;
+        this._setFastTenMode(false);
 
         const asg = State.cur;
         const rec = asg?.records[id] || {};
@@ -219,6 +214,60 @@ const ScorePad = {
         this._adjustGridForPanel(rect);
     },
 
+    _setFastTenMode(enabled) {
+        this.fastTenMode = !!enabled;
+        if (this.el) this.el.classList.toggle('fast-ten-mode', this.fastTenMode);
+        if (this.modeToggleEl) {
+            this.modeToggleEl.classList.toggle('active', this.fastTenMode);
+            this.modeToggleEl.setAttribute('aria-pressed', String(this.fastTenMode));
+        }
+        this._renderKeypad();
+        this._updateDisplay();
+    },
+
+    _renderKeypad() {
+        if (!this.keypadEl) return;
+        if (this.fastTenMode) {
+            const values = Array.from({ length: 11 }, (_, i) => String(i * 10));
+            const rows = [
+                values.slice(0, 3),
+                values.slice(3, 6),
+                values.slice(6, 9),
+                values.slice(9, 11)
+            ];
+            this.keypadEl.innerHTML = rows.map((row, index) => `
+                <div class="scorepad-row${index === 3 ? ' scorepad-row-compact' : ''}">
+                    ${row.map(value => `<button class="scorepad-key scorepad-key-fast" type="button" data-val="${value}" data-quick="1">${value}</button>`).join('')}
+                    ${index === 3 ? '<div class="scorepad-spacer" aria-hidden="true"></div>' : ''}
+                </div>
+            `).join('');
+            return;
+        }
+
+        this.keypadEl.innerHTML = `
+            <div class="scorepad-row">
+                <button class="scorepad-key" type="button" data-val="1">1</button>
+                <button class="scorepad-key" type="button" data-val="2">2</button>
+                <button class="scorepad-key" type="button" data-val="3">3</button>
+            </div>
+            <div class="scorepad-row">
+                <button class="scorepad-key" type="button" data-val="4">4</button>
+                <button class="scorepad-key" type="button" data-val="5">5</button>
+                <button class="scorepad-key" type="button" data-val="6">6</button>
+            </div>
+            <div class="scorepad-row">
+                <button class="scorepad-key" type="button" data-val="7">7</button>
+                <button class="scorepad-key" type="button" data-val="8">8</button>
+                <button class="scorepad-key" type="button" data-val="9">9</button>
+            </div>
+            <div class="scorepad-row">
+                <button class="scorepad-key action" type="button" data-val="clear">C</button>
+                <button class="scorepad-key" type="button" data-val="0">0</button>
+                <button class="scorepad-key action" type="button" data-val="backspace">⌫</button>
+            </div>
+        `;
+    },
+
     _estimatePanelHeight() {
         // 预估面板高度：手柄(25) + 输入框(70) + 键盘(4行*56) + 工具栏(60) + 底部安全区(20) + 间距(20)
         const handleHeight = 25;
@@ -228,7 +277,6 @@ const ScorePad = {
         const toolbarHeight = 60;
         const safeArea = 20;
         const padding = 20;
-        // 注意：移除了 presets 后，面板高度减小。presets 原本占据了约 42px + 12px margin
         return handleHeight + displayHeight + (keypadRows * rowHeight) + toolbarHeight + safeArea + padding;
     },
 
@@ -251,6 +299,7 @@ const ScorePad = {
         this.currentName = null;
         this.value = '';
         this.submitAction = 'confirm';
+        this._setFastTenMode(false);
     },
 
     _updateDisplay() {
