@@ -38,14 +38,19 @@ test.describe('Scorepad fast ten mode', () => {
 
         await expect(scorepad).toHaveClass(/fast-ten-mode/);
         await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('.scorepad-row').nth(0)).toHaveCount(1);
+        await expect(page.locator('.scorepad-row').nth(3)).toHaveCount(1);
+        const topRow = await page.locator('.scorepad-row').nth(0).evaluate(row => [...row.querySelectorAll('button')].map(btn => btn.textContent.trim()));
+        const bottomRow = await page.locator('.scorepad-row').nth(3).evaluate(row => [...row.querySelectorAll('button')].map(btn => btn.textContent.trim()));
+        expect(topRow).toEqual(['10', '20', '30']);
+        expect(bottomRow).toEqual(['C', '100', '⌫']);
+        await expect(page.locator('.scorepad-keypad button[data-val="10"]')).toBeVisible();
         await expect(page.locator('.scorepad-keypad button[data-val="100"]')).toBeVisible();
-        await expect(page.locator('.scorepad-keypad button[data-val="90"]')).toBeVisible();
-        await expect(page.locator('.scorepad-keypad button[data-val="0"]')).toBeVisible();
         await expect(page.locator('.scorepad-keypad button[data-val="1"]')).toHaveCount(0);
 
-        await page.click('.scorepad-keypad button[data-val="100"]');
+        await page.click('.scorepad-keypad button[data-val="10"]');
 
         await expect(scorepad).not.toHaveClass(/is-open/);
-        await expect(card.locator('.card-score')).toHaveText('100');
+        await expect(card.locator('.card-score')).toHaveText('10');
     });
 });

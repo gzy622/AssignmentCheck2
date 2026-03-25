@@ -229,10 +229,10 @@ const ScorePad = {
         if (!this.keypadEl) return;
         if (this.fastTenMode) {
             const rows = [
-                ['100', '20', '30'],
+                ['10', '20', '30'],
                 ['40', '50', '60'],
                 ['70', '80', '90'],
-                ['clear', '0', 'backspace']
+                ['clear', '100', 'backspace']
             ];
             this.keypadEl.innerHTML = rows.map((row, index) => `
                 <div class="scorepad-row">

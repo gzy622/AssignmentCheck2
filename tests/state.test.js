@@ -411,13 +411,16 @@ describe('State', () => {
         document.querySelector('button[data-action="toggle-fast-ten"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
         expect(ScorePad.el.classList.contains('fast-ten-mode')).toBe(true);
-        expect(document.querySelector('button[data-val="100"]')).toBeTruthy();
-        expect(document.querySelector('button[data-val="90"]')).toBeTruthy();
-        expect(document.querySelector('button[data-val="0"]')).toBeTruthy();
+        expect(Array.from(ScorePad.el.querySelectorAll('.scorepad-row')).map(row => [...row.querySelectorAll('button')].map(btn => btn.textContent.trim()).join(' '))).toEqual([
+            '10 20 30',
+            '40 50 60',
+            '70 80 90',
+            'C 100 ⌫'
+        ]);
 
-        document.querySelector('button[data-val="100"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        document.querySelector('button[data-val="10"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        expect(updRecSpy).toHaveBeenCalledWith('01', { score: '100', done: true }, expect.objectContaining({
+        expect(updRecSpy).toHaveBeenCalledWith('01', { score: '10', done: true }, expect.objectContaining({
             source: 'scorepad',
             action: 'fast-ten',
             studentName: '张三'
