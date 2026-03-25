@@ -54,10 +54,6 @@ const ScorePad = {
                     <button class="scorepad-key action" data-val="backspace">⌫</button>
                 </div>
             </div>
-            <div class="scorepad-presets">
-                <button class="btn btn-c" type="button" data-act="preset-0">记 0 分</button>
-                <button class="btn btn-p" type="button" data-act="preset-100">记 100 分</button>
-            </div>
             <div class="scorepad-toolbar">
                 <button class="btn btn-c" data-action="cancel">取消</button>
                 <button class="btn btn-p" data-action="confirm">确认</button>
@@ -113,13 +109,6 @@ const ScorePad = {
                 } else if (action === 'cancel') {
                     this.hide();
                 }
-            }
-
-            const presetBtn = e.target.closest('[data-act]');
-            if (presetBtn) {
-                const act = presetBtn.dataset.act;
-                if (act === 'preset-0') this._applyPreset('0');
-                else if (act === 'preset-100') this._applyPreset('100');
             }
         });
 
@@ -239,6 +228,7 @@ const ScorePad = {
         const toolbarHeight = 60;
         const safeArea = 20;
         const padding = 20;
+        // 注意：移除了 presets 后，面板高度减小。presets 原本占据了约 42px + 12px margin
         return handleHeight + displayHeight + (keypadRows * rowHeight) + toolbarHeight + safeArea + padding;
     },
 
@@ -288,13 +278,6 @@ const ScorePad = {
             });
         }
         this.hide();
-    },
-
-    _applyPreset(value) {
-        this.value = value;
-        this.submitAction = `preset-${value}`;
-        this._updateDisplay();
-        this._saveAndClose();
     },
 
     _adjustGridForPanel(rect) {
