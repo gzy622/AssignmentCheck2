@@ -154,6 +154,21 @@ describe('State', () => {
         expect(countEl.textContent).toBe('共 49 人');
     });
 
+    it('should render roster actions in topbar without modal footer buttons', () => {
+        State.list = ['01 张三'];
+        Actions.roster();
+
+        const topbar = document.querySelector('.roster-topbar');
+        const toolbarActs = [...document.querySelectorAll('[data-role="actions"] [data-act]')].map(btn => btn.dataset.act);
+        const submitActs = [...document.querySelectorAll('[data-role="submit"] [data-act]')].map(btn => btn.dataset.act);
+
+        expect(topbar).toBeTruthy();
+        expect(document.querySelector('.roster-hint-card')).toBeNull();
+        expect(toolbarActs).toEqual(['add', 'autonum', 'sort-seat', 'clean']);
+        expect(submitActs).toEqual(['cancel', 'save']);
+        expect(document.querySelector('.modal-footer').style.display).toBe('none');
+    });
+
     it('should open score action on card click when scoring mode is enabled', () => {
         State.list = ['01 张三'];
         State.parseRoster();

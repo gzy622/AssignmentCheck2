@@ -91,12 +91,17 @@ const ActionViews = {
         const { root, body } = this.createShell('编辑学生名单');
         body.style.padding = '16px';
         body.innerHTML = `<div class="roster-shell">
-            <div class="roster-hint-card">直接逐行编辑座位号、姓名和排除标记。可一键自动生成座位号，也可按座位号排序。勾选“排除英语”后，该学生会在英语任务中自动跳过。</div>
-            <div class="roster-toolbar">
-                <button class="btn btn-p" type="button" data-act="add"> 新增一行</button>
-                <button class="btn btn-c" type="button" data-act="autonum">自动生成座位号</button>
-                <button class="btn btn-c" type="button" data-act="sort-seat">按座位号排序</button>
-                <button class="btn btn-c" type="button" data-act="clean">清理空行</button>
+            <div class="roster-topbar">
+                <div class="roster-actions" data-role="actions">
+                    <button class="btn btn-p" type="button" data-act="add">新增</button>
+                    <button class="btn btn-c" type="button" data-act="autonum">编座号</button>
+                    <button class="btn btn-c" type="button" data-act="sort-seat">排序</button>
+                    <button class="btn btn-c" type="button" data-act="clean">清空行</button>
+                </div>
+                <div class="roster-actions roster-actions-end" data-role="submit">
+                    <button class="btn btn-c" type="button" data-act="cancel">取消</button>
+                    <button class="btn btn-p" type="button" data-act="save">保存</button>
+                </div>
             </div>
             <div class="roster-summary"><span class="roster-badge" data-role="count"></span><span class="roster-badge" data-role="excluded"></span></div>
             <div class="roster-list" data-role="list"></div>
@@ -106,7 +111,8 @@ const ActionViews = {
             listEl: body.querySelector('[data-role="list"]'),
             countEl: body.querySelector('[data-role="count"]'),
             excludedEl: body.querySelector('[data-role="excluded"]'),
-            toolbar: body.querySelector('.roster-toolbar')
+            toolbar: body.querySelector('[data-role="actions"]'),
+            submitBar: body.querySelector('[data-role="submit"]')
         };
     },
 

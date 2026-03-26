@@ -213,9 +213,18 @@
             },
             roster() {
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
-                const { root, listEl, countEl, excludedEl, toolbar } = this.ctx.views.createRosterShell(), pool = new Map();
+                const { root, listEl, countEl, excludedEl, toolbar, submitBar } = this.ctx.views.createRosterShell(), pool = new Map();
                 const { bottomSheet } = this.ctx;
                 let mounted = new Set();
+                const saveRoster = () => {
+                    try {
+                        State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`);
+                        State.parseRoster();
+                        State.save({ dirtyData: false, dirtyList: true, invalidateDerived: false });
+                        Modal.close(true);
+                    }
+                    catch (err) { bottomSheet.alert(err.message); }
+                };
                 const renderSummary = () => {
                     let validCount = 0, excludedCount = 0;
                     entries.forEach(e => {
@@ -267,6 +276,11 @@
                         renderAllRows();
                     }
                 };
+                submitBar.onclick = e => {
+                    const act = e.target.closest('[data-act]')?.dataset.act;
+                    if (act === 'cancel') Modal.close(false);
+                    else if (act === 'save') saveRoster();
+                };
                 listEl.oninput = e => {
                     const r = e.target.closest('.roster-row');
                     if (!r) return;
@@ -296,10 +310,7 @@
                     renderAllRows();
                 };
                 renderAllRows();
-                Modal.show({ title: '', content: root, type: 'full', btns: [{ text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => {
-                    try { State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`); State.parseRoster(); State.save({ dirtyData: false, dirtyList: true, invalidateDerived: false }); Modal.close(true); }
-                    catch (err) { bottomSheet.alert(err.message); }
-                }}]});
+                Modal.show({ title: '', content: root, type: 'full' });
             },
             exp() {
                 const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a');
