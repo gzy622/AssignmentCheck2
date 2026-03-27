@@ -8,6 +8,7 @@ test.describe('Scorepad fast ten mode', () => {
     test('should switch keypad to tens and auto confirm on click', async ({ page }) => {
         await page.setViewportSize({ width: 430, height: 932 });
         await page.addInitScript(() => {
+            localStorage.clear();
             const roster = ['01 张三', '02 李四'];
             const data = [{
                 id: 1,
@@ -52,5 +53,10 @@ test.describe('Scorepad fast ten mode', () => {
 
         await expect(scorepad).not.toHaveClass(/is-open/);
         await expect(card.locator('.card-score')).toHaveText('10');
+
+        await card.click();
+        await expect(scorepad).toHaveClass(/fast-ten-mode/);
+        await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        await expect.poll(async () => page.evaluate(() => localStorage.getItem('tracker_scorepad_fast_ten'))).toBe('true');
     });
 });

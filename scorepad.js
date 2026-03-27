@@ -16,6 +16,7 @@ const ScorePad = {
     highlightCloneEl: null,
 
     init() {
+        this.fastTenMode = !!LS.get(KEYS.SCOREPAD_FAST_TEN, false);
         this.createEl();
         document.body.appendChild(this.backdrop);
         document.body.appendChild(this.el);
@@ -43,7 +44,7 @@ const ScorePad = {
 
         this.keypadEl = this.el.querySelector('.scorepad-keypad');
         this.modeToggleEl = this.el.querySelector('.scorepad-mode-toggle');
-        this._renderKeypad();
+        this._setFastTenMode(this.fastTenMode, { persist: false });
 
         const display = this.el.querySelector('.scorepad-display');
         display.onclick = (e) => {
@@ -185,7 +186,7 @@ const ScorePad = {
         UI.setGridFrozen(true);
         this.currentId = id;
         this.currentName = name;
-        this._setFastTenMode(false);
+        this._setFastTenMode(!!LS.get(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode), { persist: false });
 
         const asg = State.cur;
         const rec = asg?.records[id] || {};
@@ -214,8 +215,9 @@ const ScorePad = {
         this._adjustGridForPanel(rect);
     },
 
-    _setFastTenMode(enabled) {
+    _setFastTenMode(enabled, { persist = true } = {}) {
         this.fastTenMode = !!enabled;
+        if (persist) LS.set(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode);
         if (this.el) this.el.classList.toggle('fast-ten-mode', this.fastTenMode);
         if (this.modeToggleEl) {
             this.modeToggleEl.classList.toggle('active', this.fastTenMode);
@@ -301,7 +303,7 @@ const ScorePad = {
         this.currentName = null;
         this.value = '';
         this.submitAction = 'confirm';
-        this._setFastTenMode(false);
+        this._setFastTenMode(!!LS.get(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode), { persist: false });
     },
 
     _updateDisplay() {

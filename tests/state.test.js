@@ -135,6 +135,34 @@ describe('State', () => {
         expect(State.getAsgTotalCount(State.cur)).toBe(2);
     });
 
+    it('should build student score trend report within assignment range', () => {
+        State.list = [
+            '01 张三',
+            '02 李四 #非英语'
+        ];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '0301小测', subject: '英语', records: { '01': { score: '70', done: true }, '02': { score: '60', done: true } } }),
+            State.normalizeAsg({ id: 2, name: '0308小测', subject: '数学', records: { '01': { score: '82', done: true }, '02': { score: '88', done: true } } }),
+            State.normalizeAsg({ id: 3, name: '0315小测', subject: '英语', records: { '01': { score: '90', done: true }, '02': { score: '95', done: true } } })
+        ];
+        State.rebuildAsgIndex();
+
+        const report = State.getScoreRangeReport(1, 3);
+        const zhang = report.students.find(student => student.id === '01');
+        const li = report.students.find(student => student.id === '02');
+
+        expect(report.assignments.map(item => item.name)).toEqual(['0301小测', '0308小测', '0315小测']);
+        expect(zhang.entries.map(item => item.score)).toEqual([70, 82, 90]);
+        expect(zhang.stats.avg).toBe(80.7);
+        expect(zhang.stats.delta).toBe(20);
+        expect(zhang.stats.trend).toBe('上升');
+        expect(li.entries.map(item => item.score)).toEqual([88]);
+        expect(li.timeline.map(item => item.included)).toEqual([false, true, false]);
+        expect(li.stats.coverage).toBe('1/1');
+        expect(li.stats.trend).toBe('单次记录');
+    });
+
     it('should update roster summary without rebuilding rows on input', () => {
         State.list = Array.from({ length: 50 }, (_, i) => `${String(i + 1).padStart(2, '0')} 学生${i + 1}`);
         Actions.roster();
@@ -402,5 +430,25 @@ describe('State', () => {
             studentName: '张三'
         }));
         expect(ScorePad.isOpen).toBe(false);
+    });
+
+    it('should persist scorepad fast ten mode across reopen', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+        ScorePad._setFastTenMode(true);
+        expect(LS.get(KEYS.SCOREPAD_FAST_TEN, false)).toBe(true);
+
+        ScorePad.hide();
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+
+        expect(ScorePad.fastTenMode).toBe(true);
+        expect(ScorePad.el.classList.contains('fast-ten-mode')).toBe(true);
+        expect(document.querySelector('button[data-val="10"]')).toBeTruthy();
     });
 });

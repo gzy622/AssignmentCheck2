@@ -381,6 +381,80 @@
                 r.readAsText(f);
                 e.target.value = '';
             },
+            quizTrend() {
+                const ui = this.ctx.views.createQuizTrendShell();
+                const assignments = State.data.slice();
+                if (!assignments.length) {
+                    this.ctx.toast.show('暂无任务数据');
+                    return;
+                }
+                const formatStat = value => value == null ? '--' : `${value}`;
+                const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
+                const fillOptions = () => {
+                    const options = assignments.map(asg => `<option value="${asg.id}">${asg.name}</option>`).join('');
+                    ui.startEl.innerHTML = options;
+                    ui.endEl.innerHTML = options;
+                    ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)]?.id ?? assignments[0].id);
+                    ui.endEl.value = String(assignments[assignments.length - 1].id);
+                };
+                const render = () => {
+                    const report = State.getScoreRangeReport(+ui.startEl.value, +ui.endEl.value);
+                    const keyword = String(ui.searchEl.value || '').trim();
+                    const students = keyword ? report.students.filter(student => `${student.id} ${student.name}`.includes(keyword)) : report.students;
+                    ui.summaryEl.textContent = `区间内 ${report.assignments.length} 次任务，${report.scoredStudentCount} 人有成绩记录`;
+                    ui.assignmentEl.replaceChildren(...report.assignments.map((asg, index) => {
+                        const chip = document.createElement('span');
+                        chip.className = 'trend-assignment-chip';
+                        chip.textContent = `${index + 1}. ${asg.name}`;
+                        return chip;
+                    }));
+                    ui.listEl.replaceChildren(...students.map(student => {
+                        const card = document.createElement('article');
+                        card.className = 'trend-card';
+                        const trendTone = student.stats.trend === '上升' ? 'up' : student.stats.trend === '下降' ? 'down' : student.stats.trend === '稳定' ? 'steady' : 'mix';
+                        card.innerHTML = `<div class="trend-card-head">
+                                <div>
+                                    <div class="trend-student-name">${student.id} ${student.name}</div>
+                                    <div class="trend-student-sub">记录 ${student.stats.coverage}</div>
+                                </div>
+                                <span class="trend-badge ${trendTone}">${student.stats.trend}</span>
+                            </div>
+                            <div class="trend-metrics">
+                                <span class="trend-metric">均分 <strong>${formatStat(student.stats.avg)}</strong></span>
+                                <span class="trend-metric">最新 <strong>${formatStat(student.stats.latest)}</strong></span>
+                                <span class="trend-metric">变化 <strong>${formatDelta(student.stats.delta)}</strong></span>
+                                <span class="trend-metric">最佳 <strong>${formatStat(student.stats.best)}</strong></span>
+                            </div>
+                            <div class="trend-chart"></div>
+                            <div class="trend-score-row">${student.timeline.map(item => `<span class="trend-score-pill ${item.score != null ? 'has-score' : item.included ? '' : 'excluded'}"><b>${item.label}</b><strong>${item.score != null ? item.score : item.included ? '--' : '免记'}</strong></span>`).join('')}</div>`;
+                        card.querySelector('.trend-chart').appendChild(this.ctx.views.createTrendSparkline(student.entries));
+                        return card;
+                    }));
+                    if (!students.length) {
+                        const empty = document.createElement('div');
+                        empty.className = 'trend-empty';
+                        empty.textContent = '当前筛选下没有匹配学生';
+                        ui.listEl.replaceChildren(empty);
+                    }
+                };
+                fillOptions();
+                ui.startEl.onchange = render;
+                ui.endEl.onchange = render;
+                ui.searchEl.oninput = render;
+                ui.quickEl.onclick = e => {
+                    const act = e.target.closest('[data-range]')?.dataset.range;
+                    if (!act) return;
+                    if (act === 'all') {
+                        ui.startEl.value = String(assignments[0].id);
+                    } else {
+                        ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)].id);
+                    }
+                    ui.endEl.value = String(assignments[assignments.length - 1].id);
+                    render();
+                };
+                render();
+                Modal.show({ title: '', content: ui.root, type: 'full' });
+            },
             present() { Modal.show({ title: '', content: ActionViews.createPresentView(State.cur.name, State.roster, State.cur.records), type: 'full' }); }
         };
 

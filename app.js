@@ -327,6 +327,74 @@
             getAsgTotalCount(asg) { return this.getAsgMetrics(asg).total; },
             getAsgDoneCount(asg) { return this.getAsgMetrics(asg).done; },
 
+            parseNumericScore(value) {
+                if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+                const text = String(value ?? '').trim();
+                if (!text) return null;
+                return /^-?\d+(?:\.\d+)?$/.test(text) ? Number(text) : null;
+            },
+
+            getAsgRange(startId, endId) {
+                if (!this.data.length) return [];
+                const startIndex = this.data.findIndex(asg => asg.id === startId);
+                const endIndex = this.data.findIndex(asg => asg.id === endId);
+                if (startIndex === -1 && endIndex === -1) return this.data.slice();
+                const safeStart = startIndex === -1 ? 0 : startIndex;
+                const safeEnd = endIndex === -1 ? this.data.length - 1 : endIndex;
+                const [from, to] = safeStart <= safeEnd ? [safeStart, safeEnd] : [safeEnd, safeStart];
+                return this.data.slice(from, to + 1);
+            },
+
+            classifyScoreTrend(entries) {
+                if (!entries.length) return '暂无成绩';
+                if (entries.length === 1) return '单次记录';
+                const scores = entries.map(item => item.score);
+                const delta = scores[scores.length - 1] - scores[0];
+                const span = Math.max(...scores) - Math.min(...scores);
+                if (Math.abs(delta) <= 2 && span <= 4) return '稳定';
+                if (delta >= 5) return '上升';
+                if (delta <= -5) return '下降';
+                return '波动';
+            },
+
+            getScoreRangeReport(startId, endId) {
+                const assignments = this.getAsgRange(startId, endId);
+                const students = this.roster.map(stu => {
+                    const timeline = assignments.map(asg => {
+                        if (!this.isStuIncluded(asg, stu)) return { asgId: asg.id, label: asg.name, score: null, rawScore: '', included: false };
+                        const rawScore = asg.records?.[stu.id]?.score ?? '';
+                        const score = this.parseNumericScore(rawScore);
+                        return { asgId: asg.id, label: asg.name, score, rawScore, included: true };
+                    });
+                    const entries = timeline.filter(item => item.score != null);
+                    const scores = entries.map(item => item.score);
+                    const avg = scores.length ? Number((scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1)) : null;
+                    const latest = scores.length ? scores[scores.length - 1] : null;
+                    const first = scores.length ? scores[0] : null;
+                    const delta = scores.length >= 2 ? Number((latest - first).toFixed(1)) : null;
+                    return {
+                        id: stu.id,
+                        name: stu.name,
+                        entries,
+                        timeline,
+                        stats: {
+                            avg,
+                            latest,
+                            best: scores.length ? Math.max(...scores) : null,
+                            worst: scores.length ? Math.min(...scores) : null,
+                            delta,
+                            coverage: `${entries.length}/${timeline.filter(item => item.included).length}`,
+                            trend: this.classifyScoreTrend(entries)
+                        }
+                    };
+                });
+                return {
+                    assignments: assignments.map(asg => ({ id: asg.id, name: asg.name, subject: this.getAsgSubject(asg) })),
+                    students,
+                    scoredStudentCount: students.filter(student => student.entries.length).length
+                };
+            },
+
             formatDebugRecordValue(value, emptyLabel = '空') {
                 return value == null || value === '' ? emptyLabel : String(value);
             },

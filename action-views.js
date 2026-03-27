@@ -137,6 +137,77 @@ const ActionViews = {
         };
     },
 
+    createQuizTrendShell() {
+        const { root, body } = this.createShell('小测趋势');
+        body.style.padding = '16px';
+        body.innerHTML = `<section class="trend-shell">
+            <div class="trend-hero">
+                <div>
+                    <div class="trend-hero-title">按区间查看全班小测成绩</div>
+                    <div class="trend-hero-note">选择起止任务后，按学生展示均分、最新分、区间变化与得分轨迹。</div>
+                </div>
+                <div class="trend-hero-summary" data-role="summary"></div>
+            </div>
+            <div class="trend-toolbar">
+                <label class="trend-field">
+                    <span>开始</span>
+                    <select class="input-ui" data-role="start"></select>
+                </label>
+                <label class="trend-field">
+                    <span>结束</span>
+                    <select class="input-ui" data-role="end"></select>
+                </label>
+                <label class="trend-field trend-search">
+                    <span>筛选</span>
+                    <input class="input-ui" data-role="search" placeholder="输入学号或姓名">
+                </label>
+                <div class="trend-quick" data-role="quick">
+                    <button class="btn btn-c" type="button" data-range="recent">最近5次</button>
+                    <button class="btn btn-c" type="button" data-range="all">全部</button>
+                </div>
+            </div>
+            <div class="trend-assignment-strip" data-role="assignments"></div>
+            <div class="trend-list" data-role="list"></div>
+        </section>`;
+        return {
+            root,
+            summaryEl: body.querySelector('[data-role="summary"]'),
+            startEl: body.querySelector('[data-role="start"]'),
+            endEl: body.querySelector('[data-role="end"]'),
+            searchEl: body.querySelector('[data-role="search"]'),
+            quickEl: body.querySelector('[data-role="quick"]'),
+            assignmentEl: body.querySelector('[data-role="assignments"]'),
+            listEl: body.querySelector('[data-role="list"]')
+        };
+    },
+
+    createTrendSparkline(entries) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 180 52');
+        svg.setAttribute('class', 'trend-sparkline');
+        if (!entries.length) {
+            svg.innerHTML = '<text x="90" y="30" text-anchor="middle" class="trend-empty-text">暂无分数</text>';
+            return svg;
+        }
+        if (entries.length === 1) {
+            const score = entries[0].score;
+            const y = 44 - Math.max(0, Math.min(40, score / 2.5));
+            svg.innerHTML = `<line x1="16" y1="${y}" x2="164" y2="${y}" class="trend-line trend-line-single"></line><circle cx="90" cy="${y}" r="5" class="trend-dot"></circle>`;
+            return svg;
+        }
+        const scores = entries.map(item => item.score);
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const span = Math.max(1, max - min);
+        const points = entries.map((item, index) => {
+            const x = 16 + (148 * index / (entries.length - 1));
+            const y = 44 - ((item.score - min) / span) * 32;
+            return { x, y, score: item.score };
+        });
+        svg.innerHTML = `<polyline points="${points.map(point => `${point.x},${point.y}`).join(' ')}" class="trend-line"></polyline>${points.map(point => `<circle cx="${point.x}" cy="${point.y}" r="4" class="trend-dot"><title>${point.score}</title></circle>`).join('')}`;
+        return svg;
+    },
+
     createPresentView(title, students, records) {
         const root = document.createElement('div');
         root.className = 'present-mode';

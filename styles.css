@@ -664,6 +664,45 @@
         .import-status.ok{background:#f2fcf5;border-color:#cdeed7;color:#237a42}
         .import-status.err{background:#fff4f2;border-color:#ffd8d3;color:#b24132}
 
+        .trend-shell{display:flex;flex-direction:column;gap:16px}
+        .trend-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:20px;border-radius:20px;background:linear-gradient(145deg,#fffaf2,#eef7ff 58%,#f8fbff);border:1px solid rgba(15,23,42,.08);box-shadow:0 12px 28px rgba(15,23,42,.06)}
+        .trend-hero-title{font-size:1.15rem;font-weight:800;color:#16212c}
+        .trend-hero-note{margin-top:6px;color:#667788;line-height:1.6}
+        .trend-hero-summary{padding:9px 12px;border-radius:14px;background:#fff;border:1px solid rgba(15,23,42,.08);font-weight:700;color:#27445d;white-space:nowrap}
+        .trend-toolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end}
+        .trend-field{display:flex;flex-direction:column;gap:6px;color:#516170;font-size:.84rem;font-weight:700}
+        .trend-quick{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+        .trend-assignment-strip,.trend-score-row{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
+        .trend-assignment-chip,.trend-score-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);white-space:nowrap}
+        .trend-assignment-chip{font-size:.82rem;font-weight:700;color:#405366}
+        .trend-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+        .trend-card{display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 22px rgba(15,23,42,.05)}
+        .trend-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+        .trend-student-name{font-size:1rem;font-weight:800;color:#16212c}
+        .trend-student-sub{margin-top:4px;font-size:.8rem;color:#6a7a8a}
+        .trend-badge{padding:6px 10px;border-radius:999px;font-size:.78rem;font-weight:800}
+        .trend-badge.up{background:#eaf7ef;color:#287a49}
+        .trend-badge.down{background:#fff1f1;color:#bc3946}
+        .trend-badge.steady{background:#eff6ff;color:#285ea8}
+        .trend-badge.mix{background:#fff7e8;color:#9a6400}
+        .trend-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+        .trend-metric{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:14px;background:#f7fafc;color:#5a6a7a;font-size:.84rem;font-weight:700}
+        .trend-metric strong{color:#182633;font-size:.95rem}
+        .trend-chart{padding:10px 12px;border-radius:16px;background:linear-gradient(180deg,#f8fbff,#f2f8f5);border:1px solid rgba(15,23,42,.06)}
+        .trend-sparkline{display:block;width:100%;height:52px}
+        .trend-line{fill:none;stroke:#2f7df6;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+        .trend-line-single{stroke:#87a4d8;stroke-dasharray:4 4}
+        .trend-dot{fill:#2f7df6;stroke:#fff;stroke-width:2}
+        .trend-empty-text{fill:#8a98a8;font-size:12px}
+        .trend-score-pill{font-size:.76rem;color:#4f6071}
+        .trend-score-pill b{font-weight:700}
+        .trend-score-pill strong{font-size:.88rem;color:#16212c}
+        .trend-score-pill.has-score{background:#eef6ff;border-color:rgba(47,125,246,.12)}
+        .trend-score-pill.excluded{background:#f5f6f8;color:#8c98a5}
+        .trend-empty{padding:32px 16px;border-radius:18px;background:#fff;border:1px dashed rgba(15,23,42,.12);text-align:center;color:#6a7a8a;font-weight:700}
+        @media (max-width:860px){.trend-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.trend-hero{flex-direction:column}.trend-hero-summary{white-space:normal}}
+        @media (max-width:560px){.trend-toolbar,.trend-metrics,.trend-list{grid-template-columns:1fr}.trend-quick{justify-content:stretch}.trend-quick .btn{flex:1}}
+
         .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
         .toast.show{opacity:1;transform:translate(-50%,0)}
 
