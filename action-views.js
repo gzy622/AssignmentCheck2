@@ -167,7 +167,9 @@ const ActionViews = {
                 </div>
             </div>
             <div class="trend-assignment-strip" data-role="assignments"></div>
-            <div class="trend-list" data-role="list"></div>
+            <div class="trend-board" data-role="board">
+                <div class="trend-list" data-role="list"></div>
+            </div>
         </section>`;
         return {
             root,
@@ -177,6 +179,7 @@ const ActionViews = {
             searchEl: body.querySelector('[data-role="search"]'),
             quickEl: body.querySelector('[data-role="quick"]'),
             assignmentEl: body.querySelector('[data-role="assignments"]'),
+            boardEl: body.querySelector('[data-role="board"]'),
             listEl: body.querySelector('[data-role="list"]')
         };
     },

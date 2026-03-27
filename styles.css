@@ -675,6 +675,7 @@
         .trend-assignment-strip,.trend-score-row{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
         .trend-assignment-chip,.trend-score-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);white-space:nowrap}
         .trend-assignment-chip{font-size:.82rem;font-weight:700;color:#405366}
+        .trend-board{overflow-x:hidden}
         .trend-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
         .trend-card{display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 22px rgba(15,23,42,.05)}
         .trend-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -701,7 +702,7 @@
         .trend-score-pill.excluded{background:#f5f6f8;color:#8c98a5}
         .trend-empty{padding:32px 16px;border-radius:18px;background:#fff;border:1px dashed rgba(15,23,42,.12);text-align:center;color:#6a7a8a;font-weight:700}
         @media (max-width:860px){.trend-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.trend-hero{flex-direction:column}.trend-hero-summary{white-space:normal}}
-        @media (max-width:560px){.trend-toolbar,.trend-metrics,.trend-list{grid-template-columns:1fr}.trend-quick{justify-content:stretch}.trend-quick .btn{flex:1}}
+        @media (max-width:560px){.trend-toolbar,.trend-metrics{grid-template-columns:1fr}.trend-quick{justify-content:stretch}.trend-quick .btn{flex:1}.trend-shell{gap:12px}.trend-hero{padding:16px;border-radius:18px}.trend-board{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin:0 -4px;padding-inline:4px}.trend-list{grid-auto-flow:column;grid-auto-columns:minmax(272px,calc(100vw - 44px));grid-template-columns:none;width:max-content;min-width:100%}.trend-card{min-width:272px;scroll-snap-align:start}.trend-board{scroll-snap-type:x proximity}}
 
         .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);padding:10px 14px;border-radius:999px;background:rgba(18,23,29,.88);color:#fff;font-size:.86rem;line-height:1;z-index:1200;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
         .toast.show{opacity:1;transform:translate(-50%,0)}
