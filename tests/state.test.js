@@ -466,13 +466,13 @@ describe('State', () => {
             studentName: '张三'
         }));
         expect(ScorePad.isOpen).toBe(false);
-        expect(document.querySelector('.scorepad-submit-hint').textContent).toContain('已记分 10');
-        expect(document.querySelector('.scorepad-submit-hint').classList.contains('is-visible')).toBe(true);
+        expect(document.querySelector('#toast').textContent).toContain('已记分 10');
+        expect(document.querySelector('#toast').classList.contains('show')).toBe(true);
         const card = document.querySelector('.student-card[data-id="01"]');
         expect(card.classList.contains('score-saved-flash')).toBe(true);
 
         vi.advanceTimersByTime(1700);
-        expect(document.querySelector('.scorepad-submit-hint').classList.contains('is-visible')).toBe(false);
+        expect(document.querySelector('#toast').classList.contains('show')).toBe(false);
         expect(card.classList.contains('score-saved-flash')).toBe(false);
     });
 
@@ -494,11 +494,11 @@ describe('State', () => {
         display.dispatchEvent(new Event('input', { bubbles: true }));
         document.querySelector('button[data-action="confirm"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-        const hint = document.querySelector('.scorepad-submit-hint');
+        const hint = document.querySelector('#toast');
         const card = document.querySelector('.student-card[data-id="01"]');
 
         expect(hint.textContent).toContain('01 张三 已记分 88');
-        expect(hint.classList.contains('is-visible')).toBe(true);
+        expect(hint.classList.contains('show')).toBe(true);
         expect(card.classList.contains('score-saved-flash')).toBe(true);
         expect(State.cur.records['01'].score).toBe('88');
     });

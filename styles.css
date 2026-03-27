@@ -213,29 +213,6 @@
             animation: scoreSavedPulse 1.6s ease;
         }
 
-        .student-card.score-saved-flash::after {
-            content: attr(data-score-flash);
-            position: absolute;
-            left: 50%;
-            top: 8px;
-            transform: translateX(-50%);
-            min-width: 42px;
-            max-width: calc(100% - 12px);
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.84);
-            color: #fff;
-            font-size: calc(var(--tag-size, 0.65rem) + 1px);
-            font-weight: 800;
-            line-height: 1;
-            text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            pointer-events: none;
-            animation: scoreSavedBadge 1.6s ease;
-        }
-
         .student-card.done {
             background: linear-gradient(160deg, var(--done-card-start), var(--done-card-end));
             border-color: var(--done-card-border);
@@ -912,44 +889,11 @@
             font-weight: 600;
         }
 
-        .scorepad-submit-hint {
-            position: fixed;
-            left: 50%;
-            top: 14px;
-            z-index: 992;
-            max-width: min(calc(100vw - 24px), 360px);
-            padding: 10px 14px;
-            border-radius: 14px;
-            background: rgba(15, 23, 42, 0.92);
-            color: #fff;
-            font-size: 0.92rem;
-            font-weight: 700;
-            line-height: 1.3;
-            text-align: center;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.2);
-            opacity: 0;
-            pointer-events: none;
-            transform: translate(-50%, -10px) scale(0.98);
-            transition: opacity 0.18s ease, transform 0.18s ease;
-        }
-
-        .scorepad-submit-hint.is-visible {
-            opacity: 1;
-            transform: translate(-50%, 0) scale(1);
-        }
-
         @keyframes scoreSavedPulse {
             0% { transform: scale(1); }
             18% { transform: scale(1.04); }
             38% { transform: scale(1); }
             100% { transform: scale(1); }
-        }
-
-        @keyframes scoreSavedBadge {
-            0% { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(0.96); }
-            12% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-            78% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.98); }
         }
 
         /* Bottom Sheet 底部滑出面板框架 */

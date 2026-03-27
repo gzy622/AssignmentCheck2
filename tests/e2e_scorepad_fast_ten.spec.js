@@ -52,8 +52,8 @@ test.describe('Scorepad fast ten mode', () => {
         await page.click('.scorepad-keypad button[data-val="10"]');
 
         await expect(scorepad).not.toHaveClass(/is-open/);
-        await expect(page.locator('.scorepad-submit-hint')).toContainText('01 张三 已记分 10');
-        await expect(page.locator('.scorepad-submit-hint')).toHaveClass(/is-visible/);
+        await expect(page.locator('#toast')).toContainText('01 张三 已记分 10');
+        await expect(page.locator('#toast')).toHaveClass(/show/);
         await expect(card).toHaveClass(/score-saved-flash/);
         await expect(card.locator('.card-score')).toHaveText('10');
 
