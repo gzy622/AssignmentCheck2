@@ -1,5 +1,5 @@
         const State = {
-            list: [], roster: [], data: [], curId: null, mode: 'id', scoring: false, animations: true, debug: false,
+            list: [], roster: [], data: [], curId: null, mode: 'name', scoring: false, animations: true, debug: false,
             prefs: { cardDoneColor: '#68c490' },
             asgMap: new Map(),
             rosterIndexMap: new Map(),
@@ -245,6 +245,18 @@
                 const btnScore = $('btnScore'); if (btnScore) btnScore.classList.toggle('active', !!this.scoring);
             },
 
+            applyViewMode() {
+                const showNames = this.mode === 'name';
+                document.body.classList.toggle('mode-names', showNames);
+                const sView = $('statusView'); if (sView) sView.textContent = showNames ? '开' : '关';
+                const btnView = $('btnView'); if (btnView) btnView.classList.toggle('active', showNames);
+            },
+
+            toggleViewMode() {
+                this.mode = this.mode === 'id' ? 'name' : 'id';
+                this.applyViewMode();
+            },
+
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
 
             addAsg(n) {
@@ -447,7 +459,6 @@
                 BackHandler.init();
                 this.gridEl = $('grid'); this.counterEl = $('counter'); this.progressFillEl = $('progressFill');
                 this.asgSelectEl = $('asgSelect'); this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
-                $('btnView').onclick = e => { document.body.classList.toggle('mode-names', (State.mode = State.mode === 'id' ? 'name' : 'id') === 'name'); e.target.classList.toggle('active', State.mode === 'name'); };
                 $('btnScore').onclick = () => this.actions.run('toggleScore');
                 $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
                 document.onclick = () => $('menu').classList.remove('show');
@@ -456,7 +467,7 @@
                     if (act && this.actions.has(act)) { $('menu').classList.remove('show'); this.actions.run(act); }
                 };
                 $('fileIn').onchange = e => this.actions.handleFile(e);
-                Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyScoring(); this.isReady = true; this.render();
+                Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); this.isReady = true; this.render();
             },
             setupGrid() {
                 let timer = null, pressCard = null, longPressed = false, moved = false, suppressClick = false, startPos = { x: 0, y: 0 };

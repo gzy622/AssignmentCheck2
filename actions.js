@@ -1,6 +1,7 @@
         const Actions = {
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
             _importCtx: null,
+            toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
             toggleAnim() { const { state } = this.ctx; state.animations = !state.animations; state.saveAnim(); },
             toggleDebug() { const { debug, toast } = this.ctx; debug.toggle(); toast.show(`调试面板已${debug.enabled ? '开启' : '关闭'}`); },
@@ -484,8 +485,7 @@
                 };
                 render();
                 Modal.show({ title: '', content: ui.root, type: 'full' });
-            },
-            present() { Modal.show({ title: '', content: ActionViews.createPresentView(State.cur.name, State.roster, State.cur.records), type: 'full' }); }
+            }
         };
 
         UI.actions = { has: a => typeof Actions[a] === 'function', run: a => Actions[a](), handleFile: e => Actions.handleFile(e), score: (id, name) => Actions.score(id, name) };

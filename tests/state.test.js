@@ -32,6 +32,22 @@ describe('State', () => {
         expect(State.noEnglishIds).toContain('02');
     });
 
+    it('should default to showing names and sync view status text', () => {
+        State.mode = 'name';
+        document.body.classList.remove('mode-names');
+        const btnView = document.getElementById('btnView');
+        const statusView = document.getElementById('statusView');
+
+        btnView.classList.remove('active');
+        statusView.textContent = '关';
+
+        State.applyViewMode();
+
+        expect(document.body.classList.contains('mode-names')).toBe(true);
+        expect(btnView.classList.contains('active')).toBe(true);
+        expect(statusView.textContent).toBe('开');
+    });
+
     it('should normalize assignments', () => {
         const raw = { id: 123456, name: 'Test', records: { '01': 100 } };
         const normalized = State.normalizeAsg(raw);

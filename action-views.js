@@ -1,25 +1,4 @@
 const ActionViews = {
-    getPresentGridMetrics(count) {
-        const total = Math.max(1, Number(count) || 1);
-        const viewportWidth = Math.max(window.innerWidth || 0, window.visualViewport?.width || 0, 320);
-        const viewportHeight = Math.max(window.innerHeight || 0, window.visualViewport?.height || 0, 320);
-        const isPortrait = viewportHeight >= viewportWidth;
-        const maxCols = Math.min(total, isPortrait ? 6 : 10);
-        let best = { cols: 1, rows: total, score: 0 };
-
-        for (let cols = 1; cols <= maxCols; cols++) {
-            const rows = Math.ceil(total / cols);
-            const cellWidth = viewportWidth / cols;
-            const cellHeight = viewportHeight / rows;
-            const shapePenalty = isPortrait ? Math.abs(cellWidth / cellHeight - 0.92) : Math.abs(cellWidth / cellHeight - 1.28);
-            const emptyPenalty = (cols * rows - total) * (isPortrait ? 16 : 30);
-            const score = Math.min(cellWidth, cellHeight * (isPortrait ? 0.96 : 1.1)) - shapePenalty * 22 - emptyPenalty;
-            if (score > best.score) best = { cols, rows, score };
-        }
-
-        return { cols: best.cols, rows: best.rows };
-    },
-
     createNav(title, onClose) {
         const nav = document.createElement('div');
         nav.className = 'st-nav';
@@ -209,41 +188,6 @@ const ActionViews = {
         });
         svg.innerHTML = `<polyline points="${points.map(point => `${point.x},${point.y}`).join(' ')}" class="trend-line"></polyline>${points.map(point => `<circle cx="${point.x}" cy="${point.y}" r="4" class="trend-dot"><title>${point.score}</title></circle>`).join('')}`;
         return svg;
-    },
-
-    createPresentView(title, students, records) {
-        const root = document.createElement('div');
-        root.className = 'present-mode';
-        root.innerHTML = `
-            <div class="present-floating-bar">
-                <span class="present-title">${title}</span>
-                <button class="btn btn-c btn-xs" onclick="Modal.close()">退出展示</button>
-            </div>
-            <div class="present-grid"></div>
-        `;
-        const metrics = this.getPresentGridMetrics(students.length);
-        root.style.setProperty('--present-cols', metrics.cols);
-        root.style.setProperty('--present-rows', metrics.rows);
-        const grid = root.querySelector('.present-grid');
-        students.forEach(stu => {
-            const rec = records[stu.id] || {}, isDone = !!rec.done, score = (rec.score ?? '') !== '' ? rec.score : '';
-            const note = rec.note || '';
-            const displayValue = score !== '' ? score : note;
-            const item = document.createElement('div');
-            item.className = `present-item ${isDone ? 'done' : 'pending'}`;
-            const valueClass = String(displayValue).length >= 3 ? 'present-value compact' : 'present-value';
-            item.innerHTML = `
-                <div class="present-stu-info">
-                    <span class="present-id">${stu.id}</span>
-                    <span class="present-name">${stu.name}</span>
-                </div>
-                <div class="present-status">
-                    ${displayValue !== '' ? `<span class="${valueClass}">${displayValue}</span>` : ''}
-                </div>
-            `;
-            grid.appendChild(item);
-        });
-        return root;
     }
 };
 

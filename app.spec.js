@@ -17,6 +17,19 @@ test.describe('AssignmentCheck2 E2E', () => {
         await expect(menu).toBeVisible();
     });
 
+    test('should default to showing names and toggle it from menu', async ({ page }) => {
+        await page.goto(indexUrl);
+
+        await expect(page.locator('body')).toHaveClass(/mode-names/);
+
+        await page.click('#btnMenu');
+        await expect(page.locator('#statusView')).toHaveText('开');
+        await page.click('#btnView');
+
+        await expect(page.locator('body')).not.toHaveClass(/mode-names/);
+        await expect(page.locator('#statusView')).toHaveText('关');
+    });
+
     test('should show toast message (mock example)', async ({ page }) => {
         await page.goto(indexUrl);
         // We can evaluate scripts in the page context
