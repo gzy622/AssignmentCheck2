@@ -207,6 +207,35 @@
             box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
         }
 
+        .student-card.score-saved-flash {
+            border-color: #0f9f67 !important;
+            box-shadow: 0 0 0 3px rgba(15, 159, 103, 0.2), 0 10px 24px rgba(15, 159, 103, 0.16) !important;
+            animation: scoreSavedPulse 1.6s ease;
+        }
+
+        .student-card.score-saved-flash::after {
+            content: attr(data-score-flash);
+            position: absolute;
+            left: 50%;
+            top: 8px;
+            transform: translateX(-50%);
+            min-width: 42px;
+            max-width: calc(100% - 12px);
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.84);
+            color: #fff;
+            font-size: calc(var(--tag-size, 0.65rem) + 1px);
+            font-weight: 800;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            animation: scoreSavedBadge 1.6s ease;
+        }
+
         .student-card.done {
             background: linear-gradient(160deg, var(--done-card-start), var(--done-card-end));
             border-color: var(--done-card-border);
@@ -674,7 +703,9 @@
         .trend-quick{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
         .trend-assignment-strip,.trend-score-row{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
         .trend-assignment-chip,.trend-score-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);white-space:nowrap}
-        .trend-assignment-chip{font-size:.82rem;font-weight:700;color:#405366}
+        .trend-assignment-chip{font-size:.82rem;font-weight:700;color:#405366;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease,opacity .15s ease}
+        .trend-assignment-chip.active{background:#17324d;color:#fff;border-color:#17324d;box-shadow:0 6px 16px rgba(23,50,77,.18)}
+        .trend-assignment-chip:not(.active){opacity:.68}
         .trend-board{overflow-x:hidden}
         .trend-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
         .trend-card{display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:18px;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 22px rgba(15,23,42,.05)}
@@ -1102,6 +1133,46 @@
             height: 44px;
             font-size: 1rem;
             font-weight: 600;
+        }
+
+        .scorepad-submit-hint {
+            position: fixed;
+            left: 50%;
+            top: 14px;
+            z-index: 992;
+            max-width: min(calc(100vw - 24px), 360px);
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #fff;
+            font-size: 0.92rem;
+            font-weight: 700;
+            line-height: 1.3;
+            text-align: center;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.2);
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -10px) scale(0.98);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+
+        .scorepad-submit-hint.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        @keyframes scoreSavedPulse {
+            0% { transform: scale(1); }
+            18% { transform: scale(1.04); }
+            38% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes scoreSavedBadge {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-4px) scale(0.96); }
+            12% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            78% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.98); }
         }
 
         /* Bottom Sheet 底部滑出面板框架 */

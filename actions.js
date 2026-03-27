@@ -383,13 +383,28 @@
             },
             quizTrend() {
                 const ui = this.ctx.views.createQuizTrendShell();
-                const assignments = State.data.slice();
+                const assignments = State.getQuizTrendAssignments();
+                let activeAssignmentIds = new Set();
+                let lastRangeAssignmentIds = new Set();
                 if (!assignments.length) {
                     this.ctx.toast.show('暂无任务数据');
                     return;
                 }
                 const formatStat = value => value == null ? '--' : `${value}`;
                 const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
+                const getRangeAssignments = () => State.getAsgRange(+ui.startEl.value, +ui.endEl.value, assignments);
+                const syncActiveAssignments = rangeAssignments => {
+                    const rangeIds = new Set(rangeAssignments.map(asg => asg.id));
+                    if (!lastRangeAssignmentIds.size && !activeAssignmentIds.size) {
+                        activeAssignmentIds = new Set(rangeAssignments.map(asg => asg.id));
+                    } else {
+                        activeAssignmentIds = new Set([...activeAssignmentIds].filter(id => rangeIds.has(id)));
+                        rangeAssignments.forEach(asg => {
+                            if (!lastRangeAssignmentIds.has(asg.id)) activeAssignmentIds.add(asg.id);
+                        });
+                    }
+                    lastRangeAssignmentIds = rangeIds;
+                };
                 const fillOptions = () => {
                     const options = assignments.map(asg => `<option value="${asg.id}">${asg.name}</option>`).join('');
                     ui.startEl.innerHTML = options;
@@ -398,13 +413,19 @@
                     ui.endEl.value = String(assignments[assignments.length - 1].id);
                 };
                 const render = () => {
-                    const report = State.getScoreRangeReport(+ui.startEl.value, +ui.endEl.value);
+                    const rangeAssignments = getRangeAssignments();
+                    syncActiveAssignments(rangeAssignments);
+                    const visibleAssignments = rangeAssignments.filter(asg => activeAssignmentIds.has(asg.id));
+                    const report = State.getScoreRangeReport(null, null, visibleAssignments);
                     const keyword = String(ui.searchEl.value || '').trim();
                     const students = keyword ? report.students.filter(student => `${student.id} ${student.name}`.includes(keyword)) : report.students;
-                    ui.summaryEl.textContent = `区间内 ${report.assignments.length} 次任务，${report.scoredStudentCount} 人有成绩记录`;
-                    ui.assignmentEl.replaceChildren(...report.assignments.map((asg, index) => {
-                        const chip = document.createElement('span');
-                        chip.className = 'trend-assignment-chip';
+                    ui.summaryEl.textContent = `区间内 ${rangeAssignments.length} 次任务，当前显示 ${report.assignments.length} 次，${report.scoredStudentCount} 人有成绩记录`;
+                    ui.assignmentEl.replaceChildren(...rangeAssignments.map((asg, index) => {
+                        const chip = document.createElement('button');
+                        chip.type = 'button';
+                        chip.className = `trend-assignment-chip${activeAssignmentIds.has(asg.id) ? ' active' : ''}`;
+                        chip.dataset.asgId = String(asg.id);
+                        chip.setAttribute('aria-pressed', String(activeAssignmentIds.has(asg.id)));
                         chip.textContent = `${index + 1}. ${asg.name}`;
                         return chip;
                     }));
@@ -430,10 +451,10 @@
                         card.querySelector('.trend-chart').appendChild(this.ctx.views.createTrendSparkline(student.entries));
                         return card;
                     }));
-                    if (!students.length) {
+                    if (!students.length || !report.assignments.length) {
                         const empty = document.createElement('div');
                         empty.className = 'trend-empty';
-                        empty.textContent = '当前筛选下没有匹配学生';
+                        empty.textContent = report.assignments.length ? '当前筛选下没有匹配学生' : '当前没有选中要显示的小测项目';
                         ui.listEl.replaceChildren(empty);
                     }
                 };
@@ -441,6 +462,15 @@
                 ui.startEl.onchange = render;
                 ui.endEl.onchange = render;
                 ui.searchEl.oninput = render;
+                ui.assignmentEl.onclick = e => {
+                    const chip = e.target.closest('[data-asg-id]');
+                    if (!chip) return;
+                    const asgId = Number(chip.dataset.asgId);
+                    if (!Number.isFinite(asgId)) return;
+                    if (activeAssignmentIds.has(asgId)) activeAssignmentIds.delete(asgId);
+                    else activeAssignmentIds.add(asgId);
+                    render();
+                };
                 ui.quickEl.onclick = e => {
                     const act = e.target.closest('[data-range]')?.dataset.range;
                     if (!act) return;

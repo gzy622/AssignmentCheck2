@@ -163,6 +163,23 @@ describe('State', () => {
         expect(li.stats.trend).toBe('单次记录');
     });
 
+    it('should default trend assignments to names containing 小测 and fall back when absent', () => {
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '0301作业', subject: '英语', records: {} }),
+            State.normalizeAsg({ id: 2, name: '0308小测', subject: '数学', records: {} }),
+            State.normalizeAsg({ id: 3, name: '0315小测订正', subject: '语文', records: {} })
+        ];
+
+        expect(State.getQuizTrendAssignments().map(asg => asg.name)).toEqual(['0308小测', '0315小测订正']);
+
+        State.data = [
+            State.normalizeAsg({ id: 4, name: '0320作业', subject: '英语', records: {} }),
+            State.normalizeAsg({ id: 5, name: '0321默写', subject: '语文', records: {} })
+        ];
+
+        expect(State.getQuizTrendAssignments().map(asg => asg.name)).toEqual(['0320作业', '0321默写']);
+    });
+
     it('should update roster summary without rebuilding rows on input', () => {
         State.list = Array.from({ length: 50 }, (_, i) => `${String(i + 1).padStart(2, '0')} 学生${i + 1}`);
         Actions.roster();
@@ -399,12 +416,15 @@ describe('State', () => {
     });
 
     it('should switch scorepad to fast ten mode and auto confirm on selection', () => {
+        vi.useFakeTimers();
         State.list = ['01 张三'];
         State.parseRoster();
         State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
         State.rebuildAsgIndex();
         State.curId = 1;
         UI.gridEl = document.getElementById('grid');
+        UI.syncCardPool();
+        UI.renderCard(UI.gridEl.children[0], State.roster[0], {}, false);
 
         const updRecSpy = vi.spyOn(State, 'updRec').mockImplementation(() => {});
 
@@ -430,6 +450,41 @@ describe('State', () => {
             studentName: '张三'
         }));
         expect(ScorePad.isOpen).toBe(false);
+        expect(document.querySelector('.scorepad-submit-hint').textContent).toContain('已记分 10');
+        expect(document.querySelector('.scorepad-submit-hint').classList.contains('is-visible')).toBe(true);
+        const card = document.querySelector('.student-card[data-id="01"]');
+        expect(card.classList.contains('score-saved-flash')).toBe(true);
+
+        vi.advanceTimersByTime(1700);
+        expect(document.querySelector('.scorepad-submit-hint').classList.contains('is-visible')).toBe(false);
+        expect(card.classList.contains('score-saved-flash')).toBe(false);
+    });
+
+    it('should show submit hint after confirming a typed score', () => {
+        vi.useFakeTimers();
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+        UI.syncCardPool();
+        UI.renderCard(UI.gridEl.children[0], State.roster[0], {}, false);
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+
+        const display = document.querySelector('.scorepad-display');
+        display.value = '88';
+        display.dispatchEvent(new Event('input', { bubbles: true }));
+        document.querySelector('button[data-action="confirm"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+        const hint = document.querySelector('.scorepad-submit-hint');
+        const card = document.querySelector('.student-card[data-id="01"]');
+
+        expect(hint.textContent).toContain('01 张三 已记分 88');
+        expect(hint.classList.contains('is-visible')).toBe(true);
+        expect(card.classList.contains('score-saved-flash')).toBe(true);
+        expect(State.cur.records['01'].score).toBe('88');
     });
 
     it('should persist scorepad fast ten mode across reopen', () => {

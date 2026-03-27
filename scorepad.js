@@ -1,6 +1,7 @@
 const ScorePad = {
     el: null,
     backdrop: null,
+    submitHintEl: null,
     isOpen: false,
     currentId: null,
     currentName: null,
@@ -14,12 +15,15 @@ const ScorePad = {
     _isPointerPrimed: false,
     _isDragging: false,
     highlightCloneEl: null,
+    _submitHintTimer: 0,
+    _savedCardTimers: new Map(),
 
     init() {
         this.fastTenMode = !!LS.get(KEYS.SCOREPAD_FAST_TEN, false);
         this.createEl();
         document.body.appendChild(this.backdrop);
         document.body.appendChild(this.el);
+        document.body.appendChild(this.submitHintEl);
     },
 
     createEl() {
@@ -41,6 +45,11 @@ const ScorePad = {
                 <button class="btn btn-p" data-action="confirm">确认</button>
             </div>
         `;
+
+        this.submitHintEl = document.createElement('div');
+        this.submitHintEl.className = 'scorepad-submit-hint';
+        this.submitHintEl.setAttribute('role', 'status');
+        this.submitHintEl.setAttribute('aria-live', 'polite');
 
         this.keypadEl = this.el.querySelector('.scorepad-keypad');
         this.modeToggleEl = this.el.querySelector('.scorepad-mode-toggle');
@@ -178,6 +187,41 @@ const ScorePad = {
         const sid = String(id ?? '').trim();
         const sname = String(name ?? '').trim();
         return [sid, sname].filter(Boolean).join(' ');
+    },
+
+    _formatSubmitHint(score, id, name) {
+        const label = this._formatStudentLabel(id, name);
+        const text = String(score ?? '').trim();
+        if (!text) return label ? `${label} 已清除分数` : '已清除分数';
+        return label ? `${label} 已记分 ${text}` : `已记分 ${text}`;
+    },
+
+    _showSubmitHint(score, id, name) {
+        if (!this.submitHintEl) return;
+        clearTimeout(this._submitHintTimer);
+        this.submitHintEl.textContent = this._formatSubmitHint(score, id, name);
+        this.submitHintEl.classList.remove('is-visible');
+        void this.submitHintEl.offsetWidth;
+        this.submitHintEl.classList.add('is-visible');
+        this._submitHintTimer = setTimeout(() => {
+            this.submitHintEl.classList.remove('is-visible');
+        }, 1600);
+    },
+
+    _flashSavedCard(id, score) {
+        const card = this._getCardById(id);
+        if (!card) return;
+        const timer = this._savedCardTimers.get(String(id));
+        if (timer) clearTimeout(timer);
+        card.dataset.scoreFlash = String(score ?? '').trim() || '已提交';
+        card.classList.remove('score-saved-flash');
+        void card.offsetWidth;
+        card.classList.add('score-saved-flash');
+        this._savedCardTimers.set(String(id), setTimeout(() => {
+            card.classList.remove('score-saved-flash');
+            delete card.dataset.scoreFlash;
+            this._savedCardTimers.delete(String(id));
+        }, 1600));
     },
 
     show(id, name, rect) {
@@ -320,15 +364,18 @@ const ScorePad = {
             display.readOnly = true;
             display.blur();
         }
+        const nextValue = this.value;
         if (this.currentId) {
             State.updRec(this.currentId, {
-                score: this.value || null,
-                done: this.value ? true : !!State.cur.records[this.currentId]?.done
+                score: nextValue || null,
+                done: nextValue ? true : !!State.cur.records[this.currentId]?.done
             }, {
                 source: 'scorepad',
                 action: this.submitAction || 'confirm',
                 studentName: this.currentName
             });
+            this._showSubmitHint(nextValue, this.currentId, this.currentName);
+            this._flashSavedCard(this.currentId, nextValue);
         }
         this.hide();
     },

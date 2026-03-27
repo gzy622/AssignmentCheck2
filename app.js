@@ -334,15 +334,20 @@
                 return /^-?\d+(?:\.\d+)?$/.test(text) ? Number(text) : null;
             },
 
-            getAsgRange(startId, endId) {
-                if (!this.data.length) return [];
-                const startIndex = this.data.findIndex(asg => asg.id === startId);
-                const endIndex = this.data.findIndex(asg => asg.id === endId);
-                if (startIndex === -1 && endIndex === -1) return this.data.slice();
+            getQuizTrendAssignments() {
+                const quizzes = this.data.filter(asg => /小测/.test(String(asg?.name || '')));
+                return quizzes.length ? quizzes : this.data.slice();
+            },
+
+            getAsgRange(startId, endId, source = this.data) {
+                if (!source.length) return [];
+                const startIndex = source.findIndex(asg => asg.id === startId);
+                const endIndex = source.findIndex(asg => asg.id === endId);
+                if (startIndex === -1 && endIndex === -1) return source.slice();
                 const safeStart = startIndex === -1 ? 0 : startIndex;
-                const safeEnd = endIndex === -1 ? this.data.length - 1 : endIndex;
+                const safeEnd = endIndex === -1 ? source.length - 1 : endIndex;
                 const [from, to] = safeStart <= safeEnd ? [safeStart, safeEnd] : [safeEnd, safeStart];
-                return this.data.slice(from, to + 1);
+                return source.slice(from, to + 1);
             },
 
             classifyScoreTrend(entries) {
@@ -357,8 +362,8 @@
                 return '波动';
             },
 
-            getScoreRangeReport(startId, endId) {
-                const assignments = this.getAsgRange(startId, endId);
+            getScoreRangeReport(startId, endId, source = this.data) {
+                const assignments = this.getAsgRange(startId, endId, source);
                 const students = this.roster.map(stu => {
                     const timeline = assignments.map(asg => {
                         if (!this.isStuIncluded(asg, stu)) return { asgId: asg.id, label: asg.name, score: null, rawScore: '', included: false };
