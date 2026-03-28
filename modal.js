@@ -160,6 +160,11 @@ const Modal = {
         this.el.className = `${isFullScreen ? 'full' : 'page'}`;
         this._stableFocusMode = IS_ANDROID_FIREFOX && autoFocusEl?.matches?.('input, textarea, [contenteditable="true"]');
         if (this._stableFocusMode) this.el.classList.add('focus-stable');
+
+        // Apply lite transitions for Android devices to improve animation performance
+        if (isFullScreen && Device.useLiteFullscreenTransitions()) {
+            document.body.classList.add('lite-transitions');
+        }
         this.header.style.display = 'none';
         this.footer.innerHTML = '';
         this.footer.style.display = !usePage && btns.length ? 'flex' : 'none';
@@ -177,7 +182,9 @@ const Modal = {
         if (Debug.enabled) Debug.log(`Modal.show type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
         this.stageOpenTransition();
-        this.armPointerGuard(this.isFull ? 360 : 280); this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
+        // Use shorter pointer guard for lite transitions on Android
+        const pointerGuardMs = (this.isFull && Device.useLiteFullscreenTransitions()) ? 240 : (this.isFull ? 360 : 280);
+        this.armPointerGuard(pointerGuardMs); this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
         return new Promise(r => this.resolve = r);
     },
 
@@ -187,6 +194,7 @@ const Modal = {
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;
         clearTimeout(this._pointerGuardTimer); this.el.style.pointerEvents = '';
+        document.body.classList.remove('lite-transitions');
         this.unbindViewport(); this.unlockBody(); UI.setGridFrozen(false);
         const r = this.resolve; this.resolve = null; if (r) r(val);
     },
@@ -200,7 +208,9 @@ const Modal = {
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
         if (!State.animations) return this._cleanup(val);
-        setTimeout(() => this._cleanup(val), this.isFull ? this.FULL_EXIT_MS : this.PAGE_EXIT_MS);
+        // Use shorter exit duration for lite transitions on Android
+        const exitMs = (this.isFull && Device.useLiteFullscreenTransitions()) ? 180 : (this.isFull ? this.FULL_EXIT_MS : this.PAGE_EXIT_MS);
+        setTimeout(() => this._cleanup(val), exitMs);
     },
 
     forceClose(val = false) { if (this.isOpen) this._cleanup(val); },

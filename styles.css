@@ -44,6 +44,41 @@
             transform: none !important;
         }
 
+        /* Android lite mode: simplified fade-only transitions for better performance */
+        body.lite-transitions dialog.full .modal-card {
+            transform: none !important;
+            opacity: 0;
+            will-change: opacity;
+        }
+
+        body.lite-transitions dialog.full.is-open .modal-card {
+            animation: lite-fade-in 200ms ease-out forwards;
+        }
+
+        body.lite-transitions dialog.full.is-closing .modal-card {
+            animation: lite-fade-out 160ms ease-in forwards;
+        }
+
+        body.lite-transitions dialog.full .st-nav,
+        body.lite-transitions dialog.full .st-scroll-area > * {
+            transform: none !important;
+            opacity: 0;
+            will-change: opacity;
+        }
+
+        body.lite-transitions dialog.full.is-open .st-nav,
+        body.lite-transitions dialog.full.is-open .st-scroll-area > * {
+            animation: lite-fade-in 180ms ease-out 40ms forwards;
+        }
+
+        body.lite-transitions dialog.full.is-closing .st-nav,
+        body.lite-transitions dialog.full.is-closing .st-scroll-area > * {
+            animation: lite-fade-out 120ms ease-in forwards;
+        }
+
+        @keyframes lite-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes lite-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
             background: var(--bg);

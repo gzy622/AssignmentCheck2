@@ -47,7 +47,7 @@ const Device = {
         return 'ontouchstart' in window || Number(navigator.maxTouchPoints) > 0;
     },
     useLiteFullscreenTransitions() {
-        return false;
+        return this.isAndroid();
     }
 };
 
