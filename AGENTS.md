@@ -9,13 +9,14 @@
 ## 输出要求
 
 - 修改仓库文件时，回复末尾附带 git commit message
-- 格式：`<type>: <简述>`，简述分点写清主要改动
+- 简述分点写清主要改动
 - 使用简体中文，回复正文平铺直叙、自然流动
 - 不涉及修改时无需提供
 
 ## 优先阅读
 
 修改前优先阅读：
+
 - `index.html`：应用入口
 - `boot.js`：启动入口
 - `app.js`：核心状态与逻辑
@@ -41,12 +42,14 @@
 ## 测试与验证
 
 仅当用户明确要求时执行并提及测试：
+
 - `npm run test`
 - `npm run test:e2e`
 - 直接打开 `index.html` 运行
 - 本地数据读写正常
 
 更全面验证可运行：
+
 ```bash
 npm run test:all
 npm run test:coverage
@@ -69,3 +72,4 @@ npm run test:coverage
 - 功能可运行
 - 不破坏现有功能
 - 用户要求测试时全部通过
+

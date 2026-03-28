@@ -3,11 +3,13 @@ Modal.init();
 ScorePad.init();
 Debug.init();
 State.init();
-// 显示版本号
-const versionEl = document.getElementById('menuVersion');
-if (versionEl) {
-    const versionText = versionEl.textContent;
-    if (versionText) {
-        Toast.show(versionText);
+// 延迟显示版本号，让数据加载完成后再显示
+setTimeout(() => {
+    const versionEl = document.getElementById('menuVersion');
+    if (versionEl) {
+        const versionText = versionEl.textContent;
+        if (versionText) {
+            Toast.show(versionText);
+        }
     }
-}
+}, 500);

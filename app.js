@@ -21,34 +21,52 @@
             _gridDirtyStudentIds: new Set(),
 
             init() {
-                this.list = LS.get(KEYS.LIST, DEFAULT_ROSTER);
-                this.data = LS.get(KEYS.DATA, []).map(a => this.normalizeAsg(a)).filter(Boolean);
-                this.animations = LS.get(KEYS.ANIM, true);
-                this.debug = !!LS.get(KEYS.DEBUG, false);
-                this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
-                const recovered = this.applyRecoveryDraft();
-                try {
-                    this.parseRoster();
-                    Debug.log('Roster parsed successfully', 'info');
-                } catch (err) {
-                    Debug.log(`Roster parse error: ${err.message}`, 'error');
-                    window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
-                    throw err;
-                }
-                if (!this.data.length) {
-                    Debug.log('No data found, adding default assignment', 'info');
-                    this.addAsg('任务 1');
-                }
-                const repairedIds = this.sanitizeAsgIds();
-                this._ensureAsgIndex();
-                if (repairedIds) Toast.show('已自动修复异常任务 ID');
-                this.curId = this.resolveCurId(this.curId);
-                this.applyAnim();
-                this.applyCardColor();
-                window.addEventListener('beforeunload', () => this._flushPersist({ includeDraft: true }));
-                this.view.init();
-                this._lastDraftSnapshot = this.getRecoverySnapshot();
-                if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
+                // 异步初始化，避免启动时卡顿
+                const initAsync = async () => {
+                    // 先加载基本数据
+                    this.list = LS.get(KEYS.LIST, DEFAULT_ROSTER);
+                    this.animations = LS.get(KEYS.ANIM, true);
+                    this.debug = !!LS.get(KEYS.DEBUG, false);
+                    this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
+                    
+                    // 延迟加载和处理数据，让页面先渲染
+                    setTimeout(() => {
+                        try {
+                            this.data = LS.get(KEYS.DATA, []).map(a => this.normalizeAsg(a)).filter(Boolean);
+                            const recovered = this.applyRecoveryDraft();
+                            
+                            try {
+                                this.parseRoster();
+                                Debug.log('Roster parsed successfully', 'info');
+                            } catch (err) {
+                                Debug.log(`Roster parse error: ${err.message}`, 'error');
+                                window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
+                                throw err;
+                            }
+                            
+                            if (!this.data.length) {
+                                Debug.log('No data found, adding default assignment', 'info');
+                                this.addAsg('任务 1');
+                            }
+                            
+                            const repairedIds = this.sanitizeAsgIds();
+                            this._ensureAsgIndex();
+                            if (repairedIds) Toast.show('已自动修复异常任务 ID');
+                            
+                            this.curId = this.resolveCurId(this.curId);
+                            this.applyAnim();
+                            this.applyCardColor();
+                            window.addEventListener('beforeunload', () => this._flushPersist({ includeDraft: true }));
+                            this.view.init();
+                            this._lastDraftSnapshot = this.getRecoverySnapshot();
+                            if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
+                        } catch (err) {
+                            Debug.log(`Init error: ${err.message}`, 'error');
+                        }
+                    }, 100);
+                };
+                
+                initAsync();
             },
 
             normalizePrefs(raw) {
@@ -603,7 +621,13 @@
                     if (act && this.actions.has(act)) { $('menu').classList.remove('show'); this.actions.run(act); }
                 };
                 $('fileIn').onchange = e => this.actions.handleFile(e);
-                Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); this.isReady = true; this.render();
+                Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); 
+                
+                // 延迟标记UI为就绪状态，确保State数据已加载
+                setTimeout(() => {
+                    this.isReady = true;
+                    this.render();
+                }, 200);
             },
             setupGrid() {
                 let timer = null, pressCard = null, longPressed = false, moved = false, suppressClickUntil = 0, startPos = { x: 0, y: 0 };
@@ -737,16 +761,25 @@
                 if (sel.value != State.curId) sel.value = String(State.curId);
             },
             render() {
+                // 确保State数据已加载
+                if (!State.data.length || !State.roster.length) return;
+                
                 const asg = State.cur; if (!asg) return;
                 const currentPoolSize = State.roster.length, dirty = State.consumeGridDirty(), force = dirty.full || this._lastCardPoolSize !== currentPoolSize;
                 this.ensureTaskOptions(); this.syncCardPool();
                 const cards = this.gridEl.children;
                 if (force) {
-                    State.roster.forEach((stu, i) => this.renderCard(cards[i], stu, asg.records[stu.id] || {}, !State.isStuIncluded(asg, stu)));
+                    // 使用requestAnimationFrame优化渲染性能
+                    requestAnimationFrame(() => {
+                        State.roster.forEach((stu, i) => this.renderCard(cards[i], stu, asg.records[stu.id] || {}, !State.isStuIncluded(asg, stu)));
+                    });
                 } else {
-                    dirty.ids.forEach(id => {
-                        const idx = State.rosterIndexMap.get(id);
-                        if (idx != null) this.renderCard(cards[idx], State.roster[idx], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[idx]));
+                    // 对单个卡片的更新也使用requestAnimationFrame
+                    requestAnimationFrame(() => {
+                        dirty.ids.forEach(id => {
+                            const idx = State.rosterIndexMap.get(id);
+                            if (idx != null) this.renderCard(cards[idx], State.roster[idx], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[idx]));
+                        });
                     });
                 }
                 this.renderProgress(State.getAsgDoneCount(asg), State.getAsgTotalCount(asg));

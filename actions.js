@@ -2,7 +2,14 @@
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
             _importCtx: null,
             deferFullscreenWork(root, task, delay = 140) {
-                task();
+                // 使用requestAnimationFrame延迟处理，避免阻塞主线程
+                if (delay > 0) {
+                    setTimeout(() => {
+                        requestAnimationFrame(task);
+                    }, delay);
+                } else {
+                    requestAnimationFrame(task);
+                }
             },
             toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
@@ -140,36 +147,7 @@
                     e.preventDefault();
                     createAsg();
                 });
-                const upd = () => {
-                    const next = new Set();
-                    State.data.slice().reverse().forEach(asg => {
-                        let c = pool.get(asg.id); if (!c) {
-                            c = document.createElement('article'); c.className = 'asg-card';
-                            c.innerHTML = `<button class="asg-card-delete" type="button" data-act="del" aria-label="删除任务" title="删除任务">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <path d="M3 6h18"></path>
-                                        <path d="M8 6V4h8v2"></path>
-                                        <path d="M19 6l-1 14H6L5 6"></path>
-                                        <path d="M10 11v6"></path>
-                                        <path d="M14 11v6"></path>
-                                    </svg>
-                                </button>
-                                <div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
-                                <div class="asg-card-fields"><div class="asg-f"><input class="input-ui" data-r="name" placeholder="名称"></div><div class="asg-f"><select class="input-ui" data-r="sub"></select></div></div>`;
-                            const subSelect = c.querySelector('[data-r="sub"]');
-                            subjectPresets.forEach(subject => {
-                                const option = document.createElement('option');
-                                option.value = subject;
-                                option.textContent = subject;
-                                subSelect.appendChild(option);
-                            });
-                            pool.set(asg.id, c);
-                        }
-                        renderCardMeta(c, asg);
-                        list.appendChild(c); next.add(asg.id);
-                    });
-                    mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); }); mounted = next;
-                };
+
                 list.onclick = async e => {
                     const c = e.target.closest('.asg-card'), id = +c?.dataset.id;
                     if (!id) return;
@@ -202,8 +180,70 @@
                     if (!c) return;
                     saveCardMeta(c, { strict: role === 'name' });
                 });
+                
+                // 使用deferFullscreenWork延迟渲染，避免阻塞主线程
+                this.deferFullscreenWork(root, () => {
+                    const upd = () => {
+                        const next = new Set();
+                        const asgs = State.data.slice().reverse();
+                        
+                        // 清空列表
+                        while (list.firstChild) {
+                            list.removeChild(list.firstChild);
+                        }
+                        
+                        // 延迟渲染卡片，避免一次性渲染大量卡片导致卡顿
+                        let index = 0;
+                        const renderNextCard = () => {
+                            if (index >= asgs.length) {
+                                // 渲染完成后清理不再需要的卡片
+                                mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
+                                mounted = next;
+                                return;
+                            }
+                            
+                            const asg = asgs[index++];
+                            let c = pool.get(asg.id); 
+                            
+                            if (!c) {
+                                c = document.createElement('article'); c.className = 'asg-card';
+                                c.innerHTML = `<button class="asg-card-delete" type="button" data-act="del" aria-label="删除任务" title="删除任务">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M8 6V4h8v2"></path>
+                                            <path d="M19 6l-1 14H6L5 6"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
+                                        </svg>
+                                    </button>
+                                    <div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
+                                    <div class="asg-card-fields"><div class="asg-f"><input class="input-ui" data-r="name" placeholder="名称"></div><div class="asg-f"><select class="input-ui" data-r="sub"></select></div></div>`;
+                                const subSelect = c.querySelector('[data-r="sub"]');
+                                subjectPresets.forEach(subject => {
+                                    const option = document.createElement('option');
+                                    option.value = subject;
+                                    option.textContent = subject;
+                                    subSelect.appendChild(option);
+                                });
+                                pool.set(asg.id, c);
+                            }
+                            
+                            renderCardMeta(c, asg);
+                            list.appendChild(c); 
+                            next.add(asg.id);
+                            
+                            // 继续渲染下一张卡片，使用requestAnimationFrame避免阻塞主线程
+                            requestAnimationFrame(renderNextCard);
+                        };
+                        
+                        // 开始渲染
+                        renderNextCard();
+                    };
+                    
+                    upd();
+                });
+                
                 Modal.show({ title: '', content: root, type: 'full' });
-                this.deferFullscreenWork(root, upd);
             },
             roster() {
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
