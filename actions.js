@@ -2,12 +2,7 @@
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
             _importCtx: null,
             deferFullscreenWork(root, task, delay = 140) {
-                const { state, modal } = this.ctx;
-                if (!(state.animations && Device.useLiteFullscreenTransitions())) return task();
-                setTimeout(() => {
-                    if (!modal.isOpen || !modal.body.contains(root)) return;
-                    task();
-                }, delay);
+                task();
             },
             toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
@@ -16,7 +11,7 @@
             async cardColor() {
                 const { state, modal, toast, views, colorUtil, cardColorPresets } = this.ctx, defaults = state.normalizePrefs({});
                 let selected = colorUtil.normalizeHex(state.prefs.cardDoneColor, defaults.cardDoneColor);
-                const { panel, preview, presetHost, picker, code } = views.createColorPanel(selected);
+                const { root, preview, presetHost, picker, code } = views.createColorShell(selected);
                 const apply = hex => {
                     selected = colorUtil.normalizeHex(hex, defaults.cardDoneColor); picker.value = selected; code.textContent = selected.toUpperCase();
                     const s = colorUtil.mix(selected, '#ffffff', 0.08), e = colorUtil.mix(selected, '#10261a', 0.14);
@@ -29,7 +24,7 @@
                     btn.onclick = () => apply(hex); presetHost.appendChild(btn);
                 });
                 picker.oninput = e => apply(e.target.value); apply(selected);
-                const val = await modal.show({ title: '卡片颜色', content: panel, btns: [{ text: '恢复默认', val: defaults.cardDoneColor }, { text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => modal.close(selected) }] });
+                const val = await modal.show({ title: '', content: root, type: 'full', btns: [{ text: '恢复默认', val: defaults.cardDoneColor }, { text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => modal.close(selected) }] });
                 if (val) { state.prefs.cardDoneColor = colorUtil.normalizeHex(val, defaults.cardDoneColor); state.savePrefs(); toast.show('卡片颜色已更新'); }
             },
             async add() {

@@ -40,6 +40,14 @@ const ActionViews = {
         };
     },
 
+    createColorShell(selected) {
+        const { root, body } = this.createShell('卡片颜色');
+        body.style.padding = '16px';
+        const color = this.createColorPanel(selected);
+        body.appendChild(color.panel);
+        return { root, body, ...color };
+    },
+
     createAsgManageShell() {
         const { root, body } = this.createShell('作业项目管理');
         body.innerHTML = `<section class="asg-manage-hero">

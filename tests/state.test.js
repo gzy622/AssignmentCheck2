@@ -494,19 +494,17 @@ describe('State', () => {
         expect(document.querySelector('.modal-page-section')).toBeTruthy();
     });
 
-    it('should enable lite full screen motion on Android touch devices', () => {
-        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+    it('should keep full screen modals on the shared transition branch', () => {
         const content = document.createElement('div');
-        content.className = 'test-lite-full-screen';
+        content.className = 'test-full-screen';
 
         Modal.show({ title: '', content, type: 'full' });
 
         expect(Modal.el.classList.contains('full')).toBe(true);
-        expect(Modal.el.classList.contains('lite-motion')).toBe(true);
+        expect(Modal.el.classList.contains('lite-motion')).toBe(false);
     });
 
-    it('should remove lite motion class after full screen modal cleanup', () => {
-        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+    it('should keep full screen modal cleanup free of platform-specific classes', () => {
         const content = document.createElement('div');
 
         Modal.show({ title: '', content, type: 'full' });
@@ -516,20 +514,12 @@ describe('State', () => {
         expect(Modal.isOpen).toBe(false);
     });
 
-    it('should defer roster row rendering on lite full screen motion devices', () => {
-        vi.useFakeTimers();
-        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+    it('should render roster rows immediately on the shared full screen transition branch', () => {
         State.list = ['01 张三', '02 李四'];
 
         Actions.roster();
 
         expect(document.querySelector('.roster-topbar')).toBeTruthy();
-        expect(document.querySelector('.roster-row')).toBeNull();
-
-        vi.advanceTimersByTime(139);
-        expect(document.querySelector('.roster-row')).toBeNull();
-
-        vi.advanceTimersByTime(1);
         expect(document.querySelectorAll('.roster-row')).toHaveLength(2);
     });
 

@@ -47,9 +47,10 @@ const Device = {
         return 'ontouchstart' in window || Number(navigator.maxTouchPoints) > 0;
     },
     useLiteFullscreenTransitions() {
-        return this.isAndroid() && this.isCoarsePointer();
+        return false;
     }
 };
+
 const IS_ANDROID_FIREFOX = Device.isAndroid() && Device.isFirefox();
 const CARD_COLOR_PRESETS = ['#68c490', '#8ecae6', '#f4a261', '#e9c46a', '#c084fc', '#f28482'];
 const APP_NAME_SLUG = 'assignmentcheck2';

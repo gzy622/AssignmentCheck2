@@ -152,14 +152,12 @@ const Modal = {
         this.releaseActiveInput();
         const usePage = type !== 'full';
         const isFullScreen = !usePage;
-        const useLiteMotion = isFullScreen && Device.useLiteFullscreenTransitions();
         this.title.textContent = title || '';
         this.body.innerHTML = '';
         this.body.appendChild(usePage ? this.buildPagePanel(title, content, btns) : (typeof content === 'string' ? (this.body.innerHTML = content, this.body.firstChild) : content));
 
         this.isFull = isFullScreen;
         this.el.className = `${isFullScreen ? 'full' : 'page'}`;
-        this.el.classList.toggle('lite-motion', useLiteMotion);
         this._stableFocusMode = IS_ANDROID_FIREFOX && autoFocusEl?.matches?.('input, textarea, [contenteditable="true"]');
         if (this._stableFocusMode) this.el.classList.add('focus-stable');
         this.header.style.display = 'none';
@@ -185,7 +183,7 @@ const Modal = {
 
     _cleanup(val) {
         this.cancelEnterTransition();
-        this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable', 'lite-motion');
+        this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;
         clearTimeout(this._pointerGuardTimer); this.el.style.pointerEvents = '';
