@@ -443,6 +443,43 @@ describe('State', () => {
         expect(document.querySelector('.modal-footer').style.display).toBe('none');
     });
 
+    it('should mark full screen views with full modal class and delayed cleanup', async () => {
+        vi.useFakeTimers();
+        const content = document.createElement('div');
+        content.className = 'test-full-screen';
+
+        const promise = Modal.show({ title: '', content, type: 'full' });
+
+        expect(Modal.isOpen).toBe(true);
+        expect(Modal.isFull).toBe(true);
+        expect(Modal.el.classList.contains('full')).toBe(true);
+        expect(Modal.el.classList.contains('page')).toBe(false);
+        expect(Modal.body.contains(content)).toBe(true);
+
+        Modal.close('done');
+
+        expect(Modal.el.classList.contains('is-closing')).toBe(true);
+        vi.advanceTimersByTime(259);
+        expect(Modal.isOpen).toBe(true);
+        vi.advanceTimersByTime(1);
+
+        await expect(promise).resolves.toBe('done');
+        expect(Modal.isOpen).toBe(false);
+        expect(Modal.isFull).toBe(false);
+    });
+
+    it('should keep prompt-like pages on the page modal branch', () => {
+        const content = document.createElement('div');
+        content.textContent = '提示内容';
+
+        Modal.show({ title: '提示', content });
+
+        expect(Modal.isFull).toBe(false);
+        expect(Modal.el.classList.contains('page')).toBe(true);
+        expect(Modal.el.classList.contains('full')).toBe(false);
+        expect(document.querySelector('.modal-page-section')).toBeTruthy();
+    });
+
     it('should open score action on card click when scoring mode is enabled', () => {
         State.list = ['01 张三'];
         State.parseRoster();

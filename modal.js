@@ -7,6 +7,8 @@ const Modal = {
     closeBtn: $('modal').querySelector('.modal-close'),
     header: $('modal').querySelector('.modal-header'),
     isOpen: false, isClosing: false, isFull: false, resolve: null,
+    FULL_EXIT_MS: 260,
+    PAGE_EXIT_MS: 220,
     _scrollY: 0, _layoutRaf: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null,
 
     init() {
@@ -128,11 +130,13 @@ const Modal = {
         UI.setGridFrozen(true);
         this.releaseActiveInput();
         const usePage = type !== 'full';
+        const isFullScreen = !usePage;
         this.title.textContent = title || '';
         this.body.innerHTML = '';
         this.body.appendChild(usePage ? this.buildPagePanel(title, content, btns) : (typeof content === 'string' ? (this.body.innerHTML = content, this.body.firstChild) : content));
 
-        this.el.className = 'full is-open';
+        this.isFull = isFullScreen;
+        this.el.className = `${isFullScreen ? 'full' : 'page'} is-open`;
         this._stableFocusMode = IS_ANDROID_FIREFOX && autoFocusEl?.matches?.('input, textarea, [contenteditable="true"]');
         if (this._stableFocusMode) this.el.classList.add('focus-stable');
         this.header.style.display = 'none';
@@ -151,12 +155,12 @@ const Modal = {
 
         if (Debug.enabled) Debug.log(`Modal.show type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
-        this.armPointerGuard(); this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
+        this.armPointerGuard(this.isFull ? 360 : 280); this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
         return new Promise(r => this.resolve = r);
     },
 
     _cleanup(val) {
-        this.el.classList.remove('is-open', 'is-closing', 'full', 'focus-stable');
+        this.el.classList.remove('is-open', 'is-closing', 'full', 'page', 'focus-stable');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;
         clearTimeout(this._pointerGuardTimer); this.el.style.pointerEvents = '';
@@ -170,7 +174,7 @@ const Modal = {
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
         if (!State.animations) return this._cleanup(val);
-        setTimeout(() => this._cleanup(val), 220);
+        setTimeout(() => this._cleanup(val), this.isFull ? this.FULL_EXIT_MS : this.PAGE_EXIT_MS);
     },
 
     forceClose(val = false) { if (this.isOpen) this._cleanup(val); },
