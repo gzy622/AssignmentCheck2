@@ -341,7 +341,7 @@
                 const lum = ColorUtil.luminance(base);
                 const badgeBg = lum > 0.35 ? ColorUtil.mix('#111111', '#ffffff', 0.12) : ColorUtil.mix('#ffffff', '#111111', 0.08);
                 const badgeText = lum > 0.35 ? 'rgba(255,255,255,0.95)' : 'rgba(17,17,17,0.92)';
-                const dashColor = lum > 0.35 ? ColorUtil.mix('#111111', '#ffffff', 0.25) : ColorUtil.mix('#ffffff', '#111111', 0.18);
+                const dashColor = lum > 0.35 ? ColorUtil.withAlpha(base, 0.5) : ColorUtil.withAlpha(base, 0.45);
                 const d = document.documentElement.style;
                 d.setProperty('--done-card-start', s); d.setProperty('--done-card-end', e); d.setProperty('--done-card-border', b);
                 d.setProperty('--done-card-shadow', ColorUtil.withAlpha(base, 0.22));
