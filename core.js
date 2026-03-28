@@ -35,7 +35,22 @@ const LS = {
 
 const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug', PREFS: 'tracker_prefs', DRAFT: 'tracker_recovery_draft', SCOREPAD_FAST_TEN: 'tracker_scorepad_fast_ten' };
 const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
-const IS_ANDROID_FIREFOX = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
+const Device = {
+    isAndroid() {
+        return /Android/i.test(navigator.userAgent);
+    },
+    isFirefox() {
+        return /Firefox/i.test(navigator.userAgent);
+    },
+    isCoarsePointer() {
+        if (typeof window.matchMedia === 'function') return window.matchMedia('(pointer: coarse)').matches;
+        return 'ontouchstart' in window || Number(navigator.maxTouchPoints) > 0;
+    },
+    useLiteFullscreenTransitions() {
+        return this.isAndroid() && this.isCoarsePointer();
+    }
+};
+const IS_ANDROID_FIREFOX = Device.isAndroid() && Device.isFirefox();
 const CARD_COLOR_PRESETS = ['#68c490', '#8ecae6', '#f4a261', '#e9c46a', '#c084fc', '#f28482'];
 const APP_NAME_SLUG = 'assignmentcheck2';
 const DEFAULT_ROSTER = [
@@ -96,6 +111,8 @@ const formatBackupFileName = (date = new Date()) => {
     const ss = String(date.getSeconds()).padStart(2, '0');
     return `${APP_NAME_SLUG}_backup_${y}${m}${d}_${hh}${mm}${ss}.json`;
 };
+
+globalThis.Device = Device;
 
 const Toast = {
     el: null,

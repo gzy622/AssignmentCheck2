@@ -480,6 +480,28 @@ describe('State', () => {
         expect(document.querySelector('.modal-page-section')).toBeTruthy();
     });
 
+    it('should enable lite full screen motion on Android touch devices', () => {
+        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+        const content = document.createElement('div');
+        content.className = 'test-lite-full-screen';
+
+        Modal.show({ title: '', content, type: 'full' });
+
+        expect(Modal.el.classList.contains('full')).toBe(true);
+        expect(Modal.el.classList.contains('lite-motion')).toBe(true);
+    });
+
+    it('should remove lite motion class after full screen modal cleanup', () => {
+        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+        const content = document.createElement('div');
+
+        Modal.show({ title: '', content, type: 'full' });
+        Modal.forceClose(false);
+
+        expect(Modal.el.classList.contains('lite-motion')).toBe(false);
+        expect(Modal.isOpen).toBe(false);
+    });
+
     it('should open score action on card click when scoring mode is enabled', () => {
         State.list = ['01 张三'];
         State.parseRoster();
