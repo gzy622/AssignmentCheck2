@@ -100,6 +100,14 @@ const ColorUtil = {
     withAlpha(hex, alpha) {
         const { r, g, b } = this.hexToRgb(hex);
         return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, Number(alpha) || 0))})`;
+    },
+    luminance(hex) {
+        const { r, g, b } = this.hexToRgb(hex);
+        const toLinear = c => {
+            const v = c / 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
     }
 };
 

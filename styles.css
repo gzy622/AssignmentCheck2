@@ -320,17 +320,25 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            min-width: 18px;
+            min-width: 20px;
             text-align: center;
             background: #ffc107;
             color: #111;
             font-size: var(--tag-size, 0.65rem);
             font-weight: 800;
             line-height: 1;
-            padding: 3px 5px;
+            padding: 3px 6px;
             border-radius: 999px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1.5px rgba(0,0,0,0.06);
             pointer-events: none;
+            z-index: 2;
+            letter-spacing: -0.01em;
+        }
+
+        .student-card.done .card-score {
+            background: var(--done-card-badge, rgba(255,255,255,0.92));
+            color: var(--done-card-badge-text, #111);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06);
         }
 
         .card-score[hidden] {
