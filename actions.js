@@ -375,6 +375,7 @@
                 const ui = this.ctx.views.createQuizTrendShell();
                 const assignments = State.getQuizTrendAssignments();
                 const TREND_DEFER_WORK_THRESHOLD = 120;
+                const TREND_ENTER_DEFER_MS = 280;
                 const TREND_CHUNK_SIZE_FIRST = 8;
                 const TREND_CHUNK_SIZE_NEXT = 12;
                 let activeAssignmentIds = new Set();
@@ -566,7 +567,7 @@
                 const applyStudentFilter = () => {
                     renderVisibleStudents(renderToken);
                 };
-                const render = ({ defer = false } = {}) => {
+                const render = ({ defer = false, afterTransition = false } = {}) => {
                     cancelPendingRender();
                     const token = renderToken;
                     const run = () => {
@@ -585,14 +586,16 @@
                     if (defer) {
                         ui.summaryEl.textContent = '正在整理小测趋势...';
                         showTrendMessage('正在整理成绩数据...');
-                        renderTask = setTimeout(run, 0);
+                        const delay = afterTransition && State.animations ? TREND_ENTER_DEFER_MS : 0;
+                        renderTask = setTimeout(run, delay);
                         return;
                     }
                     run();
                 };
-                const renderForCurrentRange = () => {
+                const renderForCurrentRange = ({ entering = false } = {}) => {
                     const rangeAssignments = getRangeAssignments();
-                    render({ defer: shouldDeferTrendRender(rangeAssignments) });
+                    const defer = shouldDeferTrendRender(rangeAssignments);
+                    render({ defer, afterTransition: entering && defer });
                 };
                 fillOptions();
                 ui.startEl.onchange = renderForCurrentRange;
@@ -619,7 +622,7 @@
                     renderForCurrentRange();
                 };
                 Modal.show({ title: '', content: ui.root, type: 'full' });
-                renderForCurrentRange();
+                renderForCurrentRange({ entering: true });
             }
         };
 

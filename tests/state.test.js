@@ -399,6 +399,10 @@ describe('State', () => {
         expect(document.querySelector('.trend-list').textContent).toContain('正在整理成绩数据');
         expect(reportSpy).not.toHaveBeenCalled();
 
+        vi.advanceTimersByTime(279);
+
+        expect(reportSpy).not.toHaveBeenCalled();
+
         vi.runAllTimers();
 
         expect(reportSpy).toHaveBeenCalled();
