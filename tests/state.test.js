@@ -445,6 +445,14 @@ describe('State', () => {
 
     it('should mark full screen views with full modal class and delayed cleanup', async () => {
         vi.useFakeTimers();
+        const rafQueue = [];
+        vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
+            if (id > 0 && id <= rafQueue.length) rafQueue[id - 1] = () => {};
+        });
         const content = document.createElement('div');
         content.className = 'test-full-screen';
 
@@ -454,7 +462,13 @@ describe('State', () => {
         expect(Modal.isFull).toBe(true);
         expect(Modal.el.classList.contains('full')).toBe(true);
         expect(Modal.el.classList.contains('page')).toBe(false);
+        expect(Modal.el.classList.contains('is-preopen')).toBe(true);
         expect(Modal.body.contains(content)).toBe(true);
+
+        while (rafQueue.length) rafQueue.shift()(0);
+
+        expect(Modal.el.classList.contains('is-open')).toBe(true);
+        expect(Modal.el.classList.contains('is-preopen')).toBe(false);
 
         Modal.close('done');
 

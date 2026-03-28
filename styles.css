@@ -514,11 +514,20 @@
             contain: layout paint;
         }
 
+        dialog.is-preopen,
         dialog.is-open,
         dialog.is-closing {
             display: flex;
+        }
+
+        dialog.is-open,
+        dialog.is-closing {
             opacity: 1;
             pointer-events: auto;
+        }
+
+        dialog.is-preopen {
+            pointer-events: none;
         }
 
         dialog.is-open {

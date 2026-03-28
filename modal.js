@@ -9,7 +9,7 @@ const Modal = {
     isOpen: false, isClosing: false, isFull: false, resolve: null,
     FULL_EXIT_MS: 260,
     PAGE_EXIT_MS: 220,
-    _scrollY: 0, _layoutRaf: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null,
+    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null,
 
     init() {
         this.closeBtn.onclick = () => { if (Debug.enabled) Debug.log('点击关闭按钮'); this.close(false); };
@@ -104,6 +104,27 @@ const Modal = {
         clearTimeout(this._focusTimer); this._focusTimer = 0;
     },
 
+    cancelEnterTransition() {
+        cancelAnimationFrame(this._enterRafA || 0);
+        cancelAnimationFrame(this._enterRafB || 0);
+        this._enterRafA = 0;
+        this._enterRafB = 0;
+    },
+
+    stageOpenTransition() {
+        this.cancelEnterTransition();
+        this.el.classList.add('is-preopen');
+        this._enterRafA = requestAnimationFrame(() => {
+            this._enterRafA = 0;
+            this._enterRafB = requestAnimationFrame(() => {
+                this._enterRafB = 0;
+                if (!this.isOpen || this.isClosing) return;
+                this.el.classList.remove('is-preopen');
+                this.el.classList.add('is-open');
+            });
+        });
+    },
+
     scheduleLayout() { if (this.isOpen) { cancelAnimationFrame(this._layoutRaf || 0); this._layoutRaf = requestAnimationFrame(() => this.updateLayout()); } },
 
     updateLayout() {
@@ -137,7 +158,7 @@ const Modal = {
         this.body.appendChild(usePage ? this.buildPagePanel(title, content, btns) : (typeof content === 'string' ? (this.body.innerHTML = content, this.body.firstChild) : content));
 
         this.isFull = isFullScreen;
-        this.el.className = `${isFullScreen ? 'full' : 'page'} is-open`;
+        this.el.className = `${isFullScreen ? 'full' : 'page'}`;
         this.el.classList.toggle('lite-motion', useLiteMotion);
         this._stableFocusMode = IS_ANDROID_FIREFOX && autoFocusEl?.matches?.('input, textarea, [contenteditable="true"]');
         if (this._stableFocusMode) this.el.classList.add('focus-stable');
@@ -157,12 +178,14 @@ const Modal = {
 
         if (Debug.enabled) Debug.log(`Modal.show type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
+        this.stageOpenTransition();
         this.armPointerGuard(this.isFull ? 360 : 280); this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
         return new Promise(r => this.resolve = r);
     },
 
     _cleanup(val) {
-        this.el.classList.remove('is-open', 'is-closing', 'full', 'page', 'focus-stable', 'lite-motion');
+        this.cancelEnterTransition();
+        this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable', 'lite-motion');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;
         clearTimeout(this._pointerGuardTimer); this.el.style.pointerEvents = '';
@@ -172,7 +195,10 @@ const Modal = {
 
     close(val) {
         if (!this.isOpen || this.isClosing) return;
+        this.cancelEnterTransition();
+        if (this.el.classList.contains('is-preopen') && !this.el.classList.contains('is-open')) return this._cleanup(val);
         this.isClosing = true;
+        this.el.classList.remove('is-preopen');
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
         if (!State.animations) return this._cleanup(val);
