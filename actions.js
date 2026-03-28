@@ -1,6 +1,14 @@
         const Actions = {
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
             _importCtx: null,
+            deferFullscreenWork(root, task, delay = 140) {
+                const { state, modal } = this.ctx;
+                if (!(state.animations && Device.useLiteFullscreenTransitions())) return task();
+                setTimeout(() => {
+                    if (!modal.isOpen || !modal.body.contains(root)) return;
+                    task();
+                }, delay);
+            },
             toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
             toggleAnim() { const { state } = this.ctx; state.animations = !state.animations; state.saveAnim(); },
@@ -199,7 +207,8 @@
                     if (!c) return;
                     saveCardMeta(c, { strict: role === 'name' });
                 });
-                upd(); Modal.show({ title: '', content: root, type: 'full' });
+                Modal.show({ title: '', content: root, type: 'full' });
+                this.deferFullscreenWork(root, upd);
             },
             roster() {
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
@@ -299,8 +308,8 @@
                     entries.splice(i, 1);
                     renderAllRows();
                 };
-                renderAllRows();
                 Modal.show({ title: '', content: root, type: 'full' });
+                this.deferFullscreenWork(root, renderAllRows);
             },
             exp() {
                 const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a');
@@ -622,7 +631,7 @@
                     renderForCurrentRange();
                 };
                 Modal.show({ title: '', content: ui.root, type: 'full' });
-                renderForCurrentRange({ entering: true });
+                this.deferFullscreenWork(ui.root, () => renderForCurrentRange({ entering: true }), 120);
             }
         };
 

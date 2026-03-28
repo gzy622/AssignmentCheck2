@@ -516,6 +516,23 @@ describe('State', () => {
         expect(Modal.isOpen).toBe(false);
     });
 
+    it('should defer roster row rendering on lite full screen motion devices', () => {
+        vi.useFakeTimers();
+        vi.spyOn(Device, 'useLiteFullscreenTransitions').mockReturnValue(true);
+        State.list = ['01 张三', '02 李四'];
+
+        Actions.roster();
+
+        expect(document.querySelector('.roster-topbar')).toBeTruthy();
+        expect(document.querySelector('.roster-row')).toBeNull();
+
+        vi.advanceTimersByTime(139);
+        expect(document.querySelector('.roster-row')).toBeNull();
+
+        vi.advanceTimersByTime(1);
+        expect(document.querySelectorAll('.roster-row')).toHaveLength(2);
+    });
+
     it('should open score action on card click when scoring mode is enabled', () => {
         State.list = ['01 张三'];
         State.parseRoster();
