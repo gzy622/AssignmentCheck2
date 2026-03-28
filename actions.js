@@ -146,7 +146,7 @@
                         let c = pool.get(asg.id); if (!c) {
                             c = document.createElement('article'); c.className = 'asg-card';
                             c.innerHTML = `<button class="asg-card-delete" type="button" data-act="del" aria-label="删除任务" title="删除任务">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M3 6h18"></path>
                                         <path d="M8 6V4h8v2"></path>
                                         <path d="M19 6l-1 14H6L5 6"></path>
@@ -155,7 +155,7 @@
                                     </svg>
                                 </button>
                                 <div class="asg-card-head"><div class="asg-card-meta"><div class="asg-t"></div><div class="asg-card-sub"><span class="asg-cur" hidden>当前</span><span class="asg-sub"></span><span>ID ${asg.id}</span></div></div><div class="asg-card-stats"><span class="asg-rate"></span><span class="asg-prog"></span></div></div>
-                                <div class="asg-card-fields"><div class="asg-f"><label>名称</label><input class="input-ui" data-r="name"></div><div class="asg-f"><label>科目</label><select class="input-ui" data-r="sub"></select></div></div>`;
+                                <div class="asg-card-fields"><div class="asg-f"><input class="input-ui" data-r="name" placeholder="名称"></div><div class="asg-f"><select class="input-ui" data-r="sub"></select></div></div>`;
                             const subSelect = c.querySelector('[data-r="sub"]');
                             subjectPresets.forEach(subject => {
                                 const option = document.createElement('option');
