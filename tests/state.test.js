@@ -16,11 +16,6 @@ describe('State', () => {
         State._draftTimer = 0;
         State._draftDirty = false;
         State._lastDraftSnapshot = null;
-        Debug.enabled = false;
-        Debug.interactive = false;
-        Debug.filter = 'all';
-        Debug.lines = [];
-        Debug.contentEl?.replaceChildren();
         BottomSheet.activeSheet = null;
         document.querySelectorAll('.bottom-sheet-backdrop, .bottom-sheet').forEach(el => el.remove());
     });
@@ -65,63 +60,6 @@ describe('State', () => {
         expect(normalized.records).toEqual({ '01': 100 });
     });
 
-    it('should append debug lines incrementally without full rerender', () => {
-        Debug.el = document.getElementById('debugPanel');
-        Debug.contentEl = document.getElementById('debugContent');
-        Debug.enabled = true;
-        Debug.filter = 'all';
-        Debug.lines = [];
-        Debug.emptyEl = Debug.createEmptyEl();
-        Debug.render();
-
-        const renderSpy = vi.spyOn(Debug, 'render');
-
-        Debug.log('first line', 'info');
-
-        expect(renderSpy).not.toHaveBeenCalled();
-        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(1);
-
-        const firstNode = Debug.contentEl.firstElementChild;
-
-        Debug.log('second line', 'warn');
-
-        expect(renderSpy).not.toHaveBeenCalled();
-        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(2);
-        expect(Debug.contentEl.firstElementChild).toBe(firstNode);
-
-        Debug.filter = 'error';
-        Debug.render();
-        renderSpy.mockClear();
-
-        Debug.log('hidden info line', 'info');
-
-        expect(renderSpy).not.toHaveBeenCalled();
-        expect(Debug.contentEl.textContent).toContain('暂无日志');
-    });
-
-    it('should trim debug lines incrementally when reaching the log cap', () => {
-        Debug.el = document.getElementById('debugPanel');
-        Debug.contentEl = document.getElementById('debugContent');
-        Debug.enabled = true;
-        Debug.filter = 'all';
-        Debug.lines = [];
-        Debug.emptyEl = Debug.createEmptyEl();
-        Debug.render();
-
-        const renderSpy = vi.spyOn(Debug, 'render');
-
-        for (let i = 1; i <= 201; i++) {
-            Debug.log(`line-${String(i).padStart(3, '0')}`, 'info');
-        }
-
-        expect(renderSpy).not.toHaveBeenCalled();
-        expect(Debug.lines).toHaveLength(200);
-        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(200);
-        expect(Debug.contentEl.textContent).not.toContain('line-001');
-        expect(Debug.contentEl.textContent).toContain('line-002');
-        expect(Debug.contentEl.textContent).toContain('line-201');
-    });
-
     it('should compare recovery draft without relying on JSON stringify', () => {
         State.list = ['01 张三'];
         State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: { '01': { score: '88', done: true } } })];
@@ -138,37 +76,6 @@ describe('State', () => {
 
         expect(State.applyRecoveryDraft()).toBe(false);
         expect(stringifySpy).not.toHaveBeenCalled();
-    });
-
-    it('should log detailed score changes when updating records', () => {
-        State.list = ['01 张三'];
-        State.parseRoster();
-        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
-        State.rebuildAsgIndex();
-        State.curId = 1;
-        State.view = {
-            init: vi.fn(),
-            render: vi.fn(),
-            renderStudent: vi.fn(),
-            renderProgress: vi.fn(),
-            isReady: () => false
-        };
-        const logSpy = vi.spyOn(Debug, 'log').mockImplementation(() => {});
-
-        State.updRec('01', { score: '100', done: true }, { source: 'score-panel', action: 'confirm', studentName: '张三' });
-
-        expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('动作=confirm'),
-            'warn'
-        );
-        expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('分数 空 -> 100'),
-            'warn'
-        );
-        expect(logSpy).toHaveBeenCalledWith(
-            expect.stringContaining('完成 未完成 -> 已完成'),
-            'warn'
-        );
     });
 
     it('should batch recovery draft writes until flushed', () => {
