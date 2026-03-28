@@ -8,6 +8,8 @@
             _persistTimer: 0,
             _draftTimer: 0,
             _draftDirty: false,
+            _draftPersistMs: 1200,
+            _lastDraftSnapshot: null,
             _metricsToken: 0,
             _metricsCache: new Map(),
             _scoreRangeCache: new Map(),
@@ -43,8 +45,9 @@
                 this.curId = this.resolveCurId(this.curId);
                 this.applyAnim();
                 this.applyCardColor();
-                window.addEventListener('beforeunload', () => this._flushPersist());
+                window.addEventListener('beforeunload', () => this._flushPersist({ includeDraft: true }));
                 this.view.init();
+                this._lastDraftSnapshot = this.getRecoverySnapshot();
                 if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
             },
 
@@ -68,12 +71,46 @@
             getRecoveryDraft() {
                 const draft = LS.get(KEYS.DRAFT, null);
                 if (!draft || typeof draft !== 'object' || !Array.isArray(draft.list) || !Array.isArray(draft.data)) return null;
-                return {
+                return this.cloneRecoveryState({
                     list: draft.list.map(v => String(v ?? '').trim()).filter(Boolean),
                     data: draft.data.map(a => this.normalizeAsg(a)).filter(Boolean),
                     prefs: this.normalizePrefs(draft.prefs),
                     curId: Number(draft.curId)
+                });
+            },
+
+            cloneRecoveryRecords(records) {
+                const source = records && typeof records === 'object' ? records : {};
+                return Object.fromEntries(
+                    Object.entries(source).map(([id, entry]) => [id, entry && typeof entry === 'object' ? { ...entry } : entry])
+                );
+            },
+
+            cloneRecoveryData(data) {
+                return (Array.isArray(data) ? data : [])
+                    .map(item => this.normalizeAsg(item))
+                    .filter(Boolean)
+                    .map(asg => ({ id: asg.id, name: asg.name, subject: asg.subject, records: this.cloneRecoveryRecords(asg.records) }));
+            },
+
+            cloneRecoveryState(state) {
+                const source = state && typeof state === 'object' ? state : {};
+                const curId = source.curId == null || source.curId === '' ? null : Number(source.curId);
+                return {
+                    list: Array.isArray(source.list) ? source.list.map(v => String(v ?? '').trim()).filter(Boolean) : [],
+                    data: this.cloneRecoveryData(source.data),
+                    prefs: this.normalizePrefs(source.prefs),
+                    curId: Number.isFinite(curId) ? curId : null
                 };
+            },
+
+            getRecoverySnapshot() {
+                return this.cloneRecoveryState({
+                    list: this.list,
+                    data: this.data,
+                    prefs: this.prefs,
+                    curId: this.curId
+                });
             },
 
             isSameRecoveryValue(a, b) {
@@ -134,7 +171,7 @@
             queueRecoveryDraft() {
                 clearTimeout(this._draftTimer);
                 this._draftDirty = true;
-                this._draftTimer = setTimeout(() => this.flushRecoveryDraft(), 300);
+                this._draftTimer = setTimeout(() => this.flushRecoveryDraft(), this._draftPersistMs);
             },
 
             flushRecoveryDraft() {
@@ -149,7 +186,11 @@
                 clearTimeout(this._draftTimer);
                 this._draftTimer = 0;
                 this._draftDirty = false;
-                LS.set(KEYS.DRAFT, { version: 1, updatedAt: Date.now(), list: this.list, data: this.data, prefs: this.normalizePrefs(this.prefs), curId: this.curId });
+                const snapshot = this.getRecoverySnapshot();
+                if (this._lastDraftSnapshot && this.isSameRecoveryState(snapshot, this._lastDraftSnapshot)) return false;
+                this._lastDraftSnapshot = this.cloneRecoveryState(snapshot);
+                LS.set(KEYS.DRAFT, { version: 1, updatedAt: Date.now(), ...snapshot });
+                return true;
             },
 
             sanitizeAsgIds() {
@@ -210,14 +251,14 @@
             _queuePersist() { clearTimeout(this._persistTimer); this._persistTimer = setTimeout(() => this._flushPersist(), 300); },
             queuePersist() { this._queuePersist(); }, // Maintain API
 
-            _flushPersist() {
+            _flushPersist({ includeDraft = false } = {}) {
                 clearTimeout(this._persistTimer);
                 this._persistTimer = 0;
                 if (this._dirtyData) { LS.set(KEYS.DATA, this.data); this._dirtyData = false; }
                 if (this._dirtyList) { LS.set(KEYS.LIST, this.list); this._dirtyList = false; }
-                this.flushRecoveryDraft();
+                if (includeDraft) this.flushRecoveryDraft();
             },
-            flushPersist() { this._flushPersist(); }, // Maintain API
+            flushPersist(options) { this._flushPersist(options); }, // Maintain API
 
             parseRosterLine(rawLine) {
                 const lineText = String(rawLine ?? '').trim();
@@ -265,7 +306,7 @@
                     Debug.log('Assignment list version incremented', 'info');
                 }
                 if (dirtyData || dirtyList) this.queueRecoveryDraft();
-                if (immediate) this._flushPersist(); else this._queuePersist();
+                if (immediate) this._flushPersist({ includeDraft: true }); else this._queuePersist();
                 if (render && this.view.isReady()) this.view.render();
             },
 
@@ -398,6 +439,10 @@
                 return /^-?\d+(?:\.\d+)?$/.test(text) ? Number(text) : null;
             },
 
+            buildTrendTimelineKey(timeline) {
+                return timeline.map(item => `${item.asgId}:${item.label}:${item.score ?? ''}:${item.included ? 1 : 0}`).join(';');
+            },
+
             getQuizTrendAssignments() {
                 const quizzes = this.data.filter(asg => /小测/.test(String(asg?.name || '')));
                 return quizzes.length ? quizzes : this.data.slice();
@@ -470,21 +515,26 @@
                         worst = worst == null ? score : Math.min(worst, score);
                     });
 
+                    const stats = {
+                        avg: entries.length ? Number((totalScore / entries.length).toFixed(1)) : null,
+                        latest,
+                        best,
+                        worst,
+                        delta: entries.length >= 2 ? Number((latest - first).toFixed(1)) : null,
+                        coverage: `${entries.length}/${includedCount}`,
+                        trend: this.classifyScoreTrend(entries)
+                    };
+                    const timelineKey = this.buildTrendTimelineKey(timeline);
                     if (entries.length) scoredStudentCount++;
                     return {
                         id: stu.id,
                         name: stu.name,
                         entries,
                         timeline,
-                        stats: {
-                            avg: entries.length ? Number((totalScore / entries.length).toFixed(1)) : null,
-                            latest,
-                            best,
-                            worst,
-                            delta: entries.length >= 2 ? Number((latest - first).toFixed(1)) : null,
-                            coverage: `${entries.length}/${includedCount}`,
-                            trend: this.classifyScoreTrend(entries)
-                        }
+                        stats,
+                        searchText: `${stu.id} ${stu.name}`,
+                        timelineKey,
+                        renderKey: `${stu.id}|${stu.name}|${stats.coverage}|${stats.avg ?? ''}|${stats.latest ?? ''}|${stats.best ?? ''}|${stats.delta ?? ''}|${stats.trend}|${timelineKey}`
                     };
                 });
                 const report = {

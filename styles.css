@@ -1,11 +1,3 @@
-        @font-face {
-            font-family: "思源黑体";
-            src: url("assets/fonts/SourceHanSansSC-Regular.woff2") format("woff2");
-            font-style: normal;
-            font-weight: 400;
-            font-display: swap;
-        }
-
         :root {
             --primary: #0d6efd;
             --success: #389c6d;
@@ -39,7 +31,7 @@
         }
 
         body {
-            font-family: "思源黑体", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
             background: var(--bg);
             margin: 0;
             padding: 0 10px 10px;

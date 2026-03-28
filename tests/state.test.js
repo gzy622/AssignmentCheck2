@@ -4,6 +4,7 @@ describe('State', () => {
     beforeEach(() => {
         State._draftTimer = 0;
         State._draftDirty = false;
+        State._lastDraftSnapshot = null;
     });
 
     afterEach(() => {
@@ -14,6 +15,7 @@ describe('State', () => {
         clearTimeout(State._draftTimer);
         State._draftTimer = 0;
         State._draftDirty = false;
+        State._lastDraftSnapshot = null;
         Debug.enabled = false;
         Debug.interactive = false;
         Debug.filter = 'all';
@@ -197,6 +199,47 @@ describe('State', () => {
 
         vi.advanceTimersByTime(500);
         expect(setSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep regular persistence from eagerly flushing recovery drafts', () => {
+        vi.useFakeTimers();
+        State.list = ['01 张三'];
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        State.prefs = State.normalizePrefs({ cardDoneColor: '#123456' });
+
+        const setSpy = vi.spyOn(LS, 'set').mockImplementation(() => {});
+
+        State.save({ render: false, normalizeMode: 'none' });
+        vi.advanceTimersByTime(300);
+
+        expect(setSpy).toHaveBeenCalledWith(KEYS.DATA, expect.any(Array));
+        expect(setSpy).not.toHaveBeenCalledWith(KEYS.DRAFT, expect.anything());
+
+        vi.advanceTimersByTime(State._draftPersistMs - 300);
+
+        expect(setSpy).toHaveBeenCalledWith(
+            KEYS.DRAFT,
+            expect.objectContaining({
+                version: 1,
+                curId: 1
+            })
+        );
+    });
+
+    it('should skip writing recovery drafts when the snapshot is unchanged', () => {
+        State.list = ['01 张三'];
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        State.prefs = State.normalizePrefs({ cardDoneColor: '#123456' });
+        State._lastDraftSnapshot = State.getRecoverySnapshot();
+
+        const setSpy = vi.spyOn(LS, 'set').mockImplementation(() => {});
+
+        expect(State.saveRecoveryDraft()).toBe(false);
+        expect(setSpy).not.toHaveBeenCalled();
     });
 
     it('should keep metrics cache on rename but refresh it on subject change', () => {

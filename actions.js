@@ -389,6 +389,68 @@
                 const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
                 const getTrendTone = trend => trend === '上升' ? 'up' : trend === '下降' ? 'down' : trend === '稳定' ? 'steady' : 'mix';
                 const getRangeAssignments = () => State.getAsgRange(+ui.startEl.value, +ui.endEl.value, assignments);
+                const createTrendMetric = label => {
+                    const metric = document.createElement('span');
+                    metric.className = 'trend-metric';
+                    metric.append(document.createTextNode(`${label} `));
+                    const valueEl = document.createElement('strong');
+                    metric.appendChild(valueEl);
+                    return { metric, valueEl };
+                };
+                const createTrendCard = () => {
+                    const card = document.createElement('article');
+                    card.className = 'trend-card';
+
+                    const head = document.createElement('div');
+                    head.className = 'trend-card-head';
+                    const meta = document.createElement('div');
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'trend-student-name';
+                    const subEl = document.createElement('div');
+                    subEl.className = 'trend-student-sub';
+                    meta.append(nameEl, subEl);
+
+                    const badgeEl = document.createElement('span');
+                    badgeEl.className = 'trend-badge';
+                    head.append(meta, badgeEl);
+
+                    const metrics = document.createElement('div');
+                    metrics.className = 'trend-metrics';
+                    const avg = createTrendMetric('均分');
+                    const latest = createTrendMetric('最新');
+                    const delta = createTrendMetric('变化');
+                    const best = createTrendMetric('最佳');
+                    metrics.append(avg.metric, latest.metric, delta.metric, best.metric);
+
+                    const chartEl = document.createElement('div');
+                    chartEl.className = 'trend-chart';
+                    const scoreRowEl = document.createElement('div');
+                    scoreRowEl.className = 'trend-score-row';
+
+                    card.append(head, metrics, chartEl, scoreRowEl);
+                    card._trendRefs = {
+                        nameEl,
+                        subEl,
+                        badgeEl,
+                        avgEl: avg.valueEl,
+                        latestEl: latest.valueEl,
+                        deltaEl: delta.valueEl,
+                        bestEl: best.valueEl,
+                        chartEl,
+                        scoreRowEl
+                    };
+                    return card;
+                };
+                const createTrendScorePill = item => {
+                    const pill = document.createElement('span');
+                    pill.className = `trend-score-pill ${item.score != null ? 'has-score' : item.included ? '' : 'excluded'}`.trim();
+                    const labelEl = document.createElement('b');
+                    labelEl.textContent = item.label;
+                    const scoreEl = document.createElement('strong');
+                    scoreEl.textContent = item.score != null ? String(item.score) : item.included ? '--' : '免记';
+                    pill.append(labelEl, scoreEl);
+                    return pill;
+                };
                 const syncActiveAssignments = rangeAssignments => {
                     const rangeIds = new Set(rangeAssignments.map(asg => asg.id));
                     if (!lastRangeAssignmentIds.size && !activeAssignmentIds.size) {
@@ -427,33 +489,29 @@
                 const renderStudentCard = student => {
                     let card = cardPool.get(student.id);
                     if (!card) {
-                        card = document.createElement('article');
-                        card.className = 'trend-card';
+                        card = createTrendCard();
                         cardPool.set(student.id, card);
                     }
-                    const renderKey = `${student.id}|${student.name}|${student.stats.coverage}|${student.stats.avg ?? ''}|${student.stats.latest ?? ''}|${student.stats.best ?? ''}|${student.stats.delta ?? ''}|${student.stats.trend}|${student.timeline.map(item => `${item.asgId}:${item.label}:${item.score ?? ''}:${item.included ? 1 : 0}`).join(';')}`;
-                    if (card._trendRenderKey === renderKey) return card;
-                    card._trendRenderKey = renderKey;
+                    if (card._trendRenderKey === student.renderKey) return card;
+                    const refs = card._trendRefs;
                     const trendTone = getTrendTone(student.stats.trend);
-                    card.innerHTML = `<div class="trend-card-head">
-                            <div>
-                                <div class="trend-student-name">${student.id} ${student.name}</div>
-                                <div class="trend-student-sub">记录 ${student.stats.coverage}</div>
-                            </div>
-                            <span class="trend-badge ${trendTone}">${student.stats.trend}</span>
-                        </div>
-                        <div class="trend-metrics">
-                            <span class="trend-metric">均分 <strong>${formatStat(student.stats.avg)}</strong></span>
-                            <span class="trend-metric">最新 <strong>${formatStat(student.stats.latest)}</strong></span>
-                            <span class="trend-metric">变化 <strong>${formatDelta(student.stats.delta)}</strong></span>
-                            <span class="trend-metric">最佳 <strong>${formatStat(student.stats.best)}</strong></span>
-                        </div>
-                        <div class="trend-chart"></div>
-                        <div class="trend-score-row">${student.timeline.map(item => `<span class="trend-score-pill ${item.score != null ? 'has-score' : item.included ? '' : 'excluded'}"><b>${item.label}</b><strong>${item.score != null ? item.score : item.included ? '--' : '免记'}</strong></span>`).join('')}</div>`;
-                    card.querySelector('.trend-chart').replaceChildren(this.ctx.views.createTrendSparkline(student.entries));
+                    refs.nameEl.textContent = student.searchText;
+                    refs.subEl.textContent = `记录 ${student.stats.coverage}`;
+                    refs.badgeEl.className = `trend-badge ${trendTone}`;
+                    refs.badgeEl.textContent = student.stats.trend;
+                    refs.avgEl.textContent = formatStat(student.stats.avg);
+                    refs.latestEl.textContent = formatStat(student.stats.latest);
+                    refs.deltaEl.textContent = formatDelta(student.stats.delta);
+                    refs.bestEl.textContent = formatStat(student.stats.best);
+                    if (card._trendTimelineKey !== student.timelineKey) {
+                        refs.chartEl.replaceChildren(this.ctx.views.createTrendSparkline(student.entries));
+                        refs.scoreRowEl.replaceChildren(...student.timeline.map(createTrendScorePill));
+                        card._trendTimelineKey = student.timelineKey;
+                    }
+                    card._trendRenderKey = student.renderKey;
                     return card;
                 };
-                const applyStudentFilter = () => {
+                const renderVisibleStudents = () => {
                     if (!currentReport) return;
                     if (!currentReport.assignments.length) {
                         empty.textContent = '当前没有选中要显示的小测项目';
@@ -461,16 +519,16 @@
                         return;
                     }
                     const keyword = String(ui.searchEl.value || '').trim();
-                    const visibleCards = currentReport.students
-                        .filter(student => !keyword || `${student.id} ${student.name}`.includes(keyword))
-                        .map(student => cardPool.get(student.id))
-                        .filter(Boolean);
-                    if (!visibleCards.length) {
+                    const visibleStudents = currentReport.students.filter(student => !keyword || student.searchText.includes(keyword));
+                    if (!visibleStudents.length) {
                         empty.textContent = '当前筛选下没有匹配学生';
                         ui.listEl.replaceChildren(empty);
                         return;
                     }
-                    ui.listEl.replaceChildren(...visibleCards);
+                    ui.listEl.replaceChildren(...visibleStudents.map(student => renderStudentCard(student)));
+                };
+                const applyStudentFilter = () => {
+                    renderVisibleStudents();
                 };
                 const render = () => {
                     const rangeAssignments = getRangeAssignments();
@@ -480,8 +538,7 @@
                     const report = currentReport;
                     ui.summaryEl.textContent = `区间内 ${rangeAssignments.length} 次任务，当前显示 ${report.assignments.length} 次，${report.scoredStudentCount} 人有成绩记录`;
                     renderAssignments(rangeAssignments);
-                    report.students.forEach(student => renderStudentCard(student));
-                    applyStudentFilter();
+                    renderVisibleStudents();
                 };
                 fillOptions();
                 ui.startEl.onchange = render;
