@@ -3,18 +3,15 @@ const $ = id => document.getElementById(id);
 const LS = {
     _log(action, key, err) {
         const msg = `[LS.${action}] key=${key}${err ? ` error=${err.message}` : ''}`;
-        if (typeof Debug !== 'undefined' && Debug.enabled) Debug.log(msg);
-        else if (err || action === 'get') console.warn(msg);
+        if (err || action === 'get') console.warn(msg);
     },
     get(k, d) {
         const raw = localStorage.getItem(k);
         if (raw == null) {
-            Debug.log(`[LS.get] key=${k} not found, using default`, 'info');
             return d;
         }
         try {
             const val = JSON.parse(raw);
-            Debug.log(`[LS.get] key=${k} success`, 'info');
             return val;
         } catch (err) {
             this._log('get', k, err);
@@ -26,14 +23,13 @@ const LS = {
             const nextRaw = JSON.stringify(v);
             if (localStorage.getItem(k) === nextRaw) return;
             localStorage.setItem(k, nextRaw);
-            Debug.log(`[LS.set] key=${k} success`, 'info');
         } catch (err) {
             this._log('set', k, err);
         }
     }
 };
 
-const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', DEBUG: 'tracker_debug', PREFS: 'tracker_prefs', DRAFT: 'tracker_recovery_draft', SCOREPAD_FAST_TEN: 'tracker_scorepad_fast_ten' };
+const KEYS = { DATA: 'tracker_db', LIST: 'tracker_roster', ANIM: 'tracker_anim', PREFS: 'tracker_prefs', DRAFT: 'tracker_recovery_draft', SCOREPAD_FAST_TEN: 'tracker_scorepad_fast_ten' };
 const SUBJECT_PRESETS = ['英语', '语文', '数学', '物理', '化学', '其他'];
 const Device = {
     isAndroid() {
@@ -129,201 +125,10 @@ const Toast = {
     init() { this.el = $('toast'); },
     show(msg, ms = 1500) {
         if (!this.el) return;
-        Debug.log(`[Toast] show: ${msg}`, 'info');
         this.el.textContent = msg;
         this.el.classList.add('show');
         clearTimeout(this.timer);
         this.timer = setTimeout(() => this.el.classList.remove('show'), ms);
-    }
-};
-
-const Debug = {
-    el: null,
-    contentEl: null,
-    enabled: false,
-    interactive: false,
-    filter: 'all',
-    lines: [],
-    emptyEl: null,
-    _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
-    init() {
-        this.el = $('debugPanel');
-        this.contentEl = $('debugContent');
-        this.enabled = !!LS.get(KEYS.DEBUG, false);
-        this.emptyEl = this.createEmptyEl();
-        
-        const bind = (id, fn) => {
-            const btn = $(id);
-            if (!btn) return;
-            btn.onpointerdown = e => e.stopPropagation();
-            btn.onclick = fn;
-        };
-        bind('debugClear', () => this.clear());
-        bind('debugLock', () => this.toggleInteractive());
-        bind('debugFilter', () => this.toggleFilter());
-        bind('debugClose', () => this.toggle());
-        
-        this.apply();
-
-        if (this.el) {
-            this.el.onpointerdown = e => {
-                if (!this.interactive || e.target.closest('.debug-actions')) return;
-                this._drag.active = true;
-                this._drag.x = e.clientX;
-                this._drag.y = e.clientY;
-                this._drag.lastX = this.el.offsetLeft;
-                this._drag.lastY = this.el.offsetTop;
-                this.el.setPointerCapture(e.pointerId);
-            };
-            this.el.onpointermove = e => {
-                if (!this._drag.active) return;
-                const dx = e.clientX - this._drag.x;
-                const dy = e.clientY - this._drag.y;
-                this.el.style.left = `${this._drag.lastX + dx}px`;
-                this.el.style.top = `${this._drag.lastY + dy}px`;
-                this.el.style.right = 'auto';
-                this.el.style.bottom = 'auto';
-            };
-            this.el.onpointerup = e => {
-                this._drag.active = false;
-                this.el.releasePointerCapture(e.pointerId);
-            };
-        }
-
-        window.addEventListener('error', e => {
-            this.log(`[JS Error] ${e.message} at ${e.filename}:${e.lineno}`, 'error');
-        });
-        window.addEventListener('unhandledrejection', e => {
-            this.log(`[Promise Error] ${e.reason}`, 'error');
-        });
-        Debug.log('Debug system initialized', 'info');
-    },
-    apply() {
-        if (!this.el) return;
-        this.el.classList.toggle('show', this.enabled);
-        if (!this.enabled) {
-            this.el.style.left = '';
-            this.el.style.top = '';
-            this.el.style.right = '';
-            this.el.style.bottom = '';
-        }
-        const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = this.enabled ? '开' : '关';
-        if (this.el) {
-            this.el.classList.toggle('interactive', this.interactive);
-            $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
-            this.updateFilterUI();
-        }
-    },
-    toggle() {
-        this.enabled = !this.enabled;
-        LS.set(KEYS.DEBUG, this.enabled);
-        if (!this.enabled) {
-            this.clear();
-            this.interactive = false;
-        }
-        this.apply();
-        this.render();
-    },
-    toggleInteractive() {
-        this.interactive = !this.interactive;
-        this.el?.classList.toggle('interactive', this.interactive);
-        $('debugLock').textContent = this.interactive ? '🔓' : '🔒';
-        Debug.log(`Debug interactive=${this.interactive}`, 'info');
-    },
-    toggleFilter() {
-        const levels = ['all', 'info', 'warn', 'error'];
-        const idx = levels.indexOf(this.filter);
-        this.filter = levels[(idx + 1) % levels.length];
-        this.updateFilterUI();
-        this.render();
-        Debug.log(`Filter changed to: ${this.filter}`, 'info');
-    },
-    updateFilterUI() {
-        const btn = $('debugFilter');
-        if (!btn) return;
-        const icons = { all: '🏷️', info: 'ℹ️', warn: '⚠️', error: '❌' };
-        btn.textContent = icons[this.filter] || '🏷️';
-        btn.title = `筛选: ${this.filter}`;
-    },
-    createEmptyEl() {
-        const empty = document.createElement('div');
-        empty.style.opacity = '0.5';
-        empty.style.padding = '10px';
-        empty.style.textAlign = 'center';
-        empty.textContent = '暂无日志';
-        return empty;
-    },
-    createLineEl(line) {
-        const div = document.createElement('div');
-        div.className = `debug-line debug-line-${line.level}`;
-        const ts = document.createElement('span');
-        ts.className = 'debug-ts';
-        ts.textContent = line.ts;
-        const msg = document.createElement('span');
-        msg.className = 'debug-msg';
-        msg.textContent = line.msg;
-        div.append(ts, msg);
-        return div;
-    },
-    canShowLine(level) {
-        return this.filter === 'all' || this.filter === level;
-    },
-    appendLine(line) {
-        if (!this.contentEl) return;
-        if (this.contentEl.firstElementChild === this.emptyEl) this.contentEl.replaceChildren();
-        this.contentEl.appendChild(this.createLineEl(line));
-        this.contentEl.scrollTop = this.contentEl.scrollHeight;
-    },
-    showEmpty() {
-        if (!this.contentEl) return;
-        if (!this.emptyEl) this.emptyEl = this.createEmptyEl();
-        this.contentEl.replaceChildren(this.emptyEl);
-    },
-    removeHeadVisibleLine() {
-        if (!this.contentEl || this.contentEl.firstElementChild === this.emptyEl) return;
-        this.contentEl.firstElementChild?.remove();
-        if (!this.contentEl.children.length) this.showEmpty();
-    },
-    syncTrimmedLine(removedLine, line) {
-        const removedVisible = !!removedLine && this.canShowLine(removedLine.level);
-        const nextVisible = this.canShowLine(line.level);
-        if (removedVisible) this.removeHeadVisibleLine();
-        if (nextVisible) this.appendLine(line);
-    },
-    clear() {
-        this.lines = [];
-        this.render();
-        Debug.log('Logs cleared', 'info');
-    },
-    log(msg, level = 'info') {
-        if (!this.enabled || !this.el) return;
-        const t = new Date();
-        const ts = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
-        const line = { ts, msg, level };
-        this.lines.push(line);
-        let removedLine = null;
-        if (this.lines.length > 200) {
-            removedLine = this.lines.shift();
-        }
-        if (removedLine) {
-            this.syncTrimmedLine(removedLine, line);
-            return;
-        }
-        if (this.canShowLine(level)) this.appendLine(line);
-    },
-    render() {
-        if (!this.enabled || !this.el || !this.contentEl) return;
-        const filtered = this.filter === 'all' ? this.lines : this.lines.filter(l => l.level === this.filter);
-        if (filtered.length === 0) {
-            this.showEmpty();
-            return;
-        }
-        const frag = document.createDocumentFragment();
-        filtered.forEach(l => {
-            frag.appendChild(this.createLineEl(l));
-        });
-        this.contentEl.replaceChildren(frag);
-        this.contentEl.scrollTop = this.contentEl.scrollHeight;
     }
 };
 
@@ -337,6 +142,5 @@ Object.assign(globalThis, {
     APP_NAME_SLUG,
     ColorUtil,
     formatBackupFileName,
-    Toast,
-    Debug
+    Toast
 });

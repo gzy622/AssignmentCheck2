@@ -26,7 +26,6 @@
                     // 先加载基本数据
                     this.list = LS.get(KEYS.LIST, DEFAULT_ROSTER);
                     this.animations = LS.get(KEYS.ANIM, true);
-                    this.debug = !!LS.get(KEYS.DEBUG, false);
                     this.prefs = this.normalizePrefs(LS.get(KEYS.PREFS, this.prefs));
                     
                     // 延迟加载和处理数据，让页面先渲染
@@ -37,15 +36,12 @@
                             
                             try {
                                 this.parseRoster();
-                                Debug.log('Roster parsed successfully', 'info');
                             } catch (err) {
-                                Debug.log(`Roster parse error: ${err.message}`, 'error');
                                 window.alert(`名单数据异常：${err.message}\n请先修复本地名单后再使用。`);
                                 throw err;
                             }
                             
                             if (!this.data.length) {
-                                Debug.log('No data found, adding default assignment', 'info');
                                 this.addAsg('任务 1');
                             }
                             
@@ -61,7 +57,6 @@
                             this._lastDraftSnapshot = this.getRecoverySnapshot();
                             if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
                         } catch (err) {
-                            Debug.log(`Init error: ${err.message}`, 'error');
                         }
                     }, 100);
                 };
@@ -321,7 +316,6 @@
                 if (asgListChanged) {
                     this._asgListVersion++;
                     this._scoreRangeCache.clear();
-                    Debug.log('Assignment list version incremented', 'info');
                 }
                 if (dirtyData || dirtyList) this.queueRecoveryDraft();
                 if (immediate) this._flushPersist({ includeDraft: true }); else this._queuePersist();
@@ -339,7 +333,6 @@
             applyAnim() {
                 document.body.classList.toggle('no-animations', !this.animations);
                 const sAnim = $('statusAnim'); if (sAnim) sAnim.textContent = this.animations ? '开' : '关';
-                const sDebug = $('statusDebug'); if (sDebug) sDebug.textContent = Debug.enabled ? '开' : '关';
             },
 
             applyCardColor() {
@@ -376,7 +369,6 @@
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
 
             addAsg(n) {
-                Debug.log(`Adding assignment: ${n}`, 'info');
                 let id = Date.now();
                 while (this.asgMap.has(id)) id++;
                 this.data.push(this.normalizeAsg({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} }));
@@ -387,9 +379,7 @@
             },
 
             selectAsg(id) {
-                Debug.log(`Selecting assignment: ${id}`, 'info');
                 if (!this.asgMap.has(id)) {
-                    Debug.log(`selectAsg failed: ID ${id} not found`, 'warn');
                     return;
                 }
                 this.curId = id;
@@ -419,11 +409,9 @@
             },
 
             removeAsg(id) {
-                Debug.log(`Removing assignment: ${id}`, 'warn');
                 if (this.data.length <= 1) return false;
                 const idx = this.data.findIndex(a => a.id === id);
                 if (idx === -1) {
-                    Debug.log(`removeAsg failed: ID ${id} not found`, 'warn');
                     return false;
                 }
                 this.data.splice(idx, 1);
@@ -570,28 +558,6 @@
                 return report;
             },
 
-            formatDebugRecordValue(value, emptyLabel = '空') {
-                return value == null || value === '' ? emptyLabel : String(value);
-            },
-
-            logRecordChange(asg, id, prevRecord, nextRecord, meta = {}) {
-                const prevScore = prevRecord?.score ?? null;
-                const nextScore = nextRecord?.score ?? null;
-                const prevDone = !!prevRecord?.done;
-                const nextDone = !!nextRecord?.done;
-                const scoreChanged = prevScore !== nextScore;
-                const doneChanged = prevDone !== nextDone;
-                if (!scoreChanged && !doneChanged) return;
-                const studentIndex = this.rosterIndexMap.get(String(id));
-                const student = studentIndex == null ? { id, name: meta.studentName || '' } : this.roster[studentIndex];
-                const parts = [];
-                if (scoreChanged) parts.push(`分数 ${this.formatDebugRecordValue(prevScore)} -> ${this.formatDebugRecordValue(nextScore)}`);
-                if (doneChanged) parts.push(`完成 ${prevDone ? '已完成' : '未完成'} -> ${nextDone ? '已完成' : '未完成'}`);
-                const action = meta.action ? ` 动作=${meta.action}` : '';
-                const source = meta.source ? ` 来源=${meta.source}` : '';
-                Debug.log(`[记录变更] 任务=${asg?.name || '未命名任务'} 学生=${student.id} ${student.name || ''}${action}${source} ${parts.join('，')}`.trim(), scoreChanged && doneChanged ? 'warn' : 'info');
-            },
-
             updRec(id, val, meta = {}) {
                 const asg = this.cur; if (!asg) return;
                 const prevRecord = asg.records[id] ? { ...asg.records[id] } : null;
@@ -605,7 +571,6 @@
                 this.queueRecoveryDraft();
                 this._queuePersist();
                 this.view.renderStudent(id);
-                this.logRecordChange(asg, id, prevRecord, nextRecord, meta);
                 if (prevDone !== !!asg.records[id]?.done) this.view.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
             }
         };
@@ -626,7 +591,7 @@
                     if (act && this.actions.has(act)) { $('menu').classList.remove('show'); this.actions.run(act); }
                 };
                 $('fileIn').onchange = e => this.actions.handleFile(e);
-                Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); 
+                this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); 
                 
                 // 延迟标记UI为就绪状态，确保State数据已加载
                 setTimeout(() => {

@@ -1,7 +1,6 @@
 Toast.init();
 Modal.init();
 ScorePad.init();
-Debug.init();
 State.init();
 // 延迟显示版本号，让数据加载完成后再显示
 setTimeout(() => {

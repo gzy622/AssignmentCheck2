@@ -12,7 +12,7 @@ const Modal = {
     _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null,
 
     init() {
-        this.closeBtn.onclick = () => { if (Debug.enabled) Debug.log('点击关闭按钮'); this.close(false); };
+        this.closeBtn.onclick = () => { this.close(false); };
         document.addEventListener('keydown', e => { if (e.key === 'Escape') this.isOpen ? this.close(false) : BackHandler.closeOverlayLikeEsc(); });
     },
 
@@ -179,7 +179,6 @@ const Modal = {
             });
         }
 
-        if (Debug.enabled) Debug.log(`Modal.show type=${type} stable=${this._stableFocusMode ? 1 : 0}`);
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
         this.stageOpenTransition();
         // Use shorter pointer guard for lite transitions on Android

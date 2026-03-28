@@ -72,13 +72,8 @@
                         </div>
                     </div>
 
-                    <div class="menu-section">
-                        <button class="menu-item" act="toggleDebug" id="btnDebug" style="opacity: 0.6; font-size: 0.8rem; padding: 6px 14px;">
-                            <span>调试面板</span>
-                            <small class="menu-status" id="statusDebug">关</small>
-                        </button>
-                    </div>
-                    <div id="menuVersion" class="menu-info">Version: 20260328-26</div>
+
+                    <div id="menuVersion" class="menu-info">Version: 20260328-27</div>
                 </div>
             </div>
         </div>
@@ -103,15 +98,7 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <div id="debugPanel" class="debug-panel" aria-live="polite">
-        <div id="debugContent" class="debug-content"></div>
-        <div class="debug-actions">
-            <button id="debugLock" title="锁定/解锁交互">🔒</button>
-            <button id="debugFilter" title="筛选日志">🏷️</button>
-            <button id="debugClear" title="清除日志">🗑️</button>
-            <button id="debugClose" title="关闭面板">&times;</button>
-        </div>
-    </div>
+
 
     <script src="core.js"></script>
     <script src="back-handler.js"></script>
