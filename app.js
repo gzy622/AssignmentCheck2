@@ -341,22 +341,12 @@
                 const lum = ColorUtil.luminance(base);
                 const badgeBg = lum > 0.35 ? ColorUtil.mix('#111111', '#ffffff', 0.12) : ColorUtil.mix('#ffffff', '#111111', 0.08);
                 const badgeText = lum > 0.35 ? 'rgba(255,255,255,0.95)' : 'rgba(17,17,17,0.92)';
-                const focusBorderMap = {
-                    '#68c490': 'rgba(20, 80, 45, 0.8)',
-                    '#8ecae6': 'rgba(15, 60, 95, 0.8)',
-                    '#f4a261': 'rgba(130, 60, 15, 0.8)',
-                    '#e9c46a': 'rgba(110, 85, 15, 0.8)',
-                    '#c084fc': 'rgba(90, 35, 130, 0.8)',
-                    '#f28482': 'rgba(150, 35, 35, 0.8)'
-                };
-                const focusBorder = focusBorderMap[base.toLowerCase()] || (lum > 0.5 ? 'rgba(16, 38, 26, 0.75)' : 'rgba(255, 255, 255, 0.8)');
                 const d = document.documentElement.style;
                 d.setProperty('--done-card-start', s); d.setProperty('--done-card-end', e); d.setProperty('--done-card-border', b);
                 d.setProperty('--done-card-shadow', ColorUtil.withAlpha(base, 0.22));
                 d.setProperty('--done-card-press-shadow', ColorUtil.withAlpha(base, 0.32));
                 d.setProperty('--done-card-badge', badgeBg);
                 d.setProperty('--done-card-badge-text', badgeText);
-                d.setProperty('--done-card-focus-border', focusBorder);
             },
 
             applyScoring() {

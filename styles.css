@@ -230,25 +230,6 @@
             -webkit-tap-highlight-color: rgba(13, 110, 253, 0.15);
         }
 
-        .student-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border: 2px dashed transparent;
-            border-radius: inherit;
-            box-sizing: border-box;
-            pointer-events: none;
-            transition: border-color 0.15s ease;
-        }
-
-        .student-card:focus-visible::after {
-            border-color: var(--card-focus-border, rgba(13, 110, 253, 0.75));
-        }
-
-        .student-card.done:focus-visible::after {
-            border-color: var(--done-card-focus-border, rgba(255, 255, 255, 0.7));
-        }
-
         .student-card:active {
             transform: scale(0.94);
         }
@@ -265,10 +246,6 @@
         .student-card.scoring {
             border-color: #1f6fff !important;
             box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
-        }
-
-        .student-card.scoring::after {
-            border-color: #1f6fff;
         }
 
         .student-card.score-saved-flash {
