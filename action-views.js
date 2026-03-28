@@ -68,7 +68,7 @@ const ActionViews = {
 
     createRosterShell() {
         const { root, body } = this.createShell('编辑学生名单');
-        body.style.padding = '16px';
+        body.style.padding = '12px';
         body.innerHTML = `<div class="roster-shell">
             <div class="roster-topbar">
                 <div class="roster-actions" data-role="actions">
@@ -82,8 +82,10 @@ const ActionViews = {
                     <button class="btn btn-p" type="button" data-act="save">保存</button>
                 </div>
             </div>
-            <div class="roster-summary"><span class="roster-badge" data-role="count"></span><span class="roster-badge" data-role="excluded"></span></div>
-            <div class="roster-list" data-role="list"></div>
+            <div class="roster-content">
+                <div class="roster-summary"><span class="roster-badge" data-role="count"></span><span class="roster-badge" data-role="excluded"></span></div>
+                <div class="roster-list" data-role="list"></div>
+            </div>
         </div>`;
         return {
             root,
