@@ -234,7 +234,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            border: 2px dashed transparent;
+            border: 2px dashed var(--done-card-dash, transparent);
             border-radius: inherit;
             box-sizing: border-box;
             pointer-events: none;
