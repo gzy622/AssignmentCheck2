@@ -29,20 +29,9 @@
             },
             async del() { this.asgManage(); },
             score(id, name) {
-                const card = document.querySelector(`.student-card[data-id="${id}"]`);
-                if (card) {
-                    const rect = card.getBoundingClientRect();
-                    ScorePad.show(id, name, rect);
-                } else {
-                    const allCards = document.querySelectorAll('.student-card');
-                    for (const c of allCards) {
-                        if (c.dataset.id === id) {
-                            const rect = c.getBoundingClientRect();
-                            ScorePad.show(id, name, rect);
-                            break;
-                        }
-                    }
-                }
+                const card = UI.getStudentCard(id);
+                if (!card) return;
+                ScorePad.show(id, name, card.getBoundingClientRect());
             },
             asgManage() {
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
@@ -387,12 +376,18 @@
                 const assignments = State.getQuizTrendAssignments();
                 let activeAssignmentIds = new Set();
                 let lastRangeAssignmentIds = new Set();
+                const chipPool = new Map();
+                const cardPool = new Map();
+                const empty = document.createElement('div');
+                empty.className = 'trend-empty';
+                let currentReport = null;
                 if (!assignments.length) {
                     this.ctx.toast.show('暂无任务数据');
                     return;
                 }
                 const formatStat = value => value == null ? '--' : `${value}`;
                 const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
+                const getTrendTone = trend => trend === '上升' ? 'up' : trend === '下降' ? 'down' : trend === '稳定' ? 'steady' : 'mix';
                 const getRangeAssignments = () => State.getAsgRange(+ui.startEl.value, +ui.endEl.value, assignments);
                 const syncActiveAssignments = rangeAssignments => {
                     const rangeIds = new Set(rangeAssignments.map(asg => asg.id));
@@ -413,56 +408,85 @@
                     ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)]?.id ?? assignments[0].id);
                     ui.endEl.value = String(assignments[assignments.length - 1].id);
                 };
+                const renderAssignments = rangeAssignments => {
+                    ui.assignmentEl.replaceChildren(...rangeAssignments.map((asg, index) => {
+                        let chip = chipPool.get(asg.id);
+                        if (!chip) {
+                            chip = document.createElement('button');
+                            chip.type = 'button';
+                            chip.dataset.asgId = String(asg.id);
+                            chipPool.set(asg.id, chip);
+                        }
+                        const active = activeAssignmentIds.has(asg.id);
+                        chip.className = `trend-assignment-chip${active ? ' active' : ''}`;
+                        chip.setAttribute('aria-pressed', String(active));
+                        chip.textContent = `${index + 1}. ${asg.name}`;
+                        return chip;
+                    }));
+                };
+                const renderStudentCard = student => {
+                    let card = cardPool.get(student.id);
+                    if (!card) {
+                        card = document.createElement('article');
+                        card.className = 'trend-card';
+                        cardPool.set(student.id, card);
+                    }
+                    const renderKey = `${student.id}|${student.name}|${student.stats.coverage}|${student.stats.avg ?? ''}|${student.stats.latest ?? ''}|${student.stats.best ?? ''}|${student.stats.delta ?? ''}|${student.stats.trend}|${student.timeline.map(item => `${item.asgId}:${item.label}:${item.score ?? ''}:${item.included ? 1 : 0}`).join(';')}`;
+                    if (card._trendRenderKey === renderKey) return card;
+                    card._trendRenderKey = renderKey;
+                    const trendTone = getTrendTone(student.stats.trend);
+                    card.innerHTML = `<div class="trend-card-head">
+                            <div>
+                                <div class="trend-student-name">${student.id} ${student.name}</div>
+                                <div class="trend-student-sub">记录 ${student.stats.coverage}</div>
+                            </div>
+                            <span class="trend-badge ${trendTone}">${student.stats.trend}</span>
+                        </div>
+                        <div class="trend-metrics">
+                            <span class="trend-metric">均分 <strong>${formatStat(student.stats.avg)}</strong></span>
+                            <span class="trend-metric">最新 <strong>${formatStat(student.stats.latest)}</strong></span>
+                            <span class="trend-metric">变化 <strong>${formatDelta(student.stats.delta)}</strong></span>
+                            <span class="trend-metric">最佳 <strong>${formatStat(student.stats.best)}</strong></span>
+                        </div>
+                        <div class="trend-chart"></div>
+                        <div class="trend-score-row">${student.timeline.map(item => `<span class="trend-score-pill ${item.score != null ? 'has-score' : item.included ? '' : 'excluded'}"><b>${item.label}</b><strong>${item.score != null ? item.score : item.included ? '--' : '免记'}</strong></span>`).join('')}</div>`;
+                    card.querySelector('.trend-chart').replaceChildren(this.ctx.views.createTrendSparkline(student.entries));
+                    return card;
+                };
+                const applyStudentFilter = () => {
+                    if (!currentReport) return;
+                    if (!currentReport.assignments.length) {
+                        empty.textContent = '当前没有选中要显示的小测项目';
+                        ui.listEl.replaceChildren(empty);
+                        return;
+                    }
+                    const keyword = String(ui.searchEl.value || '').trim();
+                    const visibleCards = currentReport.students
+                        .filter(student => !keyword || `${student.id} ${student.name}`.includes(keyword))
+                        .map(student => cardPool.get(student.id))
+                        .filter(Boolean);
+                    if (!visibleCards.length) {
+                        empty.textContent = '当前筛选下没有匹配学生';
+                        ui.listEl.replaceChildren(empty);
+                        return;
+                    }
+                    ui.listEl.replaceChildren(...visibleCards);
+                };
                 const render = () => {
                     const rangeAssignments = getRangeAssignments();
                     syncActiveAssignments(rangeAssignments);
                     const visibleAssignments = rangeAssignments.filter(asg => activeAssignmentIds.has(asg.id));
-                    const report = State.getScoreRangeReport(null, null, visibleAssignments);
-                    const keyword = String(ui.searchEl.value || '').trim();
-                    const students = keyword ? report.students.filter(student => `${student.id} ${student.name}`.includes(keyword)) : report.students;
+                    currentReport = State.getScoreRangeReport(null, null, visibleAssignments);
+                    const report = currentReport;
                     ui.summaryEl.textContent = `区间内 ${rangeAssignments.length} 次任务，当前显示 ${report.assignments.length} 次，${report.scoredStudentCount} 人有成绩记录`;
-                    ui.assignmentEl.replaceChildren(...rangeAssignments.map((asg, index) => {
-                        const chip = document.createElement('button');
-                        chip.type = 'button';
-                        chip.className = `trend-assignment-chip${activeAssignmentIds.has(asg.id) ? ' active' : ''}`;
-                        chip.dataset.asgId = String(asg.id);
-                        chip.setAttribute('aria-pressed', String(activeAssignmentIds.has(asg.id)));
-                        chip.textContent = `${index + 1}. ${asg.name}`;
-                        return chip;
-                    }));
-                    ui.listEl.replaceChildren(...students.map(student => {
-                        const card = document.createElement('article');
-                        card.className = 'trend-card';
-                        const trendTone = student.stats.trend === '上升' ? 'up' : student.stats.trend === '下降' ? 'down' : student.stats.trend === '稳定' ? 'steady' : 'mix';
-                        card.innerHTML = `<div class="trend-card-head">
-                                <div>
-                                    <div class="trend-student-name">${student.id} ${student.name}</div>
-                                    <div class="trend-student-sub">记录 ${student.stats.coverage}</div>
-                                </div>
-                                <span class="trend-badge ${trendTone}">${student.stats.trend}</span>
-                            </div>
-                            <div class="trend-metrics">
-                                <span class="trend-metric">均分 <strong>${formatStat(student.stats.avg)}</strong></span>
-                                <span class="trend-metric">最新 <strong>${formatStat(student.stats.latest)}</strong></span>
-                                <span class="trend-metric">变化 <strong>${formatDelta(student.stats.delta)}</strong></span>
-                                <span class="trend-metric">最佳 <strong>${formatStat(student.stats.best)}</strong></span>
-                            </div>
-                            <div class="trend-chart"></div>
-                            <div class="trend-score-row">${student.timeline.map(item => `<span class="trend-score-pill ${item.score != null ? 'has-score' : item.included ? '' : 'excluded'}"><b>${item.label}</b><strong>${item.score != null ? item.score : item.included ? '--' : '免记'}</strong></span>`).join('')}</div>`;
-                        card.querySelector('.trend-chart').appendChild(this.ctx.views.createTrendSparkline(student.entries));
-                        return card;
-                    }));
-                    if (!students.length || !report.assignments.length) {
-                        const empty = document.createElement('div');
-                        empty.className = 'trend-empty';
-                        empty.textContent = report.assignments.length ? '当前筛选下没有匹配学生' : '当前没有选中要显示的小测项目';
-                        ui.listEl.replaceChildren(empty);
-                    }
+                    renderAssignments(rangeAssignments);
+                    report.students.forEach(student => renderStudentCard(student));
+                    applyStudentFilter();
                 };
                 fillOptions();
                 ui.startEl.onchange = render;
                 ui.endEl.onchange = render;
-                ui.searchEl.oninput = render;
+                ui.searchEl.oninput = applyStudentFilter;
                 ui.assignmentEl.onclick = e => {
                     const chip = e.target.closest('[data-asg-id]');
                     if (!chip) return;

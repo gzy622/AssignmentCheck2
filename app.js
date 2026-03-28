@@ -10,6 +10,7 @@
             _draftDirty: false,
             _metricsToken: 0,
             _metricsCache: new Map(),
+            _scoreRangeCache: new Map(),
             _dirtyData: false,
             _dirtyList: false,
             _asgListVersion: 0,
@@ -75,11 +76,57 @@
                 };
             },
 
+            isSameRecoveryValue(a, b) {
+                return a === b || (a == null && b == null);
+            },
+
+            isSameRecoveryEntry(a, b) {
+                if (a === b) return true;
+                const objA = a && typeof a === 'object' ? a : null;
+                const objB = b && typeof b === 'object' ? b : null;
+                if (!objA || !objB) return objA === objB;
+                const keysA = Object.keys(objA);
+                const keysB = Object.keys(objB);
+                if (keysA.length !== keysB.length) return false;
+                return keysA.every(key => this.isSameRecoveryValue(objA[key], objB[key]));
+            },
+
+            isSameRecoveryRecords(a, b) {
+                const recA = a && typeof a === 'object' ? a : {};
+                const recB = b && typeof b === 'object' ? b : {};
+                const idsA = Object.keys(recA);
+                const idsB = Object.keys(recB);
+                if (idsA.length !== idsB.length) return false;
+                return idsA.every(id => this.isSameRecoveryEntry(recA[id], recB[id]));
+            },
+
+            isSameRecoveryData(a, b) {
+                if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    const left = a[i];
+                    const right = b[i];
+                    if (!left || !right) return false;
+                    if (left.id !== right.id || left.name !== right.name || left.subject !== right.subject) return false;
+                    if (!this.isSameRecoveryRecords(left.records, right.records)) return false;
+                }
+                return true;
+            },
+
+            isSameRecoveryState(a, b) {
+                if (!a || !b) return false;
+                if (!Array.isArray(a.list) || !Array.isArray(b.list) || a.list.length !== b.list.length) return false;
+                if (a.list.some((item, index) => item !== b.list[index])) return false;
+                if (!this.isSameRecoveryData(a.data, b.data)) return false;
+                const curA = Number.isFinite(a.curId) ? a.curId : null;
+                const curB = Number.isFinite(b.curId) ? b.curId : null;
+                return curA === curB && this.normalizePrefs(a.prefs).cardDoneColor === this.normalizePrefs(b.prefs).cardDoneColor;
+            },
+
             applyRecoveryDraft() {
                 const draft = this.getRecoveryDraft();
                 if (!draft) return false;
                 const current = { list: this.list, data: this.data, prefs: this.prefs, curId: this.curId };
-                if (JSON.stringify(draft) === JSON.stringify(current)) return false;
+                if (this.isSameRecoveryState(draft, current)) return false;
                 Object.assign(this, { list: draft.list, data: draft.data, prefs: draft.prefs, curId: Number.isFinite(draft.curId) ? draft.curId : this.curId });
                 return true;
             },
@@ -141,7 +188,11 @@
                 return n;
             },
 
-            invalidateDerived() { this._metricsToken++; this._metricsCache.clear(); },
+            invalidateDerived() {
+                this._metricsToken++;
+                this._metricsCache.clear();
+                this._scoreRangeCache.clear();
+            },
 
             markGridDirty({ full = false, ids = [] } = {}) {
                 if (full) { this._gridDirtyFull = true; this._gridDirtyStudentIds.clear(); return; }
@@ -210,6 +261,7 @@
                 if (dirtyList) this._dirtyList = true;
                 if (asgListChanged) {
                     this._asgListVersion++;
+                    this._scoreRangeCache.clear();
                     Debug.log('Assignment list version incremented', 'info');
                 }
                 if (dirtyData || dirtyList) this.queueRecoveryDraft();
@@ -365,9 +417,17 @@
             classifyScoreTrend(entries) {
                 if (!entries.length) return '暂无成绩';
                 if (entries.length === 1) return '单次记录';
-                const scores = entries.map(item => item.score);
-                const delta = scores[scores.length - 1] - scores[0];
-                const span = Math.max(...scores) - Math.min(...scores);
+                const first = entries[0].score;
+                const latest = entries[entries.length - 1].score;
+                let min = first;
+                let max = first;
+                for (let i = 1; i < entries.length; i++) {
+                    const score = entries[i].score;
+                    if (score < min) min = score;
+                    if (score > max) max = score;
+                }
+                const delta = latest - first;
+                const span = max - min;
                 if (Math.abs(delta) <= 2 && span <= 4) return '稳定';
                 if (delta >= 5) return '上升';
                 if (delta <= -5) return '下降';
@@ -376,40 +436,65 @@
 
             getScoreRangeReport(startId, endId, source = this.data) {
                 const assignments = this.getAsgRange(startId, endId, source);
+                const cacheKey = `${this._metricsToken}|${this._rosterVersion}|${this._asgListVersion}|${assignments.map(asg => asg.id).join(',')}`;
+                const cached = this._scoreRangeCache.get(cacheKey);
+                if (cached) return cached;
+
+                let scoredStudentCount = 0;
                 const students = this.roster.map(stu => {
-                    const timeline = assignments.map(asg => {
-                        if (!this.isStuIncluded(asg, stu)) return { asgId: asg.id, label: asg.name, score: null, rawScore: '', included: false };
+                    const timeline = [];
+                    const entries = [];
+                    let includedCount = 0;
+                    let totalScore = 0;
+                    let first = null;
+                    let latest = null;
+                    let best = null;
+                    let worst = null;
+
+                    assignments.forEach(asg => {
+                        if (!this.isStuIncluded(asg, stu)) {
+                            timeline.push({ asgId: asg.id, label: asg.name, score: null, rawScore: '', included: false });
+                            return;
+                        }
+                        includedCount++;
                         const rawScore = asg.records?.[stu.id]?.score ?? '';
                         const score = this.parseNumericScore(rawScore);
-                        return { asgId: asg.id, label: asg.name, score, rawScore, included: true };
+                        const item = { asgId: asg.id, label: asg.name, score, rawScore, included: true };
+                        timeline.push(item);
+                        if (score == null) return;
+                        entries.push(item);
+                        totalScore += score;
+                        if (first == null) first = score;
+                        latest = score;
+                        best = best == null ? score : Math.max(best, score);
+                        worst = worst == null ? score : Math.min(worst, score);
                     });
-                    const entries = timeline.filter(item => item.score != null);
-                    const scores = entries.map(item => item.score);
-                    const avg = scores.length ? Number((scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1)) : null;
-                    const latest = scores.length ? scores[scores.length - 1] : null;
-                    const first = scores.length ? scores[0] : null;
-                    const delta = scores.length >= 2 ? Number((latest - first).toFixed(1)) : null;
+
+                    if (entries.length) scoredStudentCount++;
                     return {
                         id: stu.id,
                         name: stu.name,
                         entries,
                         timeline,
                         stats: {
-                            avg,
+                            avg: entries.length ? Number((totalScore / entries.length).toFixed(1)) : null,
                             latest,
-                            best: scores.length ? Math.max(...scores) : null,
-                            worst: scores.length ? Math.min(...scores) : null,
-                            delta,
-                            coverage: `${entries.length}/${timeline.filter(item => item.included).length}`,
+                            best,
+                            worst,
+                            delta: entries.length >= 2 ? Number((latest - first).toFixed(1)) : null,
+                            coverage: `${entries.length}/${includedCount}`,
                             trend: this.classifyScoreTrend(entries)
                         }
                     };
                 });
-                return {
+                const report = {
                     assignments: assignments.map(asg => ({ id: asg.id, name: asg.name, subject: this.getAsgSubject(asg) })),
                     students,
-                    scoredStudentCount: students.filter(student => student.entries.length).length
+                    scoredStudentCount
                 };
+                if (this._scoreRangeCache.size >= 12) this._scoreRangeCache.clear();
+                this._scoreRangeCache.set(cacheKey, report);
+                return report;
             },
 
             formatDebugRecordValue(value, emptyLabel = '空') {
@@ -424,7 +509,8 @@
                 const scoreChanged = prevScore !== nextScore;
                 const doneChanged = prevDone !== nextDone;
                 if (!scoreChanged && !doneChanged) return;
-                const student = this.roster.find(item => item.id === id) || { id, name: meta.studentName || '' };
+                const studentIndex = this.rosterIndexMap.get(String(id));
+                const student = studentIndex == null ? { id, name: meta.studentName || '' } : this.roster[studentIndex];
                 const parts = [];
                 if (scoreChanged) parts.push(`分数 ${this.formatDebugRecordValue(prevScore)} -> ${this.formatDebugRecordValue(nextScore)}`);
                 if (doneChanged) parts.push(`完成 ${prevDone ? '已完成' : '未完成'} -> ${nextDone ? '已完成' : '未完成'}`);
@@ -554,6 +640,12 @@
                 d.setProperty('--tag-size', `${m.tag}px`); d.setProperty('--card-pad', `${m.pad}px`); d.setProperty('--card-radius', `${m.rad}px`);
             },
             createCard() { const c = document.createElement('button'); c.type = 'button'; c.className = 'student-card'; c.innerHTML = '<span class="card-id"></span><span class="card-name"></span><span class="card-score" hidden></span>'; return c; },
+            getStudentCard(id) {
+                const index = State.rosterIndexMap.get(String(id));
+                if (index == null || !this.gridEl) return null;
+                this.syncCardPool();
+                return this.gridEl.children[index] || null;
+            },
             syncCardPool() {
                 const grid = this.gridEl, target = State.roster.length;
                 while (grid.children.length < target) grid.appendChild(this.createCard());
@@ -573,8 +665,9 @@
             renderStudent(id) {
                 const asg = State.cur, index = State.rosterIndexMap.get(id);
                 if (!asg || index == null) return;
-                this.syncCardPool();
-                this.renderCard(this.gridEl.children[index], State.roster[index], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[index]));
+                const card = this.getStudentCard(id);
+                if (!card) return;
+                this.renderCard(card, State.roster[index], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[index]));
             },
             renderProgress(done, total = State.roster.length) {
                 this.counterEl.textContent = `${done}/${total}`;

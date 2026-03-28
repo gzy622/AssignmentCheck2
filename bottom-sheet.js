@@ -4,6 +4,7 @@
  */
 const BottomSheet = {
     activeSheet: null,
+    CLOSE_ANIMATION_MS: 280,
 
     /**
      * 创建底部面板
@@ -35,6 +36,7 @@ const BottomSheet = {
             _isDragging: false,
             _resolve: null,
             _keyHandler: null,
+            _cleanupTimer: 0,
 
             _createElements() {
                 // 创建遮罩层
@@ -174,8 +176,19 @@ const BottomSheet = {
                 }
             },
 
+            _teardown() {
+                clearTimeout(this._cleanupTimer);
+                this._cleanupTimer = 0;
+                this.backdrop?.remove();
+                this.panel?.remove();
+                this.backdrop = null;
+                this.panel = null;
+            },
+
             show() {
-                if (this.isOpen) return;
+                if (this.isOpen || !this.panel || !this.backdrop) return;
+                clearTimeout(this._cleanupTimer);
+                this._cleanupTimer = 0;
 
                 // 关闭其他面板
                 if (BottomSheet.activeSheet && BottomSheet.activeSheet !== this) {
@@ -220,6 +233,7 @@ const BottomSheet = {
                     this._resolve(result);
                     this._resolve = null;
                 }
+                this._cleanupTimer = setTimeout(() => this._teardown(), BottomSheet.CLOSE_ANIMATION_MS);
             }
         };
 
@@ -250,17 +264,14 @@ const BottomSheet = {
         content.className = 'bottom-sheet-confirm-text';
         content.textContent = message;
 
-        return new Promise(resolve => {
-            const sheet = this.create({
-                content,
-                buttons: [
-                    { text: '取消', type: 'btn btn-c', onClick: () => { sheet.hide(); resolve(false); } },
-                    { text: '确定', type: 'btn btn-p', primary: true, onClick: () => { sheet.hide(); resolve(true); } }
-                ],
-                onClose: () => resolve(false)
-            });
-            sheet.show();
+        const sheet = this.create({
+            content,
+            buttons: [
+                { text: '取消', type: 'btn btn-c', onClick: () => sheet.hide(false) },
+                { text: '确定', type: 'btn btn-p', primary: true, onClick: () => sheet.hide(true) }
+            ]
         });
+        return (await sheet.show()) === true;
     },
 
     /**
@@ -273,16 +284,13 @@ const BottomSheet = {
         content.className = 'bottom-sheet-alert-text';
         content.textContent = message;
 
-        return new Promise(resolve => {
-            const sheet = this.create({
-                content,
-                buttons: [
-                    { text: '确定', type: 'btn btn-p', primary: true, onClick: () => { sheet.hide(); resolve(); } }
-                ],
-                onClose: () => resolve()
-            });
-            sheet.show();
+        const sheet = this.create({
+            content,
+            buttons: [
+                { text: '确定', type: 'btn btn-p', primary: true, onClick: () => sheet.hide(true) }
+            ]
         });
+        await sheet.show();
     },
 
     /**
@@ -305,83 +313,78 @@ const BottomSheet = {
 
         wrapper.appendChild(input);
 
-        return new Promise(resolve => {
-            let viewportHandler = null;
-            let isInputFocused = false;
+        let viewportHandler = null;
+        let isInputFocused = false;
 
-            const updateKeyboardHeight = () => {
-                if (!sheet.panel) return;
-                const vv = window.visualViewport;
-                if (!vv) return;
-                const kbdHeight = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
-                sheet.panel.style.setProperty('--keyboard-height', `${kbdHeight}px`);
+        const updateKeyboardHeight = sheet => {
+            if (!sheet.panel) return;
+            const vv = window.visualViewport;
+            if (!vv) return;
+            const kbdHeight = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+            sheet.panel.style.setProperty('--keyboard-height', `${kbdHeight}px`);
+        };
+
+        const bindViewportTracking = sheet => {
+            viewportHandler = () => {
+                if (isInputFocused) updateKeyboardHeight(sheet);
             };
+            window.addEventListener('resize', viewportHandler, { passive: true });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', viewportHandler, { passive: true });
+                window.visualViewport.addEventListener('scroll', viewportHandler, { passive: true });
+            }
+        };
 
-            const bindViewportTracking = () => {
-                viewportHandler = () => {
-                    if (isInputFocused) updateKeyboardHeight();
-                };
-                window.addEventListener('resize', viewportHandler, { passive: true });
+        const unbindViewportTracking = () => {
+            if (viewportHandler) {
+                window.removeEventListener('resize', viewportHandler);
                 if (window.visualViewport) {
-                    window.visualViewport.addEventListener('resize', viewportHandler, { passive: true });
-                    window.visualViewport.addEventListener('scroll', viewportHandler, { passive: true });
+                    window.visualViewport.removeEventListener('resize', viewportHandler);
+                    window.visualViewport.removeEventListener('scroll', viewportHandler);
                 }
-            };
+                viewportHandler = null;
+            }
+        };
 
-            const unbindViewportTracking = () => {
-                if (viewportHandler) {
-                    window.removeEventListener('resize', viewportHandler);
-                    if (window.visualViewport) {
-                        window.visualViewport.removeEventListener('resize', viewportHandler);
-                        window.visualViewport.removeEventListener('scroll', viewportHandler);
-                    }
-                    viewportHandler = null;
-                }
-            };
-
-            const sheet = this.create({
-                title,
-                content: wrapper,
-                buttons: [
-                    { text: '取消', type: 'btn btn-c', onClick: () => { sheet.hide(); resolve(false); } },
-                    { text: '确定', type: 'btn btn-p', primary: true, onClick: () => { sheet.hide(); resolve(input.value); } }
-                ],
-                onClose: () => {
-                    unbindViewportTracking();
-                    resolve(false);
-                }
-            });
-
-            sheet.show();
-
-            // 绑定视口追踪以检测键盘
-            bindViewportTracking();
-
-            // 自动聚焦
-            setTimeout(() => {
-                input.focus();
-                input.select();
-                isInputFocused = true;
-                updateKeyboardHeight();
-            }, 100);
-
-            // 失焦时取消键盘追踪
-            input.addEventListener('blur', () => {
-                isInputFocused = false;
-                if (sheet.panel) {
-                    sheet.panel.style.setProperty('--keyboard-height', '0px');
-                }
-            });
-
-            // Enter 键提交
-            input.addEventListener('keydown', e => {
-                if (e.key === 'Enter' && !e.isComposing) {
-                    e.preventDefault();
-                    sheet.hide();
-                    resolve(input.value);
-                }
-            });
+        const sheet = this.create({
+            title,
+            content: wrapper,
+            buttons: [
+                { text: '取消', type: 'btn btn-c', onClick: () => sheet.hide(false) },
+                { text: '确定', type: 'btn btn-p', primary: true, onClick: () => sheet.hide(input.value) }
+            ],
+            onClose: () => unbindViewportTracking()
         });
+
+        bindViewportTracking(sheet);
+        const resultPromise = sheet.show();
+
+        // 自动聚焦
+        setTimeout(() => {
+            input.focus();
+            input.select();
+            isInputFocused = true;
+            updateKeyboardHeight(sheet);
+        }, 100);
+
+        // 失焦时取消键盘追踪
+        input.addEventListener('blur', () => {
+            isInputFocused = false;
+            if (sheet.panel) {
+                sheet.panel.style.setProperty('--keyboard-height', '0px');
+            }
+        });
+
+        // Enter 键提交
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                sheet.hide(input.value);
+            }
+        });
+
+        const result = await resultPromise;
+        return result == null ? false : result;
     }
 };
 

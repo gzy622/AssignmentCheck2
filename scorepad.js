@@ -8,12 +8,14 @@ const ScorePad = {
     submitAction: 'confirm',
     fastTenMode: false,
     originalGridTransform: null,
+    displayEl: null,
     _pointerStartY: 0,
     _pointerCurrentY: 0,
     _activePointerId: null,
     _isPointerPrimed: false,
     _isDragging: false,
     highlightCloneEl: null,
+    _keypadMode: '',
     _savedCardTimers: new Map(),
 
     init() {
@@ -45,9 +47,10 @@ const ScorePad = {
 
         this.keypadEl = this.el.querySelector('.scorepad-keypad');
         this.modeToggleEl = this.el.querySelector('.scorepad-mode-toggle');
+        this.displayEl = this.el.querySelector('.scorepad-display');
         this._setFastTenMode(this.fastTenMode, { persist: false });
 
-        const display = this.el.querySelector('.scorepad-display');
+        const display = this.displayEl;
         display.onclick = (e) => {
             e.target.readOnly = false;
             e.target.focus({ preventScroll: true });
@@ -168,11 +171,7 @@ const ScorePad = {
     },
 
     _getCardById(id) {
-        const cards = document.querySelectorAll('.student-card');
-        for (const c of cards) {
-            if (c.dataset.id === String(id)) return c;
-        }
-        return null;
+        return UI.getStudentCard(id);
     },
 
     _formatStudentLabel(id, name) {
@@ -212,13 +211,12 @@ const ScorePad = {
         UI.setGridFrozen(true);
         this.currentId = id;
         this.currentName = name;
-        this._setFastTenMode(!!LS.get(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode), { persist: false });
 
         const asg = State.cur;
         const rec = asg?.records[id] || {};
         this.value = rec.score != null ? String(rec.score) : '';
         this.submitAction = 'confirm';
-        const display = this.el.querySelector('.scorepad-display');
+        const display = this.displayEl;
         if (display) {
             display.placeholder = this._formatStudentLabel(id, name) || '点击此处手动输入';
         }
@@ -242,14 +240,16 @@ const ScorePad = {
     },
 
     _setFastTenMode(enabled, { persist = true } = {}) {
-        this.fastTenMode = !!enabled;
+        const nextMode = !!enabled;
+        this.fastTenMode = nextMode;
         if (persist) LS.set(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode);
         if (this.el) this.el.classList.toggle('fast-ten-mode', this.fastTenMode);
         if (this.modeToggleEl) {
             this.modeToggleEl.classList.toggle('active', this.fastTenMode);
             this.modeToggleEl.setAttribute('aria-pressed', String(this.fastTenMode));
         }
-        this._renderKeypad();
+        const keypadMode = this.fastTenMode ? 'fast' : 'normal';
+        if (this._keypadMode !== keypadMode) this._renderKeypad();
         this._updateDisplay();
     },
 
@@ -271,6 +271,7 @@ const ScorePad = {
                     }).join('')}
                 </div>
             `).join('');
+            this._keypadMode = 'fast';
             return;
         }
 
@@ -296,6 +297,7 @@ const ScorePad = {
                 <button class="scorepad-key action" type="button" data-val="backspace">⌫</button>
             </div>
         `;
+        this._keypadMode = 'normal';
     },
 
     _estimatePanelHeight() {
@@ -329,11 +331,11 @@ const ScorePad = {
         this.currentName = null;
         this.value = '';
         this.submitAction = 'confirm';
-        this._setFastTenMode(!!LS.get(KEYS.SCOREPAD_FAST_TEN, this.fastTenMode), { persist: false });
     },
 
     _updateDisplay() {
-        const display = this.el.querySelector('.scorepad-display');
+        const display = this.displayEl;
+        if (!display) return;
         display.value = this.value;
         if (!this.currentId) return;
         display.placeholder = this._formatStudentLabel(this.currentId, this.currentName) || '点击此处手动输入';
@@ -341,7 +343,7 @@ const ScorePad = {
 
     _saveAndClose() {
         // 先关闭输入法（让输入框失去焦点）
-        const display = this.el.querySelector('.scorepad-display');
+        const display = this.displayEl;
         if (display) {
             display.readOnly = true;
             display.blur();

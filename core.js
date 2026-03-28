@@ -118,11 +118,13 @@ const Debug = {
     interactive: false,
     filter: 'all',
     lines: [],
+    emptyEl: null,
     _drag: { active: false, x: 0, y: 0, lastX: 0, lastY: 0 },
     init() {
         this.el = $('debugPanel');
         this.contentEl = $('debugContent');
         this.enabled = !!LS.get(KEYS.DEBUG, false);
+        this.emptyEl = this.createEmptyEl();
         
         const bind = (id, fn) => {
             const btn = $(id);
@@ -217,6 +219,51 @@ const Debug = {
         btn.textContent = icons[this.filter] || '🏷️';
         btn.title = `筛选: ${this.filter}`;
     },
+    createEmptyEl() {
+        const empty = document.createElement('div');
+        empty.style.opacity = '0.5';
+        empty.style.padding = '10px';
+        empty.style.textAlign = 'center';
+        empty.textContent = '暂无日志';
+        return empty;
+    },
+    createLineEl(line) {
+        const div = document.createElement('div');
+        div.className = `debug-line debug-line-${line.level}`;
+        const ts = document.createElement('span');
+        ts.className = 'debug-ts';
+        ts.textContent = line.ts;
+        const msg = document.createElement('span');
+        msg.className = 'debug-msg';
+        msg.textContent = line.msg;
+        div.append(ts, msg);
+        return div;
+    },
+    canShowLine(level) {
+        return this.filter === 'all' || this.filter === level;
+    },
+    appendLine(line) {
+        if (!this.contentEl) return;
+        if (this.contentEl.firstElementChild === this.emptyEl) this.contentEl.replaceChildren();
+        this.contentEl.appendChild(this.createLineEl(line));
+        this.contentEl.scrollTop = this.contentEl.scrollHeight;
+    },
+    showEmpty() {
+        if (!this.contentEl) return;
+        if (!this.emptyEl) this.emptyEl = this.createEmptyEl();
+        this.contentEl.replaceChildren(this.emptyEl);
+    },
+    removeHeadVisibleLine() {
+        if (!this.contentEl || this.contentEl.firstElementChild === this.emptyEl) return;
+        this.contentEl.firstElementChild?.remove();
+        if (!this.contentEl.children.length) this.showEmpty();
+    },
+    syncTrimmedLine(removedLine, line) {
+        const removedVisible = !!removedLine && this.canShowLine(removedLine.level);
+        const nextVisible = this.canShowLine(line.level);
+        if (removedVisible) this.removeHeadVisibleLine();
+        if (nextVisible) this.appendLine(line);
+    },
     clear() {
         this.lines = [];
         this.render();
@@ -226,26 +273,30 @@ const Debug = {
         if (!this.enabled || !this.el) return;
         const t = new Date();
         const ts = `${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}.${String(t.getMilliseconds()).padStart(3, '0')}`;
-        this.lines.push({ ts, msg, level });
-        if (this.lines.length > 200) this.lines.shift();
-        this.render();
+        const line = { ts, msg, level };
+        this.lines.push(line);
+        let removedLine = null;
+        if (this.lines.length > 200) {
+            removedLine = this.lines.shift();
+        }
+        if (removedLine) {
+            this.syncTrimmedLine(removedLine, line);
+            return;
+        }
+        if (this.canShowLine(level)) this.appendLine(line);
     },
     render() {
         if (!this.enabled || !this.el || !this.contentEl) return;
         const filtered = this.filter === 'all' ? this.lines : this.lines.filter(l => l.level === this.filter);
         if (filtered.length === 0) {
-            this.contentEl.innerHTML = '<div style="opacity:0.5;padding:10px;text-align:center">暂无日志</div>';
+            this.showEmpty();
             return;
         }
         const frag = document.createDocumentFragment();
         filtered.forEach(l => {
-            const div = document.createElement('div');
-            div.className = `debug-line debug-line-${l.level}`;
-            div.innerHTML = `<span class="debug-ts">${l.ts}</span><span class="debug-msg">${l.msg}</span>`;
-            frag.appendChild(div);
+            frag.appendChild(this.createLineEl(l));
         });
-        this.contentEl.innerHTML = '';
-        this.contentEl.appendChild(frag);
+        this.contentEl.replaceChildren(frag);
         this.contentEl.scrollTop = this.contentEl.scrollHeight;
     }
 };

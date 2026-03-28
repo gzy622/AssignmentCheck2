@@ -8,11 +8,19 @@ describe('State', () => {
 
     afterEach(() => {
         if (Modal.isOpen) Modal.forceClose(false);
+        if (ScorePad.isOpen) ScorePad.hide();
         vi.useRealTimers();
         vi.restoreAllMocks();
         clearTimeout(State._draftTimer);
         State._draftTimer = 0;
         State._draftDirty = false;
+        Debug.enabled = false;
+        Debug.interactive = false;
+        Debug.filter = 'all';
+        Debug.lines = [];
+        Debug.contentEl?.replaceChildren();
+        BottomSheet.activeSheet = null;
+        document.querySelectorAll('.bottom-sheet-backdrop, .bottom-sheet').forEach(el => el.remove());
     });
 
     it('should parse roster correctly', () => {
@@ -53,6 +61,81 @@ describe('State', () => {
         const normalized = State.normalizeAsg(raw);
         expect(normalized.id).toBe(123456);
         expect(normalized.records).toEqual({ '01': 100 });
+    });
+
+    it('should append debug lines incrementally without full rerender', () => {
+        Debug.el = document.getElementById('debugPanel');
+        Debug.contentEl = document.getElementById('debugContent');
+        Debug.enabled = true;
+        Debug.filter = 'all';
+        Debug.lines = [];
+        Debug.emptyEl = Debug.createEmptyEl();
+        Debug.render();
+
+        const renderSpy = vi.spyOn(Debug, 'render');
+
+        Debug.log('first line', 'info');
+
+        expect(renderSpy).not.toHaveBeenCalled();
+        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(1);
+
+        const firstNode = Debug.contentEl.firstElementChild;
+
+        Debug.log('second line', 'warn');
+
+        expect(renderSpy).not.toHaveBeenCalled();
+        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(2);
+        expect(Debug.contentEl.firstElementChild).toBe(firstNode);
+
+        Debug.filter = 'error';
+        Debug.render();
+        renderSpy.mockClear();
+
+        Debug.log('hidden info line', 'info');
+
+        expect(renderSpy).not.toHaveBeenCalled();
+        expect(Debug.contentEl.textContent).toContain('暂无日志');
+    });
+
+    it('should trim debug lines incrementally when reaching the log cap', () => {
+        Debug.el = document.getElementById('debugPanel');
+        Debug.contentEl = document.getElementById('debugContent');
+        Debug.enabled = true;
+        Debug.filter = 'all';
+        Debug.lines = [];
+        Debug.emptyEl = Debug.createEmptyEl();
+        Debug.render();
+
+        const renderSpy = vi.spyOn(Debug, 'render');
+
+        for (let i = 1; i <= 201; i++) {
+            Debug.log(`line-${String(i).padStart(3, '0')}`, 'info');
+        }
+
+        expect(renderSpy).not.toHaveBeenCalled();
+        expect(Debug.lines).toHaveLength(200);
+        expect(Debug.contentEl.querySelectorAll('.debug-line')).toHaveLength(200);
+        expect(Debug.contentEl.textContent).not.toContain('line-001');
+        expect(Debug.contentEl.textContent).toContain('line-002');
+        expect(Debug.contentEl.textContent).toContain('line-201');
+    });
+
+    it('should compare recovery draft without relying on JSON stringify', () => {
+        State.list = ['01 张三'];
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: { '01': { score: '88', done: true } } })];
+        State.prefs = State.normalizePrefs({ cardDoneColor: '#123456' });
+        State.curId = 1;
+
+        vi.spyOn(State, 'getRecoveryDraft').mockReturnValue({
+            list: ['01 张三'],
+            data: [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: { '01': { score: '88', done: true } } })],
+            prefs: State.normalizePrefs({ cardDoneColor: '#123456' }),
+            curId: 1
+        });
+        const stringifySpy = vi.spyOn(JSON, 'stringify');
+
+        expect(State.applyRecoveryDraft()).toBe(false);
+        expect(stringifySpy).not.toHaveBeenCalled();
     });
 
     it('should log detailed score changes when updating records', () => {
@@ -194,6 +277,63 @@ describe('State', () => {
         ];
 
         expect(State.getQuizTrendAssignments().map(asg => asg.name)).toEqual(['0320作业', '0321默写']);
+    });
+
+    it('should filter trend cards without rebuilding sparkline content on search', () => {
+        State.list = [
+            '01 张三',
+            '02 李四 #非英语',
+            '03 王五'
+        ];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '0301小测', subject: '英语', records: { '01': { score: '70', done: true }, '02': { score: '60', done: true }, '03': { score: '75', done: true } } }),
+            State.normalizeAsg({ id: 2, name: '0308小测', subject: '数学', records: { '01': { score: '82', done: true }, '02': { score: '88', done: true } } }),
+            State.normalizeAsg({ id: 3, name: '0315小测', subject: '英语', records: { '01': { score: '90', done: true }, '03': { score: '78', done: true } } })
+        ];
+        State.rebuildAsgIndex();
+
+        const sparkSpy = vi.spyOn(ActionViews, 'createTrendSparkline');
+
+        Actions.quizTrend();
+
+        const listEl = document.querySelector('.trend-list');
+        const searchEl = document.querySelector('input[data-role="search"]');
+        const zhangCard = [...listEl.querySelectorAll('.trend-card')].find(card => card.textContent.includes('01 张三'));
+
+        expect(zhangCard).toBeTruthy();
+
+        sparkSpy.mockClear();
+        searchEl.value = '张三';
+        searchEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(listEl.querySelectorAll('.trend-card')).toHaveLength(1);
+        expect(listEl.firstElementChild).toBe(zhangCard);
+        expect(sparkSpy).not.toHaveBeenCalled();
+    });
+
+    it('should skip rebuilding trend cards when the visible range output is unchanged', () => {
+        State.list = [
+            '01 张三',
+            '02 李四'
+        ];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '0301小测', subject: '英语', records: { '01': { score: '70', done: true }, '02': { score: '60', done: true } } }),
+            State.normalizeAsg({ id: 2, name: '0308小测', subject: '数学', records: { '01': { score: '82', done: true }, '02': { score: '88', done: true } } })
+        ];
+        State.rebuildAsgIndex();
+
+        Actions.quizTrend();
+
+        const sparkSpy = vi.spyOn(ActionViews, 'createTrendSparkline');
+        const startEl = document.querySelector('select[data-role="start"]');
+        const firstCard = document.querySelector('.trend-card');
+
+        startEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(document.querySelector('.trend-card')).toBe(firstCard);
+        expect(sparkSpy).not.toHaveBeenCalled();
     });
 
     it('should update roster summary without rebuilding rows on input', () => {
@@ -521,5 +661,98 @@ describe('State', () => {
         expect(ScorePad.fastTenMode).toBe(true);
         expect(ScorePad.el.classList.contains('fast-ten-mode')).toBe(true);
         expect(document.querySelector('button[data-val="10"]')).toBeTruthy();
+    });
+
+    it('should avoid rereading scorepad fast ten mode from storage on show and hide', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [State.normalizeAsg({ id: 1, name: '英语作业', subject: '英语', records: {} })];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+        UI.gridEl = document.getElementById('grid');
+
+        ScorePad.fastTenMode = true;
+        ScorePad._setFastTenMode(true, { persist: false });
+        const getSpy = vi.spyOn(LS, 'get');
+
+        ScorePad.show('01', '张三', { top: 200, height: 80 });
+        ScorePad.hide();
+
+        expect(getSpy).not.toHaveBeenCalledWith(KEYS.SCOREPAD_FAST_TEN, expect.anything());
+        expect(ScorePad.fastTenMode).toBe(true);
+    });
+
+    it('should route score action through indexed card lookup without document scans', () => {
+        State.list = ['01 张三', '02 李四'];
+        State.parseRoster();
+        UI.gridEl = document.getElementById('grid');
+        UI.syncCardPool();
+        UI.renderCard(UI.gridEl.children[1], State.roster[1], {}, false);
+
+        const showSpy = vi.spyOn(ScorePad, 'show').mockImplementation(() => {});
+        const querySpy = vi.spyOn(document, 'querySelector');
+        const queryAllSpy = vi.spyOn(document, 'querySelectorAll');
+
+        Actions.score('02', '李四');
+
+        expect(showSpy).toHaveBeenCalledWith('02', '李四', expect.any(Object));
+        expect(querySpy).not.toHaveBeenCalled();
+        expect(queryAllSpy).not.toHaveBeenCalled();
+    });
+
+    it('should reuse score range report cache until assignment metadata changes', () => {
+        State.list = ['01 张三'];
+        State.parseRoster();
+        State.data = [
+            State.normalizeAsg({ id: 1, name: '0301小测', subject: '英语', records: { '01': { score: '80', done: true } } }),
+            State.normalizeAsg({ id: 2, name: '0308小测', subject: '英语', records: { '01': { score: '90', done: true } } })
+        ];
+        State.rebuildAsgIndex();
+        State.curId = 1;
+
+        const first = State.getScoreRangeReport(1, 2);
+        const second = State.getScoreRangeReport(1, 2);
+
+        expect(second).toBe(first);
+
+        State.updateAsgMeta(1, { name: '0301小测补录', subject: '英语' });
+
+        const third = State.getScoreRangeReport(1, 2);
+
+        expect(third).not.toBe(first);
+        expect(third.assignments[0].name).toBe('0301小测补录');
+    });
+
+    it('should remove bottom sheet nodes after close', () => {
+        vi.useFakeTimers();
+        const prevBackdropCount = document.querySelectorAll('.bottom-sheet-backdrop').length;
+        const prevPanelCount = document.querySelectorAll('.bottom-sheet').length;
+        const sheet = BottomSheet.create({ content: document.createElement('div') });
+
+        sheet.show();
+        expect(document.querySelectorAll('.bottom-sheet-backdrop').length).toBe(prevBackdropCount + 1);
+        expect(document.querySelectorAll('.bottom-sheet').length).toBe(prevPanelCount + 1);
+
+        sheet.hide();
+        vi.advanceTimersByTime(BottomSheet.CLOSE_ANIMATION_MS);
+
+        expect(document.querySelectorAll('.bottom-sheet-backdrop').length).toBe(prevBackdropCount);
+        expect(document.querySelectorAll('.bottom-sheet').length).toBe(prevPanelCount);
+    });
+
+    it('should resolve bottom sheet confirm and prompt through sheet results', async () => {
+        vi.useFakeTimers();
+
+        const confirmPromise = BottomSheet.confirm('确认测试');
+        document.querySelector('.bottom-sheet-footer .btn-p').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await expect(confirmPromise).resolves.toBe(true);
+        vi.advanceTimersByTime(BottomSheet.CLOSE_ANIMATION_MS);
+
+        const promptPromise = BottomSheet.prompt('输入测试', '12');
+        vi.advanceTimersByTime(100);
+        const input = document.querySelector('.bottom-sheet-prompt-input');
+        input.value = '34';
+        document.querySelector('.bottom-sheet-footer .btn-p').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await expect(promptPromise).resolves.toBe('34');
     });
 });
