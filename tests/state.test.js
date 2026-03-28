@@ -379,6 +379,32 @@ describe('State', () => {
         expect(sparkSpy).not.toHaveBeenCalled();
     });
 
+    it('should defer heavy trend rendering until after the shell is shown', () => {
+        vi.useFakeTimers();
+        State.list = Array.from({ length: 50 }, (_, index) => `${String(index + 1).padStart(2, '0')} 学生${index + 1}`);
+        State.parseRoster();
+        State.data = Array.from({ length: 6 }, (_, index) => State.normalizeAsg({
+            id: index + 1,
+            name: `03${String(index + 1).padStart(2, '0')}小测`,
+            subject: index % 2 === 0 ? '英语' : '数学',
+            records: Object.fromEntries(State.roster.map((stu, stuIndex) => [stu.id, { score: String(60 + ((stuIndex + index) % 35)), done: true }]))
+        }));
+        State.rebuildAsgIndex();
+
+        const reportSpy = vi.spyOn(State, 'getScoreRangeReport');
+
+        Actions.quizTrend();
+
+        expect(document.querySelector('.trend-shell')).toBeTruthy();
+        expect(document.querySelector('.trend-list').textContent).toContain('正在整理成绩数据');
+        expect(reportSpy).not.toHaveBeenCalled();
+
+        vi.runAllTimers();
+
+        expect(reportSpy).toHaveBeenCalled();
+        expect(document.querySelectorAll('.trend-card').length).toBeGreaterThan(0);
+    });
+
     it('should update roster summary without rebuilding rows on input', () => {
         State.list = Array.from({ length: 50 }, (_, i) => `${String(i + 1).padStart(2, '0')} 学生${i + 1}`);
         Actions.roster();

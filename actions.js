@@ -374,6 +374,9 @@
             quizTrend() {
                 const ui = this.ctx.views.createQuizTrendShell();
                 const assignments = State.getQuizTrendAssignments();
+                const TREND_DEFER_WORK_THRESHOLD = 120;
+                const TREND_CHUNK_SIZE_FIRST = 8;
+                const TREND_CHUNK_SIZE_NEXT = 12;
                 let activeAssignmentIds = new Set();
                 let lastRangeAssignmentIds = new Set();
                 const chipPool = new Map();
@@ -381,6 +384,9 @@
                 const empty = document.createElement('div');
                 empty.className = 'trend-empty';
                 let currentReport = null;
+                let renderTask = 0;
+                let listTask = 0;
+                let renderToken = 0;
                 if (!assignments.length) {
                     this.ctx.toast.show('暂无任务数据');
                     return;
@@ -389,6 +395,19 @@
                 const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
                 const getTrendTone = trend => trend === '上升' ? 'up' : trend === '下降' ? 'down' : trend === '稳定' ? 'steady' : 'mix';
                 const getRangeAssignments = () => State.getAsgRange(+ui.startEl.value, +ui.endEl.value, assignments);
+                const cancelPendingRender = () => {
+                    renderToken++;
+                    clearTimeout(renderTask);
+                    clearTimeout(listTask);
+                    renderTask = 0;
+                    listTask = 0;
+                };
+                const isTrendViewActive = () => Modal.isOpen && Modal.body.contains(ui.root);
+                const shouldDeferTrendRender = rangeAssignments => State.roster.length * Math.max(1, rangeAssignments.length) >= TREND_DEFER_WORK_THRESHOLD;
+                const showTrendMessage = message => {
+                    empty.textContent = message;
+                    ui.listEl.replaceChildren(empty);
+                };
                 const createTrendMetric = label => {
                     const metric = document.createElement('span');
                     metric.className = 'trend-metric';
@@ -511,38 +530,73 @@
                     card._trendRenderKey = student.renderKey;
                     return card;
                 };
-                const renderVisibleStudents = () => {
+                const renderVisibleStudents = token => {
+                    if (token !== renderToken || !isTrendViewActive()) return;
                     if (!currentReport) return;
                     if (!currentReport.assignments.length) {
-                        empty.textContent = '当前没有选中要显示的小测项目';
-                        ui.listEl.replaceChildren(empty);
+                        showTrendMessage('当前没有选中要显示的小测项目');
                         return;
                     }
                     const keyword = String(ui.searchEl.value || '').trim();
                     const visibleStudents = currentReport.students.filter(student => !keyword || student.searchText.includes(keyword));
                     if (!visibleStudents.length) {
-                        empty.textContent = '当前筛选下没有匹配学生';
-                        ui.listEl.replaceChildren(empty);
+                        showTrendMessage('当前筛选下没有匹配学生');
                         return;
                     }
-                    ui.listEl.replaceChildren(...visibleStudents.map(student => renderStudentCard(student)));
+                    clearTimeout(listTask);
+                    listTask = 0;
+                    if (!shouldDeferTrendRender(currentReport.assignments)) {
+                        ui.listEl.replaceChildren(...visibleStudents.map(student => renderStudentCard(student)));
+                        return;
+                    }
+                    showTrendMessage(`正在加载 ${visibleStudents.length} 名学生的趋势...`);
+                    let index = 0;
+                    const paintBatch = () => {
+                        if (token !== renderToken || !isTrendViewActive()) return;
+                        const batchSize = index === 0 ? TREND_CHUNK_SIZE_FIRST : TREND_CHUNK_SIZE_NEXT;
+                        const frag = document.createDocumentFragment();
+                        const end = Math.min(index + batchSize, visibleStudents.length);
+                        for (; index < end; index++) frag.appendChild(renderStudentCard(visibleStudents[index]));
+                        if (ui.listEl.firstElementChild === empty) ui.listEl.replaceChildren(frag);
+                        else ui.listEl.appendChild(frag);
+                        if (index < visibleStudents.length) listTask = setTimeout(paintBatch, 0);
+                    };
+                    listTask = setTimeout(paintBatch, 0);
                 };
                 const applyStudentFilter = () => {
-                    renderVisibleStudents();
+                    renderVisibleStudents(renderToken);
                 };
-                const render = () => {
+                const render = ({ defer = false } = {}) => {
+                    cancelPendingRender();
+                    const token = renderToken;
+                    const run = () => {
+                        if (token !== renderToken || !isTrendViewActive()) return;
+                        renderTask = 0;
+                        const rangeAssignments = getRangeAssignments();
+                        syncActiveAssignments(rangeAssignments);
+                        const visibleAssignments = rangeAssignments.filter(asg => activeAssignmentIds.has(asg.id));
+                        currentReport = State.getScoreRangeReport(null, null, visibleAssignments);
+                        const report = currentReport;
+                        if (token !== renderToken || !isTrendViewActive()) return;
+                        ui.summaryEl.textContent = `区间内 ${rangeAssignments.length} 次任务，当前显示 ${report.assignments.length} 次，${report.scoredStudentCount} 人有成绩记录`;
+                        renderAssignments(rangeAssignments);
+                        renderVisibleStudents(token);
+                    };
+                    if (defer) {
+                        ui.summaryEl.textContent = '正在整理小测趋势...';
+                        showTrendMessage('正在整理成绩数据...');
+                        renderTask = setTimeout(run, 0);
+                        return;
+                    }
+                    run();
+                };
+                const renderForCurrentRange = () => {
                     const rangeAssignments = getRangeAssignments();
-                    syncActiveAssignments(rangeAssignments);
-                    const visibleAssignments = rangeAssignments.filter(asg => activeAssignmentIds.has(asg.id));
-                    currentReport = State.getScoreRangeReport(null, null, visibleAssignments);
-                    const report = currentReport;
-                    ui.summaryEl.textContent = `区间内 ${rangeAssignments.length} 次任务，当前显示 ${report.assignments.length} 次，${report.scoredStudentCount} 人有成绩记录`;
-                    renderAssignments(rangeAssignments);
-                    renderVisibleStudents();
+                    render({ defer: shouldDeferTrendRender(rangeAssignments) });
                 };
                 fillOptions();
-                ui.startEl.onchange = render;
-                ui.endEl.onchange = render;
+                ui.startEl.onchange = renderForCurrentRange;
+                ui.endEl.onchange = renderForCurrentRange;
                 ui.searchEl.oninput = applyStudentFilter;
                 ui.assignmentEl.onclick = e => {
                     const chip = e.target.closest('[data-asg-id]');
@@ -551,7 +605,7 @@
                     if (!Number.isFinite(asgId)) return;
                     if (activeAssignmentIds.has(asgId)) activeAssignmentIds.delete(asgId);
                     else activeAssignmentIds.add(asgId);
-                    render();
+                    renderForCurrentRange();
                 };
                 ui.quickEl.onclick = e => {
                     const act = e.target.closest('[data-range]')?.dataset.range;
@@ -562,10 +616,10 @@
                         ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)].id);
                     }
                     ui.endEl.value = String(assignments[assignments.length - 1].id);
-                    render();
+                    renderForCurrentRange();
                 };
-                render();
                 Modal.show({ title: '', content: ui.root, type: 'full' });
+                renderForCurrentRange();
             }
         };
 
