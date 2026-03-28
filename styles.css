@@ -189,6 +189,16 @@
             -webkit-tap-highlight-color: rgba(13, 110, 253, 0.15);
         }
 
+        .student-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px dashed transparent;
+            border-radius: inherit;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
         .student-card:active {
             transform: scale(0.94);
         }
@@ -203,8 +213,12 @@
         }
 
         .student-card.scoring {
-            border: 2px dashed #1f6fff !important;
+            border-color: #1f6fff !important;
             box-shadow: 0 0 0 3px rgba(31, 111, 255, 0.28) !important;
+        }
+
+        .student-card.scoring::after {
+            border-color: #1f6fff;
         }
 
         .student-card.score-saved-flash {
