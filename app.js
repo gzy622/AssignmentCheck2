@@ -556,9 +556,14 @@
                 Debug.init(); this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); this.isReady = true; this.render();
             },
             setupGrid() {
-                let timer = null, pressCard = null, longPressed = false, moved = false, suppressClick = false, startPos = { x: 0, y: 0 };
+                let timer = null, pressCard = null, longPressed = false, moved = false, suppressClickUntil = 0, startPos = { x: 0, y: 0 };
                 const cancelTimer = () => { if (timer) clearTimeout(timer); timer = null; };
                 const resetState = () => { if (pressCard) pressCard.classList.remove('pressing'); cancelTimer(); pressCard = null; longPressed = false; moved = false; };
+                const shouldSuppressClick = () => {
+                    if (Date.now() < suppressClickUntil) return true;
+                    suppressClickUntil = 0;
+                    return false;
+                };
                 const handle = (card, long) => {
                     if (card.dataset.excluded === '1') return;
                     const { id, name } = card.dataset;
@@ -572,7 +577,7 @@
                     timer = setTimeout(() => {
                         timer = null;
                         longPressed = true;
-                        suppressClick = true;
+                        suppressClickUntil = Date.now() + 80;
                         c.classList.remove('pressing');
                         handle(c, true);
                         resetState();
@@ -590,7 +595,7 @@
                 this.gridEl.onpointercancel = this.gridEl.onpointerleave = resetState;
                 this.gridEl.onclick = e => {
                     const c = e.target.closest('.student-card');
-                    if (!c || suppressClick) { suppressClick = false; return; }
+                    if (!c || shouldSuppressClick()) return;
                     handle(c, false);
                 };
             },

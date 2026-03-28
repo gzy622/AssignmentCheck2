@@ -14,7 +14,6 @@ const ScorePad = {
     _activePointerId: null,
     _isPointerPrimed: false,
     _isDragging: false,
-    highlightCloneEl: null,
     _keypadMode: '',
     _savedCardTimers: new Map(),
 
@@ -223,10 +222,7 @@ const ScorePad = {
         this._updateDisplay();
 
         const card = this._getCardById(id);
-        if (card) {
-            card.classList.add('scoring');
-            this._createHighlightClone(card);
-        }
+        if (card) card.classList.add('scoring');
 
         // 预设面板高度 CSS 变量（根据内容计算，避免动画时序问题）
         const estimatedHeight = this._estimatePanelHeight();
@@ -320,7 +316,6 @@ const ScorePad = {
 
         const card = this._getCardById(this.currentId);
         if (card) card.classList.remove('scoring');
-        this._clearHighlightClone();
 
         this._restoreGrid();
         UI.setGridFrozen(false);
@@ -382,7 +377,6 @@ const ScorePad = {
             grid.style.transition = 'transform 0.25s ease';
             this.originalGridTransform = grid.style.transform;
         }
-        this._syncHighlightClone();
     },
 
     _restoreGrid() {
@@ -394,34 +388,6 @@ const ScorePad = {
         }
     },
 
-    _createHighlightClone(card) {
-        this._clearHighlightClone();
-        const clone = card.cloneNode(true);
-        clone.classList.add('score-highlight-clone');
-        clone.classList.remove('pressing');
-        clone.removeAttribute('id');
-        document.body.appendChild(clone);
-        this.highlightCloneEl = clone;
-        this._syncHighlightClone();
-    },
-
-    _syncHighlightClone() {
-        if (!this.highlightCloneEl || !this.currentId) return;
-        const card = this._getCardById(this.currentId);
-        if (!card) return;
-        const rect = card.getBoundingClientRect();
-        const style = this.highlightCloneEl.style;
-        style.left = `${rect.left}px`;
-        style.top = `${rect.top}px`;
-        style.width = `${rect.width}px`;
-        style.height = `${rect.height}px`;
-    },
-
-    _clearHighlightClone() {
-        if (!this.highlightCloneEl) return;
-        this.highlightCloneEl.remove();
-        this.highlightCloneEl = null;
-    }
 };
 
 globalThis.ScorePad = ScorePad;

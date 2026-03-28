@@ -770,12 +770,14 @@
             overflow-y: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
+            pointer-events: none;
         }
         .scorepad.dragging {
             transition: none;
         }
         .scorepad.is-open {
             transform: translateY(0);
+            pointer-events: auto;
         }
 
         .scorepad-handle {
