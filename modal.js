@@ -441,15 +441,11 @@ const Modal = {
 
     close(val) {
         if (!this.isOpen || this.isClosing) return;
-        this.cancelEnterTransition();
-        if (this.el.classList.contains('is-preopen') && !this.el.classList.contains('is-open')) return this._cleanup(val);
         this.isClosing = true;
-        this.el.classList.remove('is-preopen');
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
         if (!this.animationsEnabled()) return this._cleanup(val);
-        const exitMs = this.isFull ? this.FULL_EXIT_MS : this.PAGE_EXIT_MS;
-        setTimeout(() => this._cleanup(val), exitMs);
+        setTimeout(() => this._cleanup(val), 220);
     },
 
     forceClose(val = false) { if (this.isOpen) this._cleanup(val); },
