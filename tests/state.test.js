@@ -5,11 +5,20 @@ describe('State', () => {
         State._draftTimer = 0;
         State._draftDirty = false;
         State._lastDraftSnapshot = null;
+        vi.spyOn(Actions, 'deferFullscreenWork').mockImplementation((_root, task) => task());
     });
 
     afterEach(() => {
         if (Modal.isOpen) Modal.forceClose(false);
         if (ScorePad.isOpen) ScorePad.hide();
+        UI.closeMenu({ immediate: true });
+        clearTimeout(UI._menuTimer);
+        UI._menuTimer = 0;
+        State.animations = true;
+        State.applyAnim();
+        LS.set(KEYS.SCOREPAD_FAST_TEN, false);
+        ScorePad._setFastTenMode(false, { persist: false });
+        document.body.classList.remove('no-animations');
         vi.useRealTimers();
         vi.restoreAllMocks();
         clearTimeout(State._draftTimer);
@@ -380,7 +389,7 @@ describe('State', () => {
         Modal.close('done');
 
         expect(Modal.el.classList.contains('is-closing')).toBe(true);
-        vi.advanceTimersByTime(259);
+        vi.advanceTimersByTime(Modal.FULL_EXIT_MS - 1);
         expect(Modal.isOpen).toBe(true);
         vi.advanceTimersByTime(1);
 
@@ -419,6 +428,48 @@ describe('State', () => {
 
         expect(Modal.el.classList.contains('lite-motion')).toBe(false);
         expect(Modal.isOpen).toBe(false);
+    });
+
+    it('should open and close modal immediately when animations are disabled', async () => {
+        State.animations = false;
+        State.applyAnim();
+        const content = document.createElement('div');
+        const promise = Modal.show({ title: '', content, type: 'full' });
+
+        expect(Modal.el.classList.contains('is-open')).toBe(true);
+        expect(Modal.el.classList.contains('is-preopen')).toBe(false);
+
+        Modal.close('done');
+
+        await expect(promise).resolves.toBe('done');
+        expect(Modal.isOpen).toBe(false);
+    });
+
+    it('should keep dropdown close timing on the shared motion branch', () => {
+        vi.useFakeTimers();
+        UI.openMenu();
+
+        expect(document.getElementById('menu').classList.contains('show')).toBe(true);
+
+        UI.closeMenu();
+
+        expect(document.getElementById('menu').classList.contains('show')).toBe(false);
+        expect(document.getElementById('menu').classList.contains('closing')).toBe(true);
+
+        vi.advanceTimersByTime(UI.MENU_CLOSE_MS);
+
+        expect(document.getElementById('menu').classList.contains('closing')).toBe(false);
+    });
+
+    it('should close dropdown immediately when animations are disabled', () => {
+        State.animations = false;
+        State.applyAnim();
+        UI.openMenu();
+
+        UI.closeMenu();
+
+        expect(document.getElementById('menu').classList.contains('show')).toBe(false);
+        expect(document.getElementById('menu').classList.contains('closing')).toBe(false);
     });
 
     it('should render roster rows immediately on the shared full screen transition branch', () => {
@@ -795,6 +846,20 @@ describe('State', () => {
 
         sheet.hide();
         vi.advanceTimersByTime(BottomSheet.CLOSE_ANIMATION_MS);
+
+        expect(document.querySelectorAll('.bottom-sheet-backdrop').length).toBe(prevBackdropCount);
+        expect(document.querySelectorAll('.bottom-sheet').length).toBe(prevPanelCount);
+    });
+
+    it('should remove bottom sheet nodes immediately when animations are disabled', () => {
+        State.animations = false;
+        State.applyAnim();
+        const prevBackdropCount = document.querySelectorAll('.bottom-sheet-backdrop').length;
+        const prevPanelCount = document.querySelectorAll('.bottom-sheet').length;
+        const sheet = BottomSheet.create({ content: document.createElement('div') });
+
+        sheet.show();
+        sheet.hide();
 
         expect(document.querySelectorAll('.bottom-sheet-backdrop').length).toBe(prevBackdropCount);
         expect(document.querySelectorAll('.bottom-sheet').length).toBe(prevPanelCount);

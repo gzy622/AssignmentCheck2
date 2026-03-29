@@ -47,6 +47,7 @@
                 const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
                 const { modal, toast, subjectPresets } = this.ctx;
                 let mounted = new Set();
+                let upd = () => {};
                 const draftTimers = new Map();
                 const now = new Date();
                 const mm = `${now.getMonth() + 1}`.padStart(2, '0');
@@ -183,7 +184,7 @@
                 
                 // 使用deferFullscreenWork延迟渲染，避免阻塞主线程
                 this.deferFullscreenWork(root, () => {
-                    const upd = () => {
+                    upd = () => {
                         const next = new Set();
                         const asgs = State.data.slice().reverse();
                         

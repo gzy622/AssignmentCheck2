@@ -41,9 +41,6 @@ const Device = {
     isCoarsePointer() {
         if (typeof window.matchMedia === 'function') return window.matchMedia('(pointer: coarse)').matches;
         return 'ontouchstart' in window || Number(navigator.maxTouchPoints) > 0;
-    },
-    useLiteFullscreenTransitions() {
-        return this.isAndroid();
     }
 };
 
@@ -137,6 +134,7 @@ Object.assign(globalThis, {
     LS,
     KEYS,
     SUBJECT_PRESETS,
+    DEFAULT_ROSTER,
     IS_ANDROID_FIREFOX,
     CARD_COLOR_PRESETS,
     APP_NAME_SLUG,

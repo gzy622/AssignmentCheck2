@@ -24,15 +24,19 @@ test.describe('Quiz trend mobile layout', () => {
         });
         await page.goto(indexUrl);
 
+        await page.waitForFunction(() => typeof document.getElementById('btnMenu')?.onclick === 'function');
         await page.click('#btnMenu');
+        await expect(page.locator('button[act="quizTrend"]')).toBeVisible();
         await page.click('button[act="quizTrend"]');
 
         const board = page.locator('.trend-board');
         const list = page.locator('.trend-list');
         const shell = page.locator('.trend-shell');
+        const cards = page.locator('.trend-card');
 
         await expect(shell).toBeVisible();
         await expect(board).toBeVisible();
+        await expect(cards.first()).toBeVisible();
 
         const metrics = await board.evaluate(el => ({
             clientWidth: el.clientWidth,

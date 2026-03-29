@@ -578,17 +578,23 @@
         const UI = {
             isReady: false,
             actions: { has() { return false; }, run() { }, handleFile() { }, score() { } },
-            _gridFrozen: false, _taskSelectVersion: -1, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0,
+            MENU_CLOSE_MS: 160,
+            _gridFrozen: false, _taskSelectVersion: -1, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0, _menuTimer: 0,
             init() {
                 BackHandler.init();
                 this.gridEl = $('grid'); this.counterEl = $('counter'); this.progressFillEl = $('progressFill');
                 this.asgSelectEl = $('asgSelect'); this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
+                this.menuEl = $('menu');
                 $('btnScore').onclick = () => this.actions.run('toggleScore');
-                $('btnMenu').onclick = e => { e.stopPropagation(); $('menu').classList.toggle('show'); };
-                document.onclick = () => $('menu').classList.remove('show');
-                $('menu').onclick = e => {
+                $('btnMenu').onclick = e => { e.stopPropagation(); this.toggleMenu(); };
+                document.onclick = e => {
+                    if (e.target.closest('#btnMenu, #menu')) return;
+                    this.closeMenu();
+                };
+                this.menuEl.onclick = e => {
+                    e.stopPropagation();
                     const act = e.target.closest('[act]')?.getAttribute('act');
-                    if (act && this.actions.has(act)) { $('menu').classList.remove('show'); this.actions.run(act); }
+                    if (act && this.actions.has(act)) { this.closeMenu(); this.actions.run(act); }
                 };
                 $('fileIn').onchange = e => this.actions.handleFile(e);
                 this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); 
@@ -598,6 +604,47 @@
                     this.isReady = true;
                     this.render();
                 }, 200);
+            },
+            animationsEnabled() {
+                return State.animations !== false;
+            },
+            ensureMenuEl() {
+                if (!this.menuEl || !this.menuEl.isConnected) this.menuEl = $('menu');
+                return this.menuEl;
+            },
+            openMenu() {
+                clearTimeout(this._menuTimer);
+                this._menuTimer = 0;
+                if (!this.ensureMenuEl()) return;
+                this.menuEl.classList.remove('closing');
+                this.menuEl.classList.add('show');
+            },
+            closeMenu({ immediate = !this.animationsEnabled() } = {}) {
+                clearTimeout(this._menuTimer);
+                this._menuTimer = 0;
+                if (!this.ensureMenuEl()) return;
+                if (immediate) {
+                    this.menuEl.classList.remove('show', 'closing');
+                    return;
+                }
+                if (!this.menuEl.classList.contains('show')) {
+                    this.menuEl.classList.remove('closing');
+                    return;
+                }
+                this.menuEl.classList.remove('show');
+                this.menuEl.classList.add('closing');
+                this._menuTimer = setTimeout(() => {
+                    this._menuTimer = 0;
+                    this.menuEl?.classList.remove('closing');
+                }, this.MENU_CLOSE_MS);
+            },
+            toggleMenu() {
+                if (!this.ensureMenuEl()) return;
+                if (this.menuEl.classList.contains('show')) {
+                    this.closeMenu();
+                    return;
+                }
+                this.openMenu();
             },
             setupGrid() {
                 let timer = null, pressCard = null, longPressed = false, moved = false, suppressClickUntil = 0, startPos = { x: 0, y: 0 };
@@ -719,11 +766,16 @@
                 this.renderCard(card, State.roster[index], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[index]));
             },
             renderProgress(done, total = State.roster.length) {
+                if (!this.counterEl || !this.counterEl.isConnected) this.counterEl = $('counter');
+                if (!this.progressFillEl || !this.progressFillEl.isConnected) this.progressFillEl = $('progressFill');
+                if (!this.counterEl || !this.progressFillEl) return;
                 this.counterEl.textContent = `${done}/${total}`;
                 this.progressFillEl.style.width = total ? `${(done / total) * 100}%` : '0%';
             },
             ensureTaskOptions() {
+                if (!this.asgSelectEl || !this.asgSelectEl.isConnected) this.asgSelectEl = $('asgSelect');
                 const sel = this.asgSelectEl;
+                if (!sel) return;
                 if (this._taskSelectVersion !== State._asgListVersion) {
                     sel.replaceChildren(...State.data.map(a => { const o = document.createElement('option'); o.value = String(a.id); o.textContent = a.name; return o; }));
                     this._taskSelectVersion = State._asgListVersion;
