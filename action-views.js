@@ -18,6 +18,25 @@ const ActionViews = {
     },
     createPageLayout(title) { return this.createShell(title); },
 
+    createSkeletonCard(lineWidths = ['72%', '48%', '88%'], className = '') {
+        const card = document.createElement('div');
+        card.className = `modal-skeleton-card${className ? ` ${className}` : ''}`;
+        lineWidths.forEach(width => {
+            const line = document.createElement('div');
+            line.className = 'modal-skeleton-line';
+            line.style.width = typeof width === 'number' ? `${width}px` : width;
+            card.appendChild(line);
+        });
+        return card;
+    },
+
+    createSkeletonPill(width = '96px') {
+        const pill = document.createElement('span');
+        pill.className = 'modal-skeleton-pill';
+        pill.style.width = typeof width === 'number' ? `${width}px` : width;
+        return pill;
+    },
+
     createColorPanel(selected) {
         const panel = document.createElement('div');
         panel.className = 'color-panel';
@@ -50,58 +69,95 @@ const ActionViews = {
 
     createAsgManageShell() {
         const { root, body } = this.createShell('作业项目管理');
-        body.innerHTML = `<section class="asg-manage-hero">
-            <div class="asg-manage-hero-head">
-                <div class="asg-manage-hero-title">新建任务</div>
-                <div class="asg-manage-hero-note">在此页完成新增、切换、编辑与删除，统一管理任务。</div>
-            </div>
-            <div class="asg-manage-form">
-                <input class="input-ui" data-role="new-name" placeholder="输入任务名称">
-                <button class="btn btn-c" type="button" data-role="new-alt"></button>
-                <button class="btn btn-p" type="button" data-role="new-create">创建</button>
-            </div>
-        </section>`;
+        const introHost = document.createElement('section');
+        introHost.className = 'modal-stage-host';
+        introHost.appendChild(this.createSkeletonCard(['34%', '76%', '100%'], 'modal-skeleton-card-lg'));
         const list = document.createElement('section');
         list.className = 'asg-manage-grid';
-        body.appendChild(list);
+        list.append(
+            this.createSkeletonCard(['28%', '56%', '44%']),
+            this.createSkeletonCard(['36%', '62%', '46%']),
+            this.createSkeletonCard(['32%', '58%', '42%'])
+        );
+        body.append(introHost, list);
         return {
             root,
             body,
             list,
-            newNameInput: body.querySelector('[data-role="new-name"]'),
-            newAltBtn: body.querySelector('[data-role="new-alt"]'),
-            newCreateBtn: body.querySelector('[data-role="new-create"]')
+            introHost
+        };
+    },
+
+    createAsgManageHero() {
+        const section = document.createElement('section');
+        section.className = 'asg-manage-hero modal-stage-ready';
+        section.innerHTML = `<div class="asg-manage-hero-head">
+            <div class="asg-manage-hero-title">新建任务</div>
+            <div class="asg-manage-hero-note">在此页完成新增、切换、编辑与删除，统一管理任务。</div>
+        </div>
+        <div class="asg-manage-form">
+            <input class="input-ui" data-role="new-name" placeholder="输入任务名称">
+            <button class="btn btn-c" type="button" data-role="new-alt"></button>
+            <button class="btn btn-p" type="button" data-role="new-create">创建</button>
+        </div>`;
+        return {
+            section,
+            newNameInput: section.querySelector('[data-role="new-name"]'),
+            newAltBtn: section.querySelector('[data-role="new-alt"]'),
+            newCreateBtn: section.querySelector('[data-role="new-create"]')
         };
     },
 
     createRosterShell() {
         const { root, body } = this.createShell('编辑学生名单');
         body.style.padding = '12px';
-        body.innerHTML = `<div class="roster-shell">
-            <div class="roster-topbar">
-                <div class="roster-actions" data-role="actions">
-                    <button class="btn btn-p" type="button" data-act="add">新增</button>
-                    <button class="btn btn-c" type="button" data-act="autonum">编座号</button>
-                    <button class="btn btn-c" type="button" data-act="sort-seat">排序</button>
-                    <button class="btn btn-c" type="button" data-act="clean">清空行</button>
-                </div>
-                <div class="roster-actions roster-actions-end" data-role="submit">
-                    <button class="btn btn-c" type="button" data-act="cancel">取消</button>
-                    <button class="btn btn-p" type="button" data-act="save">保存</button>
-                </div>
-            </div>
-            <div class="roster-content">
-                <div class="roster-summary"><span class="roster-badge" data-role="count"></span><span class="roster-badge" data-role="excluded"></span></div>
-                <div class="roster-list" data-role="list"></div>
-            </div>
-        </div>`;
+        const shell = document.createElement('div');
+        shell.className = 'roster-shell';
+        const topHost = document.createElement('div');
+        topHost.className = 'modal-stage-host';
+        topHost.appendChild(this.createSkeletonCard(['30%', '68%', '46%']));
+        const content = document.createElement('div');
+        content.className = 'roster-content';
+        const summaryHost = document.createElement('div');
+        summaryHost.className = 'roster-summary modal-stage-host';
+        summaryHost.append(this.createSkeletonPill('92px'), this.createSkeletonPill('112px'));
+        const listEl = document.createElement('div');
+        listEl.className = 'roster-list';
+        Array.from({ length: 8 }, () => this.createSkeletonCard(['72%', '64%', '48%'], 'modal-skeleton-card-compact')).forEach(card => listEl.appendChild(card));
+        content.append(summaryHost, listEl);
+        shell.append(topHost, content);
+        body.appendChild(shell);
         return {
             root,
-            listEl: body.querySelector('[data-role="list"]'),
-            countEl: body.querySelector('[data-role="count"]'),
-            excludedEl: body.querySelector('[data-role="excluded"]'),
-            toolbar: body.querySelector('[data-role="actions"]'),
-            submitBar: body.querySelector('[data-role="submit"]')
+            topHost,
+            summaryHost,
+            listEl
+        };
+    },
+
+    createRosterChrome() {
+        const topbar = document.createElement('div');
+        topbar.className = 'roster-topbar modal-stage-ready';
+        topbar.innerHTML = `<div class="roster-actions" data-role="actions">
+            <button class="btn btn-p" type="button" data-act="add">新增</button>
+            <button class="btn btn-c" type="button" data-act="autonum">编座号</button>
+            <button class="btn btn-c" type="button" data-act="sort-seat">排序</button>
+            <button class="btn btn-c" type="button" data-act="clean">清空行</button>
+        </div>
+        <div class="roster-actions roster-actions-end" data-role="submit">
+            <button class="btn btn-c" type="button" data-act="cancel">取消</button>
+            <button class="btn btn-p" type="button" data-act="save">保存</button>
+        </div>`;
+        const summary = document.createElement('div');
+        summary.className = 'modal-stage-ready';
+        summary.innerHTML = `<span class="roster-badge" data-role="count"></span><span class="roster-badge" data-role="excluded"></span>`;
+        return {
+            topbar,
+            summary,
+            countEl: summary.querySelector('[data-role="count"]'),
+            excludedEl: summary.querySelector('[data-role="excluded"]'),
+            toolbar: topbar.querySelector('[data-role="actions"]'),
+            submitBar: topbar.querySelector('[data-role="submit"]')
         };
     },
 
@@ -129,47 +185,69 @@ const ActionViews = {
     createQuizTrendShell() {
         const { root, body } = this.createShell('小测趋势');
         body.style.padding = '16px';
-        body.innerHTML = `<section class="trend-shell">
-            <div class="trend-hero">
-                <div>
-                    <div class="trend-hero-title">按区间查看全班小测成绩</div>
-                    <div class="trend-hero-note">选择起止任务后，按学生展示均分、最新分、区间变化与得分轨迹。</div>
-                </div>
-                <div class="trend-hero-summary" data-role="summary"></div>
-            </div>
-            <div class="trend-toolbar">
-                <label class="trend-field">
-                    <span>开始</span>
-                    <select class="input-ui" data-role="start"></select>
-                </label>
-                <label class="trend-field">
-                    <span>结束</span>
-                    <select class="input-ui" data-role="end"></select>
-                </label>
-                <label class="trend-field trend-search">
-                    <span>筛选</span>
-                    <input class="input-ui" data-role="search" placeholder="输入学号或姓名">
-                </label>
-                <div class="trend-quick" data-role="quick">
-                    <button class="btn btn-c" type="button" data-range="recent">最近5次</button>
-                    <button class="btn btn-c" type="button" data-range="all">全部</button>
-                </div>
-            </div>
-            <div class="trend-assignment-strip" data-role="assignments"></div>
-            <div class="trend-board" data-role="board">
-                <div class="trend-list" data-role="list"></div>
-            </div>
-        </section>`;
+        const shell = document.createElement('section');
+        shell.className = 'trend-shell';
+        const heroHost = document.createElement('div');
+        heroHost.className = 'modal-stage-host';
+        heroHost.appendChild(this.createSkeletonCard(['42%', '78%', '36%'], 'modal-skeleton-card-lg'));
+        const toolbarHost = document.createElement('div');
+        toolbarHost.className = 'modal-stage-host';
+        toolbarHost.appendChild(this.createSkeletonCard(['18%', '18%', '18%', '18%'], 'modal-skeleton-card-lg'));
+        const assignmentEl = document.createElement('div');
+        assignmentEl.className = 'trend-assignment-strip';
+        assignmentEl.append(this.createSkeletonPill('88px'), this.createSkeletonPill('88px'), this.createSkeletonPill('104px'));
+        const boardEl = document.createElement('div');
+        boardEl.className = 'trend-board';
+        const listEl = document.createElement('div');
+        listEl.className = 'trend-list';
+        Array.from({ length: 4 }, () => this.createSkeletonCard(['34%', '56%', '72%', '64%', '48%'], 'modal-skeleton-card-lg')).forEach(card => listEl.appendChild(card));
+        boardEl.appendChild(listEl);
+        shell.append(heroHost, toolbarHost, assignmentEl, boardEl);
+        body.appendChild(shell);
         return {
             root,
-            summaryEl: body.querySelector('[data-role="summary"]'),
-            startEl: body.querySelector('[data-role="start"]'),
-            endEl: body.querySelector('[data-role="end"]'),
-            searchEl: body.querySelector('[data-role="search"]'),
-            quickEl: body.querySelector('[data-role="quick"]'),
-            assignmentEl: body.querySelector('[data-role="assignments"]'),
-            boardEl: body.querySelector('[data-role="board"]'),
-            listEl: body.querySelector('[data-role="list"]')
+            heroHost,
+            toolbarHost,
+            assignmentEl,
+            boardEl,
+            listEl
+        };
+    },
+
+    createQuizTrendChrome() {
+        const hero = document.createElement('div');
+        hero.className = 'trend-hero modal-stage-ready';
+        hero.innerHTML = `<div>
+            <div class="trend-hero-title">按区间查看全班小测成绩</div>
+            <div class="trend-hero-note">选择起止任务后，按学生展示均分、最新分、区间变化与得分轨迹。</div>
+        </div>
+        <div class="trend-hero-summary" data-role="summary"></div>`;
+        const toolbar = document.createElement('div');
+        toolbar.className = 'trend-toolbar modal-stage-ready';
+        toolbar.innerHTML = `<label class="trend-field">
+                <span>开始</span>
+                <select class="input-ui" data-role="start"></select>
+            </label>
+            <label class="trend-field">
+                <span>结束</span>
+                <select class="input-ui" data-role="end"></select>
+            </label>
+            <label class="trend-field trend-search">
+                <span>筛选</span>
+                <input class="input-ui" data-role="search" placeholder="输入学号或姓名">
+            </label>
+            <div class="trend-quick" data-role="quick">
+                <button class="btn btn-c" type="button" data-range="recent">最近5次</button>
+                <button class="btn btn-c" type="button" data-range="all">全部</button>
+            </div>`;
+        return {
+            hero,
+            toolbar,
+            summaryEl: hero.querySelector('[data-role="summary"]'),
+            startEl: toolbar.querySelector('[data-role="start"]'),
+            endEl: toolbar.querySelector('[data-role="end"]'),
+            searchEl: toolbar.querySelector('[data-role="search"]'),
+            quickEl: toolbar.querySelector('[data-role="quick"]')
         };
     },
 

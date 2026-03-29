@@ -7,11 +7,12 @@ const Modal = {
     closeBtn: $('modal').querySelector('.modal-close'),
     header: $('modal').querySelector('.modal-header'),
     isOpen: false, isClosing: false, isFull: false, resolve: null,
+    FULL_ENTER_MS: 220,
     FULL_EXIT_MS: 160,
     PAGE_EXIT_MS: 160,
     FULL_POINTER_GUARD_MS: 240,
     PAGE_POINTER_GUARD_MS: 200,
-    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null,
+    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null, _progressiveRoot: null, _progressiveController: null,
 
     init() {
         this.closeBtn.onclick = () => { this.close(false); };
@@ -113,6 +114,123 @@ const Modal = {
         this._enterRafB = 0;
     },
 
+    cancelProgressiveWork() {
+        if (!this._progressiveController) {
+            this._progressiveRoot = null;
+            return;
+        }
+        this._progressiveController.cancel();
+        this._progressiveController = null;
+        this._progressiveRoot = null;
+    },
+
+    createProgressiveController(root, { animated = this.animationsEnabled() } = {}) {
+        const timers = new Set();
+        const rafs = new Set();
+        const cleanups = new Set();
+        const stageOffsets = animated
+            ? { shell: 0, aboveFold: this.FULL_ENTER_MS, heavy: this.FULL_ENTER_MS + 72 }
+            : { shell: 0, aboveFold: 0, heavy: 0 };
+        const state = { cancelled: false };
+        const captureCleanup = result => {
+            if (typeof result === 'function') cleanups.add(result);
+            return result;
+        };
+        const api = {
+            root,
+            animated,
+            stageOffsets,
+            isActive: () => !state.cancelled && this.isOpen && !this.isClosing && this.body.contains(root),
+            registerCleanup: fn => {
+                if (typeof fn === 'function') cleanups.add(fn);
+                return fn;
+            },
+            after: (task, delay = 0, { frame = false, frames = 1 } = {}) => {
+                if (typeof task !== 'function') return 0;
+                const invoke = () => {
+                    if (!api.isActive()) return;
+                    if (frame) return api.frame(task, frames);
+                    return captureCleanup(task(api));
+                };
+                const ms = Math.max(0, Number(delay) || 0);
+                if (!animated && ms <= 0) {
+                    captureCleanup(task(api));
+                    return 0;
+                }
+                const timerId = setTimeout(() => {
+                    timers.delete(timerId);
+                    invoke();
+                }, ms);
+                timers.add(timerId);
+                return timerId;
+            },
+            frame: (task, frames = 1) => {
+                if (typeof task !== 'function' || !api.isActive()) return 0;
+                const totalFrames = Math.max(1, Number(frames) || 1);
+                if (!animated) {
+                    captureCleanup(task(api));
+                    return 0;
+                }
+                let remaining = totalFrames;
+                const step = () => {
+                    if (!api.isActive()) return;
+                    if (remaining > 1) {
+                        remaining--;
+                        const nextId = requestAnimationFrame(() => {
+                            rafs.delete(nextId);
+                            step();
+                        });
+                        rafs.add(nextId);
+                        return;
+                    }
+                    captureCleanup(task(api));
+                };
+                const rafId = requestAnimationFrame(() => {
+                    rafs.delete(rafId);
+                    step();
+                });
+                rafs.add(rafId);
+                return rafId;
+            },
+            schedule: (task, { phase = 'shell', delay = 0, frame = true, frames = 1 } = {}) => {
+                if (typeof task !== 'function') return 0;
+                if (!animated) {
+                    captureCleanup(task(api));
+                    return 0;
+                }
+                const baseDelay = animated ? (stageOffsets[phase] ?? stageOffsets.heavy) : 0;
+                return api.after(task, baseDelay + Math.max(0, Number(delay) || 0), { frame, frames });
+            },
+            cancel: () => {
+                if (state.cancelled) return;
+                state.cancelled = true;
+                timers.forEach(timerId => clearTimeout(timerId));
+                timers.clear();
+                rafs.forEach(rafId => cancelAnimationFrame(rafId));
+                rafs.clear();
+                cleanups.forEach(fn => {
+                    try { fn(); } catch (err) { }
+                });
+                cleanups.clear();
+            }
+        };
+        return api;
+    },
+
+    registerProgressiveRoot(root, animated) {
+        this.cancelProgressiveWork();
+        if (!this.isFull || !(root instanceof Element)) return null;
+        this._progressiveRoot = root;
+        this._progressiveController = this.createProgressiveController(root, { animated });
+        return this._progressiveController;
+    },
+
+    getProgressiveController(root = null) {
+        if (!this._progressiveController) return null;
+        if (!root || root === this._progressiveRoot) return this._progressiveController;
+        return null;
+    },
+
     animationsEnabled() {
         return !globalThis.State || State.animations !== false;
     },
@@ -160,7 +278,13 @@ const Modal = {
         const isFullScreen = !usePage;
         this.title.textContent = title || '';
         this.body.innerHTML = '';
-        this.body.appendChild(usePage ? this.buildPagePanel(title, content, btns) : (typeof content === 'string' ? (this.body.innerHTML = content, this.body.firstChild) : content));
+        let mountedContent = usePage ? this.buildPagePanel(title, content, btns) : content;
+        if (!usePage && typeof content === 'string') {
+            const wrap = document.createElement('div');
+            wrap.innerHTML = content;
+            mountedContent = wrap.childElementCount === 1 ? wrap.firstElementChild : wrap;
+        }
+        if (mountedContent instanceof Node) this.body.appendChild(mountedContent);
 
         this.isFull = isFullScreen;
         this.el.className = `${isFullScreen ? 'full' : 'page'}`;
@@ -182,6 +306,7 @@ const Modal = {
 
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
         const animated = this.animationsEnabled();
+        this.registerProgressiveRoot(mountedContent instanceof Element ? mountedContent : null, animated);
         if (animated) {
             this.stageOpenTransition();
             this.armPointerGuard(this.isFull ? this.FULL_POINTER_GUARD_MS : this.PAGE_POINTER_GUARD_MS);
@@ -196,6 +321,7 @@ const Modal = {
 
     _cleanup(val) {
         this.cancelEnterTransition();
+        this.cancelProgressiveWork();
         this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;

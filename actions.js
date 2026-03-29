@@ -2,14 +2,30 @@
             ctx: { state: null, modal: null, toast: null, debug: null, views: null, colorUtil: null, subjectPresets: [], cardColorPresets: [], getFileInput: () => null },
             _importCtx: null,
             deferFullscreenWork(root, task, delay = 140) {
-                // 使用requestAnimationFrame延迟处理，避免阻塞主线程
-                if (delay > 0) {
-                    setTimeout(() => {
+                const controller = Modal.getProgressiveController(root);
+                if (typeof task === 'function') {
+                    if (controller) {
+                        controller.schedule(() => task(controller), { phase: 'heavy', delay });
+                        return controller;
+                    }
+                    if (delay > 0) {
+                        setTimeout(() => requestAnimationFrame(task), delay);
+                    } else {
                         requestAnimationFrame(task);
-                    }, delay);
-                } else {
-                    requestAnimationFrame(task);
+                    }
+                    return null;
                 }
+                const plan = task && typeof task === 'object' ? task : {};
+                if (controller) {
+                    if (typeof plan.shell === 'function') controller.schedule(() => plan.shell(controller), { phase: 'shell', delay: plan.shellDelay ?? 0 });
+                    if (typeof plan.aboveFold === 'function') controller.schedule(() => plan.aboveFold(controller), { phase: 'aboveFold', delay: plan.aboveFoldDelay ?? 0 });
+                    if (typeof plan.heavy === 'function') controller.schedule(() => plan.heavy(controller), { phase: 'heavy', delay: plan.heavyDelay ?? 0 });
+                    return controller;
+                }
+                plan.shell?.(null);
+                plan.aboveFold?.(null);
+                plan.heavy?.(null);
+                return null;
             },
             toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
@@ -44,9 +60,12 @@
                 ScorePad.show(id, name, card.getBoundingClientRect());
             },
             asgManage() {
-                const { root, list, newNameInput, newAltBtn, newCreateBtn } = this.ctx.views.createAsgManageShell(), pool = new Map();
-                const { modal, toast, subjectPresets } = this.ctx;
+                const { root, list, introHost } = this.ctx.views.createAsgManageShell(), pool = new Map();
+                const { modal, toast, subjectPresets, views } = this.ctx;
                 let mounted = new Set();
+                let hero = null;
+                let work = null;
+                let listRenderToken = 0;
                 let upd = () => {};
                 const draftTimers = new Map();
                 const now = new Date();
@@ -54,12 +73,29 @@
                 const dd = `${now.getDate()}`.padStart(2, '0');
                 const defaultName = `${mm}${dd}作业`;
                 const altName = `${mm}${dd}小测`;
+                const isViewActive = () => modal.isOpen && modal.body.contains(root);
+                const mountHero = () => {
+                    if (hero) return hero;
+                    hero = views.createAsgManageHero();
+                    introHost.replaceChildren(hero.section);
+                    hero.newNameInput.placeholder = defaultName;
+                    hero.newAltBtn.textContent = altName;
+                    hero.newAltBtn.onclick = () => { hero.newNameInput.value = altName; hero.newNameInput.focus(); };
+                    hero.newCreateBtn.onclick = createAsg;
+                    hero.newNameInput.addEventListener('keydown', e => {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        createAsg();
+                    });
+                    return hero;
+                };
                 const createAsg = () => {
-                    const name = (newNameInput.value || '').trim() || (newNameInput.placeholder || '').trim();
+                    const refs = mountHero();
+                    const name = (refs.newNameInput.value || '').trim() || (refs.newNameInput.placeholder || '').trim();
                     if (!name) return toast.show('任务名称不能为空');
                     State.addAsg(name);
-                    newNameInput.value = '';
-                    newNameInput.placeholder = defaultName;
+                    refs.newNameInput.value = '';
+                    refs.newNameInput.placeholder = defaultName;
                     upd();
                 };
                 const clearDraftTimer = id => {
@@ -139,16 +175,6 @@
                     State.removeAsg(id);
                     upd();
                 };
-                newNameInput.placeholder = defaultName;
-                newAltBtn.textContent = altName;
-                newAltBtn.onclick = () => { newNameInput.value = altName; newNameInput.focus(); };
-                newCreateBtn.onclick = createAsg;
-                newNameInput.addEventListener('keydown', e => {
-                    if (e.key !== 'Enter') return;
-                    e.preventDefault();
-                    createAsg();
-                });
-
                 list.onclick = async e => {
                     const c = e.target.closest('.asg-card'), id = +c?.dataset.id;
                     if (!id) return;
@@ -181,33 +207,29 @@
                     if (!c) return;
                     saveCardMeta(c, { strict: role === 'name' });
                 });
-                
-                // 使用deferFullscreenWork延迟渲染，避免阻塞主线程
-                this.deferFullscreenWork(root, () => {
-                    upd = () => {
-                        const next = new Set();
-                        const asgs = State.data.slice().reverse();
-                        
-                        // 清空列表
-                        while (list.firstChild) {
-                            list.removeChild(list.firstChild);
-                        }
-                        
-                        // 延迟渲染卡片，避免一次性渲染大量卡片导致卡顿
-                        let index = 0;
-                        const renderNextCard = () => {
-                            if (index >= asgs.length) {
-                                // 渲染完成后清理不再需要的卡片
-                                mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
-                                mounted = next;
-                                return;
-                            }
-                            
-                            const asg = asgs[index++];
-                            let c = pool.get(asg.id); 
-                            
+
+                const renderList = ({ chunked = !!work?.animated } = {}) => {
+                    const token = ++listRenderToken;
+                    const asgs = State.data.slice().reverse();
+                    const next = new Set();
+                    list.replaceChildren();
+                    if (!asgs.length) {
+                        mounted.forEach(id => pool.get(id)?.remove());
+                        mounted = next;
+                        return;
+                    }
+                    let index = 0;
+                    const batchSize = chunked ? 4 : asgs.length;
+                    const paintBatch = () => {
+                        if (token !== listRenderToken || !isViewActive()) return;
+                        const frag = document.createDocumentFragment();
+                        const end = Math.min(index + batchSize, asgs.length);
+                        for (; index < end; index++) {
+                            const asg = asgs[index];
+                            let c = pool.get(asg.id);
                             if (!c) {
-                                c = document.createElement('article'); c.className = 'asg-card';
+                                c = document.createElement('article');
+                                c.className = 'asg-card';
                                 c.innerHTML = `<button class="asg-card-delete" type="button" data-act="del" aria-label="删除任务" title="删除任务">
                                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <path d="M3 6h18"></path>
@@ -228,29 +250,76 @@
                                 });
                                 pool.set(asg.id, c);
                             }
-                            
                             renderCardMeta(c, asg);
-                            list.appendChild(c); 
+                            frag.appendChild(c);
                             next.add(asg.id);
-                            
-                            // 继续渲染下一张卡片，使用requestAnimationFrame避免阻塞主线程
-                            requestAnimationFrame(renderNextCard);
-                        };
-                        
-                        // 开始渲染
-                        renderNextCard();
+                        }
+                        if (!frag.childNodes.length) return;
+                        list.appendChild(frag);
+                        if (index < asgs.length && chunked && work?.animated) {
+                            work.frame(paintBatch);
+                            return;
+                        }
+                        mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
+                        mounted = next;
                     };
-                    
-                    upd();
-                });
-                
+                    paintBatch();
+                };
+
+                upd = () => {
+                    mountHero();
+                    renderList({ chunked: !!work?.animated && State.data.length > 6 });
+                };
+
                 Modal.show({ title: '', content: root, type: 'full' });
+                work = this.deferFullscreenWork(root, {
+                    aboveFold: () => { mountHero(); },
+                    heavy: () => renderList({ chunked: true })
+                });
             },
             roster() {
                 let nextId = 1; const entries = State.list.map(l => ({ ...State.parseRosterLine(l), _rowId: nextId++ }));
-                const { root, listEl, countEl, excludedEl, toolbar, submitBar } = this.ctx.views.createRosterShell(), pool = new Map();
-                const { bottomSheet } = this.ctx;
+                const { root, listEl, topHost, summaryHost } = this.ctx.views.createRosterShell(), pool = new Map();
+                const { bottomSheet, views } = this.ctx;
                 let mounted = new Set();
+                let chrome = null;
+                let work = null;
+                let renderToken = 0;
+                const empty = document.createElement('div');
+                empty.className = 'roster-empty';
+                empty.textContent = '暂无学生，请点击上方新增。';
+                const isViewActive = () => Modal.isOpen && Modal.body.contains(root);
+                const mountChrome = () => {
+                    if (chrome) return chrome;
+                    chrome = views.createRosterChrome();
+                    topHost.replaceChildren(chrome.topbar);
+                    summaryHost.replaceChildren(chrome.summary);
+                    chrome.toolbar.onclick = e => {
+                        const act = e.target.closest('[data-act]')?.dataset.act;
+                        if (act === 'add') {
+                            entries.push({ id: '', name: '', noEnglish: false, _rowId: nextId++ });
+                            renderAllRows({ focusLast: true });
+                        }
+                        else if (act === 'autonum') {
+                            entries.forEach((e, i) => e.id = String(i + 1).padStart(2, '0'));
+                            renderAllRows();
+                        }
+                        else if (act === 'sort-seat') {
+                            entries.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+                            renderAllRows();
+                        }
+                        else if (act === 'clean') {
+                            for (let i = entries.length - 1; i >= 0; i--) if (!entries[i].id && !entries[i].name) entries.splice(i, 1);
+                            renderAllRows();
+                        }
+                    };
+                    chrome.submitBar.onclick = e => {
+                        const act = e.target.closest('[data-act]')?.dataset.act;
+                        if (act === 'cancel') Modal.close(false);
+                        else if (act === 'save') saveRoster();
+                    };
+                    return chrome;
+                };
                 const saveRoster = () => {
                     try {
                         State.list = entries.filter(e => e.id || e.name).map(e => `${e.id}${e.name ? ` ${e.name}` : ''}${e.noEnglish ? ' #非英语' : ''}`);
@@ -261,60 +330,63 @@
                     catch (err) { bottomSheet.alert(err.message); }
                 };
                 const renderSummary = () => {
+                    const refs = mountChrome();
                     let validCount = 0, excludedCount = 0;
                     entries.forEach(e => {
                         if (!e.id && !e.name) return;
                         validCount++;
                         if (e.noEnglish) excludedCount++;
                     });
-                    countEl.textContent = `共 ${validCount} 人`;
-                    excludedEl.textContent = `排除英语 ${excludedCount} 人`;
+                    refs.countEl.textContent = `共 ${validCount} 人`;
+                    refs.excludedEl.textContent = `排除英语 ${excludedCount} 人`;
                 };
-                const renderAllRows = () => {
+                const renderAllRows = ({ focusLast = false, chunked = !!work?.animated && entries.length > 18 } = {}) => {
+                    const token = ++renderToken;
                     const next = new Set();
-                    entries.forEach((e, i) => {
-                        let r = pool.get(e._rowId);
-                        if (!r) {
-                            r = document.createElement('div');
-                            r.className = 'roster-row';
-                            r.innerHTML = `<input class="input-ui roster-seat" data-r="id" placeholder="座号"><input class="input-ui roster-name" data-r="name" placeholder="姓名"><label class="roster-check"><input type="checkbox" data-r="ex">排除</label><button class="btn btn-d roster-del" data-act="del">&times;</button>`;
-                            pool.set(e._rowId, r);
+                    listEl.replaceChildren();
+                    if (!entries.length) {
+                        listEl.replaceChildren(empty);
+                        mounted.forEach(id => pool.get(id)?.remove());
+                        mounted = next;
+                        renderSummary();
+                        return;
+                    }
+                    let index = 0;
+                    const batchSize = chunked ? 12 : entries.length;
+                    const finishRender = () => {
+                        mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
+                        mounted = next;
+                        renderSummary();
+                        if (focusLast) listEl.lastElementChild?.querySelector('[data-r="name"]')?.focus();
+                    };
+                    const paintBatch = () => {
+                        if (token !== renderToken || !isViewActive()) return;
+                        const frag = document.createDocumentFragment();
+                        const end = Math.min(index + batchSize, entries.length);
+                        for (; index < end; index++) {
+                            const e = entries[index];
+                            let r = pool.get(e._rowId);
+                            if (!r) {
+                                r = document.createElement('div');
+                                r.className = 'roster-row';
+                                r.innerHTML = `<input class="input-ui roster-seat" data-r="id" placeholder="座号"><input class="input-ui roster-name" data-r="name" placeholder="姓名"><label class="roster-check"><input type="checkbox" data-r="ex">排除</label><button class="btn btn-d roster-del" data-act="del">&times;</button>`;
+                                pool.set(e._rowId, r);
+                            }
+                            r.dataset.idx = index;
+                            r.querySelector('[data-r="id"]').value = e.id;
+                            r.querySelector('[data-r="name"]').value = e.name;
+                            r.querySelector('[data-r="ex"]').checked = !!e.noEnglish;
+                            frag.appendChild(r);
+                            next.add(e._rowId);
                         }
-                        r.dataset.idx = i;
-                        r.querySelector('[data-r="id"]').value = e.id;
-                        r.querySelector('[data-r="name"]').value = e.name;
-                        r.querySelector('[data-r="ex"]').checked = !!e.noEnglish;
-                        listEl.appendChild(r);
-                        next.add(e._rowId);
-                    });
-                    mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
-                    mounted = next;
-                    renderSummary();
-                };
-                toolbar.onclick = e => {
-                    const act = e.target.closest('[data-act]')?.dataset.act;
-                    if (act === 'add') {
-                        entries.push({ id: '', name: '', noEnglish: false, _rowId: nextId++ });
-                        renderAllRows();
-                        listEl.lastElementChild.querySelector('[data-r="name"]').focus();
-                    }
-                    else if (act === 'autonum') {
-                        entries.forEach((e, i) => e.id = String(i + 1).padStart(2, '0'));
-                        renderAllRows();
-                    }
-                    else if (act === 'sort-seat') {
-                        entries.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-                        renderAllRows();
-                    }
-                    else if (act === 'clean') {
-                        for (let i = entries.length - 1; i >= 0; i--) if (!entries[i].id && !entries[i].name) entries.splice(i, 1);
-                        renderAllRows();
-                    }
-                };
-                submitBar.onclick = e => {
-                    const act = e.target.closest('[data-act]')?.dataset.act;
-                    if (act === 'cancel') Modal.close(false);
-                    else if (act === 'save') saveRoster();
+                        listEl.appendChild(frag);
+                        if (index < entries.length && chunked && work?.animated) {
+                            work.frame(paintBatch);
+                            return;
+                        }
+                        finishRender();
+                    };
+                    paintBatch();
                 };
                 listEl.oninput = e => {
                     const r = e.target.closest('.roster-row');
@@ -345,7 +417,10 @@
                     renderAllRows();
                 };
                 Modal.show({ title: '', content: root, type: 'full' });
-                this.deferFullscreenWork(root, renderAllRows);
+                work = this.deferFullscreenWork(root, {
+                    aboveFold: () => { mountChrome(); renderSummary(); },
+                    heavy: () => renderAllRows({ chunked: true })
+                });
             },
             exp() {
                 const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a');
@@ -420,7 +495,6 @@
                 const ui = this.ctx.views.createQuizTrendShell();
                 const assignments = State.getQuizTrendAssignments();
                 const TREND_DEFER_WORK_THRESHOLD = 120;
-                const TREND_ENTER_DEFER_MS = 280;
                 const TREND_CHUNK_SIZE_FIRST = 8;
                 const TREND_CHUNK_SIZE_NEXT = 12;
                 let activeAssignmentIds = new Set();
@@ -430,6 +504,8 @@
                 const empty = document.createElement('div');
                 empty.className = 'trend-empty';
                 let currentReport = null;
+                let chrome = null;
+                let work = null;
                 let renderTask = 0;
                 let listTask = 0;
                 let renderToken = 0;
@@ -437,10 +513,19 @@
                     this.ctx.toast.show('暂无任务数据');
                     return;
                 }
+                const mountChrome = () => {
+                    if (chrome) return chrome;
+                    chrome = this.ctx.views.createQuizTrendChrome();
+                    ui.heroHost.replaceChildren(chrome.hero);
+                    ui.toolbarHost.replaceChildren(chrome.toolbar);
+                    Object.assign(ui, chrome);
+                    return chrome;
+                };
                 const formatStat = value => value == null ? '--' : `${value}`;
                 const formatDelta = value => value == null ? '待观察' : `${value > 0 ? '+' : ''}${value}`;
                 const getTrendTone = trend => trend === '上升' ? 'up' : trend === '下降' ? 'down' : trend === '稳定' ? 'steady' : 'mix';
                 const getRangeAssignments = () => State.getAsgRange(+ui.startEl.value, +ui.endEl.value, assignments);
+                const scheduleTask = (task, delay = 0) => work ? work.after(task, delay) : setTimeout(task, delay);
                 const cancelPendingRender = () => {
                     renderToken++;
                     clearTimeout(renderTask);
@@ -449,7 +534,7 @@
                     listTask = 0;
                 };
                 const isTrendViewActive = () => Modal.isOpen && Modal.body.contains(ui.root);
-                const shouldDeferTrendRender = rangeAssignments => State.roster.length * Math.max(1, rangeAssignments.length) >= TREND_DEFER_WORK_THRESHOLD;
+                const shouldDeferTrendRender = rangeAssignments => (work?.animated ?? State.animations !== false) && State.roster.length * Math.max(1, rangeAssignments.length) >= TREND_DEFER_WORK_THRESHOLD;
                 const showTrendMessage = message => {
                     empty.textContent = message;
                     ui.listEl.replaceChildren(empty);
@@ -529,6 +614,7 @@
                     lastRangeAssignmentIds = rangeIds;
                 };
                 const fillOptions = () => {
+                    mountChrome();
                     const options = assignments.map(asg => `<option value="${asg.id}">${asg.name}</option>`).join('');
                     ui.startEl.innerHTML = options;
                     ui.endEl.innerHTML = options;
@@ -583,7 +669,7 @@
                         showTrendMessage('当前没有选中要显示的小测项目');
                         return;
                     }
-                    const keyword = String(ui.searchEl.value || '').trim();
+                    const keyword = String(ui.searchEl?.value || '').trim();
                     const visibleStudents = currentReport.students.filter(student => !keyword || student.searchText.includes(keyword));
                     if (!visibleStudents.length) {
                         showTrendMessage('当前筛选下没有匹配学生');
@@ -605,14 +691,14 @@
                         for (; index < end; index++) frag.appendChild(renderStudentCard(visibleStudents[index]));
                         if (ui.listEl.firstElementChild === empty) ui.listEl.replaceChildren(frag);
                         else ui.listEl.appendChild(frag);
-                        if (index < visibleStudents.length) listTask = setTimeout(paintBatch, 0);
+                        if (index < visibleStudents.length) listTask = scheduleTask(paintBatch, 0);
                     };
-                    listTask = setTimeout(paintBatch, 0);
+                    listTask = scheduleTask(paintBatch, 0);
                 };
                 const applyStudentFilter = () => {
                     renderVisibleStudents(renderToken);
                 };
-                const render = ({ defer = false, afterTransition = false } = {}) => {
+                const render = ({ defer = false } = {}) => {
                     cancelPendingRender();
                     const token = renderToken;
                     const run = () => {
@@ -631,43 +717,51 @@
                     if (defer) {
                         ui.summaryEl.textContent = '正在整理小测趋势...';
                         showTrendMessage('正在整理成绩数据...');
-                        const delay = afterTransition && State.animations ? TREND_ENTER_DEFER_MS : 0;
-                        renderTask = setTimeout(run, delay);
+                        renderTask = scheduleTask(run, 0);
                         return;
                     }
                     run();
                 };
-                const renderForCurrentRange = ({ entering = false } = {}) => {
+                const renderForCurrentRange = () => {
                     const rangeAssignments = getRangeAssignments();
                     const defer = shouldDeferTrendRender(rangeAssignments);
-                    render({ defer, afterTransition: entering && defer });
+                    render({ defer });
                 };
-                fillOptions();
-                ui.startEl.onchange = renderForCurrentRange;
-                ui.endEl.onchange = renderForCurrentRange;
-                ui.searchEl.oninput = applyStudentFilter;
-                ui.assignmentEl.onclick = e => {
-                    const chip = e.target.closest('[data-asg-id]');
-                    if (!chip) return;
-                    const asgId = Number(chip.dataset.asgId);
-                    if (!Number.isFinite(asgId)) return;
-                    if (activeAssignmentIds.has(asgId)) activeAssignmentIds.delete(asgId);
-                    else activeAssignmentIds.add(asgId);
-                    renderForCurrentRange();
-                };
-                ui.quickEl.onclick = e => {
-                    const act = e.target.closest('[data-range]')?.dataset.range;
-                    if (!act) return;
-                    if (act === 'all') {
-                        ui.startEl.value = String(assignments[0].id);
-                    } else {
-                        ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)].id);
-                    }
-                    ui.endEl.value = String(assignments[assignments.length - 1].id);
-                    renderForCurrentRange();
+                const bindHandlers = () => {
+                    ui.startEl.onchange = renderForCurrentRange;
+                    ui.endEl.onchange = renderForCurrentRange;
+                    ui.searchEl.oninput = applyStudentFilter;
+                    ui.assignmentEl.onclick = e => {
+                        const chip = e.target.closest('[data-asg-id]');
+                        if (!chip) return;
+                        const asgId = Number(chip.dataset.asgId);
+                        if (!Number.isFinite(asgId)) return;
+                        if (activeAssignmentIds.has(asgId)) activeAssignmentIds.delete(asgId);
+                        else activeAssignmentIds.add(asgId);
+                        renderForCurrentRange();
+                    };
+                    ui.quickEl.onclick = e => {
+                        const act = e.target.closest('[data-range]')?.dataset.range;
+                        if (!act) return;
+                        if (act === 'all') {
+                            ui.startEl.value = String(assignments[0].id);
+                        } else {
+                            ui.startEl.value = String(assignments[Math.max(0, assignments.length - 5)].id);
+                        }
+                        ui.endEl.value = String(assignments[assignments.length - 1].id);
+                        renderForCurrentRange();
+                    };
                 };
                 Modal.show({ title: '', content: ui.root, type: 'full' });
-                this.deferFullscreenWork(ui.root, () => renderForCurrentRange({ entering: true }), 120);
+                work = this.deferFullscreenWork(ui.root, {
+                    aboveFold: controller => {
+                        mountChrome();
+                        fillOptions();
+                        bindHandlers();
+                        controller?.registerCleanup(cancelPendingRender);
+                    },
+                    heavy: () => renderForCurrentRange()
+                });
             }
         };
 

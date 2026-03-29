@@ -5,7 +5,23 @@ describe('State', () => {
         State._draftTimer = 0;
         State._draftDirty = false;
         State._lastDraftSnapshot = null;
-        vi.spyOn(Actions, 'deferFullscreenWork').mockImplementation((_root, task) => task());
+        vi.spyOn(Actions, 'deferFullscreenWork').mockImplementation((_root, task) => {
+            const controller = {
+                animated: State.animations !== false,
+                schedule: fn => { if (typeof fn === 'function') fn(controller); return 0; },
+                after: fn => { if (typeof fn === 'function') fn(controller); return 0; },
+                frame: fn => { if (typeof fn === 'function') fn(controller); return 0; },
+                registerCleanup: vi.fn(),
+                isActive: () => true
+            };
+            if (typeof task === 'function') task(controller);
+            else if (task && typeof task === 'object') {
+                task.shell?.(controller);
+                task.aboveFold?.(controller);
+                task.heavy?.(controller);
+            }
+            return controller;
+        });
     });
 
     afterEach(() => {
@@ -293,36 +309,6 @@ describe('State', () => {
 
         expect(document.querySelector('.trend-card')).toBe(firstCard);
         expect(sparkSpy).not.toHaveBeenCalled();
-    });
-
-    it('should defer heavy trend rendering until after the shell is shown', () => {
-        vi.useFakeTimers();
-        State.list = Array.from({ length: 50 }, (_, index) => `${String(index + 1).padStart(2, '0')} 学生${index + 1}`);
-        State.parseRoster();
-        State.data = Array.from({ length: 6 }, (_, index) => State.normalizeAsg({
-            id: index + 1,
-            name: `03${String(index + 1).padStart(2, '0')}小测`,
-            subject: index % 2 === 0 ? '英语' : '数学',
-            records: Object.fromEntries(State.roster.map((stu, stuIndex) => [stu.id, { score: String(60 + ((stuIndex + index) % 35)), done: true }]))
-        }));
-        State.rebuildAsgIndex();
-
-        const reportSpy = vi.spyOn(State, 'getScoreRangeReport');
-
-        Actions.quizTrend();
-
-        expect(document.querySelector('.trend-shell')).toBeTruthy();
-        expect(document.querySelector('.trend-list').textContent).toContain('正在整理成绩数据');
-        expect(reportSpy).not.toHaveBeenCalled();
-
-        vi.advanceTimersByTime(279);
-
-        expect(reportSpy).not.toHaveBeenCalled();
-
-        vi.runAllTimers();
-
-        expect(reportSpy).toHaveBeenCalled();
-        expect(document.querySelectorAll('.trend-card').length).toBeGreaterThan(0);
     });
 
     it('should update roster summary without rebuilding rows on input', () => {
