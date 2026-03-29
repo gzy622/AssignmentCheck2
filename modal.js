@@ -10,9 +10,10 @@ const Modal = {
     FULL_ENTER_MS: 220,
     FULL_EXIT_MS: 160,
     PAGE_EXIT_MS: 160,
+    LOADING_MASK_FADE_MS: 90,
     FULL_POINTER_GUARD_MS: 240,
     PAGE_POINTER_GUARD_MS: 200,
-    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null, _progressiveRoot: null, _progressiveController: null, _loadingMask: null,
+    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null, _progressiveRoot: null, _progressiveController: null, _loadingMask: null, _loadingContentReady: false, _loadingTransitionReady: false, _loadingTransitionTimer: 0,
 
     init() {
         this.closeBtn.onclick = () => { this.close(false); };
@@ -112,34 +113,63 @@ const Modal = {
         cancelAnimationFrame(this._enterRafB || 0);
         this._enterRafA = 0;
         this._enterRafB = 0;
+        clearTimeout(this._loadingTransitionTimer);
+        this._loadingTransitionTimer = 0;
     },
 
-    cancelProgressiveWork() {
+    cancelProgressiveWork({ preserveLoadingMask = false } = {}) {
         if (!this._progressiveController) {
             this._progressiveRoot = null;
-            this.hideLoadingMask();
+            if (!preserveLoadingMask) this.hideLoadingMask({ force: true });
             return;
         }
         this._progressiveController.cancel();
         this._progressiveController = null;
         this._progressiveRoot = null;
-        this.hideLoadingMask();
+        if (!preserveLoadingMask) this.hideLoadingMask({ force: true });
     },
 
     showLoadingMask() {
         if (this._loadingMask || !this.isFull || !this.card) return this._loadingMask;
+        this._loadingContentReady = false;
+        this._loadingTransitionReady = !this.animationsEnabled();
         const mask = document.createElement('div');
         mask.className = 'modal-loading-mask';
-        mask.innerHTML = '<div class="modal-loading-panel"><div class="modal-loading-pattern"></div><div class="modal-loading-label">正在加载</div><div class="modal-loading-note">请稍候，内容整理完成后将自动显示。</div></div>';
         this.card.appendChild(mask);
         this._loadingMask = mask;
         return mask;
     },
 
-    hideLoadingMask() {
+    markLoadingContentReady() {
+        this._loadingContentReady = true;
+        this.hideLoadingMask();
+    },
+
+    markLoadingTransitionReady() {
+        this._loadingTransitionReady = true;
+        this.hideLoadingMask();
+    },
+
+    hideLoadingMask({ force = false } = {}) {
         if (!this._loadingMask) return;
-        this._loadingMask.remove();
-        this._loadingMask = null;
+        if (!force && (!this._loadingContentReady || !this._loadingTransitionReady)) return;
+        const mask = this._loadingMask;
+        if (!force) {
+            mask.classList.add('is-hiding');
+            setTimeout(() => {
+                if (this._loadingMask === mask) {
+                    mask.remove();
+                    this._loadingMask = null;
+                }
+            }, this.LOADING_MASK_FADE_MS);
+        } else {
+            mask.remove();
+            this._loadingMask = null;
+        }
+        this._loadingContentReady = false;
+        this._loadingTransitionReady = false;
+        clearTimeout(this._loadingTransitionTimer);
+        this._loadingTransitionTimer = 0;
     },
 
     createProgressiveController(root, { animated = this.animationsEnabled() } = {}) {
@@ -189,6 +219,7 @@ const Modal = {
             animated,
             stageOffsets,
             onIdle: null,
+            kickIdle: () => settleIdle(),
             isActive: () => !state.cancelled && this.isOpen && !this.isClosing && this.body.contains(root),
             registerCleanup: fn => {
                 if (typeof fn === 'function') cleanups.add(fn);
@@ -253,8 +284,17 @@ const Modal = {
             schedule: (task, { phase = 'shell', delay = 0, frame = true, frames = 1 } = {}) => {
                 if (typeof task !== 'function') return 0;
                 if (!animated) {
-                    runTask(task);
-                    return 0;
+                    const release = acquirePending();
+                    const timerId = setTimeout(() => {
+                        timers.delete(timerId);
+                        if (!api.isActive()) {
+                            release();
+                            return;
+                        }
+                        runTask(task, release);
+                    }, Math.max(0, Number(delay) || 0));
+                    timers.add(timerId);
+                    return timerId;
                 }
                 const baseDelay = animated ? (stageOffsets[phase] ?? stageOffsets.heavy) : 0;
                 return api.after(task, baseDelay + Math.max(0, Number(delay) || 0), { frame, frames });
@@ -279,11 +319,12 @@ const Modal = {
     },
 
     registerProgressiveRoot(root, animated) {
-        this.cancelProgressiveWork();
+        this.cancelProgressiveWork({ preserveLoadingMask: true });
         if (!this.isFull || !(root instanceof Element)) return null;
         this._progressiveRoot = root;
         this._progressiveController = this.createProgressiveController(root, { animated });
-        this._progressiveController.onIdle = () => this.hideLoadingMask();
+        this._progressiveController.onIdle = () => this.markLoadingContentReady();
+        this._progressiveController.kickIdle();
         return this._progressiveController;
     },
 
@@ -307,6 +348,11 @@ const Modal = {
                 if (!this.isOpen || this.isClosing) return;
                 this.el.classList.remove('is-preopen');
                 this.el.classList.add('is-open');
+                this._loadingTransitionTimer = setTimeout(() => {
+                    this._loadingTransitionTimer = 0;
+                    if (!this.isOpen || this.isClosing || !this.isFull) return;
+                    this.markLoadingTransitionReady();
+                }, this.FULL_ENTER_MS);
             });
         });
     },
@@ -377,6 +423,7 @@ const Modal = {
             this.cancelEnterTransition();
             this.el.classList.remove('is-preopen');
             this.el.classList.add('is-open');
+            this.markLoadingTransitionReady();
         }
         this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
         return new Promise(r => this.resolve = r);
@@ -385,7 +432,7 @@ const Modal = {
     _cleanup(val) {
         this.cancelEnterTransition();
         this.cancelProgressiveWork();
-        this.hideLoadingMask();
+        this.hideLoadingMask({ force: true });
         this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;
