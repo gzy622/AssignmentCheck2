@@ -12,7 +12,7 @@ const Modal = {
     PAGE_EXIT_MS: 160,
     FULL_POINTER_GUARD_MS: 240,
     PAGE_POINTER_GUARD_MS: 200,
-    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null, _progressiveRoot: null, _progressiveController: null,
+    _scrollY: 0, _layoutRaf: 0, _enterRafA: 0, _enterRafB: 0, _viewportHandler: null, _focusHandler: null, _focusTimer: 0, _pointerGuardTimer: 0, _stableFocusMode: false, _lastLayout: null, _progressiveRoot: null, _progressiveController: null, _loadingMask: null,
 
     init() {
         this.closeBtn.onclick = () => { this.close(false); };
@@ -117,17 +117,38 @@ const Modal = {
     cancelProgressiveWork() {
         if (!this._progressiveController) {
             this._progressiveRoot = null;
+            this.hideLoadingMask();
             return;
         }
         this._progressiveController.cancel();
         this._progressiveController = null;
         this._progressiveRoot = null;
+        this.hideLoadingMask();
+    },
+
+    showLoadingMask() {
+        if (this._loadingMask || !this.isFull || !this.card) return this._loadingMask;
+        const mask = document.createElement('div');
+        mask.className = 'modal-loading-mask';
+        mask.innerHTML = '<div class="modal-loading-panel"><div class="modal-loading-pattern"></div><div class="modal-loading-label">正在加载</div><div class="modal-loading-note">请稍候，内容整理完成后将自动显示。</div></div>';
+        this.card.appendChild(mask);
+        this._loadingMask = mask;
+        return mask;
+    },
+
+    hideLoadingMask() {
+        if (!this._loadingMask) return;
+        this._loadingMask.remove();
+        this._loadingMask = null;
     },
 
     createProgressiveController(root, { animated = this.animationsEnabled() } = {}) {
         const timers = new Set();
         const rafs = new Set();
         const cleanups = new Set();
+        let pending = 0;
+        let idleNotified = false;
+        let idleTimer = 0;
         const stageOffsets = animated
             ? { shell: 0, aboveFold: this.FULL_ENTER_MS, heavy: this.FULL_ENTER_MS + 72 }
             : { shell: 0, aboveFold: 0, heavy: 0 };
@@ -136,10 +157,38 @@ const Modal = {
             if (typeof result === 'function') cleanups.add(result);
             return result;
         };
+        const acquirePending = () => {
+            let released = false;
+            pending++;
+            return () => {
+                if (released) return;
+                released = true;
+                pending = Math.max(0, pending - 1);
+                settleIdle();
+            };
+        };
+        const settleIdle = () => {
+            if (state.cancelled || pending > 0 || idleNotified || typeof api.onIdle !== 'function') return;
+            if (idleTimer) return;
+            idleTimer = setTimeout(() => {
+                idleTimer = 0;
+                if (state.cancelled || pending > 0 || idleNotified || typeof api.onIdle !== 'function') return;
+                idleNotified = true;
+                api.onIdle();
+            }, 0);
+        };
+        const runTask = (task, release = acquirePending()) => {
+            try {
+                return captureCleanup(task(api));
+            } finally {
+                release();
+            }
+        };
         const api = {
             root,
             animated,
             stageOffsets,
+            onIdle: null,
             isActive: () => !state.cancelled && this.isOpen && !this.isClosing && this.body.contains(root),
             registerCleanup: fn => {
                 if (typeof fn === 'function') cleanups.add(fn);
@@ -148,15 +197,19 @@ const Modal = {
             after: (task, delay = 0, { frame = false, frames = 1 } = {}) => {
                 if (typeof task !== 'function') return 0;
                 const invoke = () => {
-                    if (!api.isActive()) return;
-                    if (frame) return api.frame(task, frames);
-                    return captureCleanup(task(api));
+                    if (!api.isActive()) {
+                        release();
+                        return 0;
+                    }
+                    if (frame) return api.frame(task, frames, release);
+                    return runTask(task, release);
                 };
                 const ms = Math.max(0, Number(delay) || 0);
                 if (!animated && ms <= 0) {
-                    captureCleanup(task(api));
+                    runTask(task);
                     return 0;
                 }
+                const release = acquirePending();
                 const timerId = setTimeout(() => {
                     timers.delete(timerId);
                     invoke();
@@ -164,11 +217,16 @@ const Modal = {
                 timers.add(timerId);
                 return timerId;
             },
-            frame: (task, frames = 1) => {
-                if (typeof task !== 'function' || !api.isActive()) return 0;
+            frame: (task, frames = 1, release = null) => {
+                if (typeof task !== 'function') return 0;
+                const ownRelease = release || acquirePending();
+                if (!api.isActive()) {
+                    ownRelease();
+                    return 0;
+                }
                 const totalFrames = Math.max(1, Number(frames) || 1);
                 if (!animated) {
-                    captureCleanup(task(api));
+                    runTask(task, ownRelease);
                     return 0;
                 }
                 let remaining = totalFrames;
@@ -183,7 +241,7 @@ const Modal = {
                         rafs.add(nextId);
                         return;
                     }
-                    captureCleanup(task(api));
+                    runTask(task, ownRelease);
                 };
                 const rafId = requestAnimationFrame(() => {
                     rafs.delete(rafId);
@@ -195,7 +253,7 @@ const Modal = {
             schedule: (task, { phase = 'shell', delay = 0, frame = true, frames = 1 } = {}) => {
                 if (typeof task !== 'function') return 0;
                 if (!animated) {
-                    captureCleanup(task(api));
+                    runTask(task);
                     return 0;
                 }
                 const baseDelay = animated ? (stageOffsets[phase] ?? stageOffsets.heavy) : 0;
@@ -204,6 +262,8 @@ const Modal = {
             cancel: () => {
                 if (state.cancelled) return;
                 state.cancelled = true;
+                clearTimeout(idleTimer);
+                idleTimer = 0;
                 timers.forEach(timerId => clearTimeout(timerId));
                 timers.clear();
                 rafs.forEach(rafId => cancelAnimationFrame(rafId));
@@ -212,6 +272,7 @@ const Modal = {
                     try { fn(); } catch (err) { }
                 });
                 cleanups.clear();
+                pending = 0;
             }
         };
         return api;
@@ -222,6 +283,7 @@ const Modal = {
         if (!this.isFull || !(root instanceof Element)) return null;
         this._progressiveRoot = root;
         this._progressiveController = this.createProgressiveController(root, { animated });
+        this._progressiveController.onIdle = () => this.hideLoadingMask();
         return this._progressiveController;
     },
 
@@ -305,6 +367,7 @@ const Modal = {
         }
 
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
+        if (isFullScreen) this.showLoadingMask();
         const animated = this.animationsEnabled();
         this.registerProgressiveRoot(mountedContent instanceof Element ? mountedContent : null, animated);
         if (animated) {
@@ -322,6 +385,7 @@ const Modal = {
     _cleanup(val) {
         this.cancelEnterTransition();
         this.cancelProgressiveWork();
+        this.hideLoadingMask();
         this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable');
         this.isOpen = this.isClosing = this.isFull = this._stableFocusMode = false;
         this._lastLayout = null;

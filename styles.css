@@ -547,6 +547,7 @@
             max-width: 100%;
             display: flex;
             flex-direction: column;
+            position: relative;
             margin: 0 auto;
             --modal-surface-enter-y: var(--motion-shift-md);
             --modal-surface-exit-y: var(--motion-shift-sm);
@@ -587,7 +588,7 @@
             --modal-surface-enter-y: calc(100% + var(--motion-sheet-shift));
             --modal-surface-exit-y: calc(100% + var(--motion-sheet-shift));
             opacity: 1;
-            border-radius: 26px 26px 0 0;
+            border-radius: 0 0 26px 26px;
         }
 
         dialog.full.is-open .modal-card {
@@ -616,6 +617,23 @@
         .modal-body{padding:0;font-size:.95rem;color:#495057;line-height:1.5;flex:1;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;transform:translateZ(0);min-height:0;overflow:hidden}
         .modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#fff;flex-shrink:0}
         dialog.full .modal-body{background:var(--bg);padding:0;display:flex;flex-direction:column;height:100%;flex:1;min-height:0;overflow:hidden}
+        .modal-loading-mask{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;padding:18px;background:
+                radial-gradient(circle at 20% 18%, rgba(13,110,253,.12), transparent 26%),
+                radial-gradient(circle at 82% 18%, rgba(56,156,109,.12), transparent 28%),
+                linear-gradient(135deg, rgba(248,250,252,.92), rgba(236,242,247,.96) 48%, rgba(245,248,251,.98)),
+                repeating-linear-gradient(135deg, rgba(148,163,184,.10) 0 14px, rgba(255,255,255,.02) 14px 28px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .modal-loading-panel{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:min(320px,calc(100vw - 72px));padding:22px 20px;border:1px solid rgba(15,23,42,.08);border-radius:20px;background:rgba(255,255,255,.78);box-shadow:0 18px 40px rgba(15,23,42,.14);text-align:center}
+        .modal-loading-pattern{width:72px;height:72px;border-radius:24px;background:
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,.92) 0 8px, transparent 8px 100%),
+                linear-gradient(135deg, rgba(13,110,253,.18), rgba(56,156,109,.16)),
+                repeating-linear-gradient(45deg, rgba(13,110,253,.22) 0 8px, rgba(255,255,255,.12) 8px 16px);
+            box-shadow:0 10px 24px rgba(13,110,253,.12), inset 0 0 0 1px rgba(255,255,255,.24);
+            animation: loadingTilePulse 1.4s ease-in-out infinite}
+        .modal-loading-label{font-size:1rem;font-weight:800;color:#17324d;letter-spacing:.02em}
+        .modal-loading-note{font-size:.8rem;line-height:1.55;color:#607080}
 
         .modal-page-section{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:16px;box-shadow:0 6px 20px rgba(15,23,42,.05);padding:16px;display:flex;flex-direction:column;gap:12px}
         .modal-page-text{color:#495057;line-height:1.6;white-space:pre-wrap}
@@ -700,6 +718,7 @@
         .modal-skeleton-line:nth-child(2n){opacity:.74}
         .modal-skeleton-pill{display:inline-flex;height:28px;border-radius:999px;background:rgba(148,163,184,.16)}
         @keyframes motion-stage-in{from{opacity:0}to{opacity:1}}
+        @keyframes loadingTilePulse{0%,100%{transform:translateY(0) scale(1);filter:saturate(.96)}50%{transform:translateY(-2px) scale(1.03);filter:saturate(1.08)}}
 
         .asg-row-view{grid-template-columns:minmax(0,1fr) 74px 60px}
         .asg-row-btn{width:100%;border:none;background:#fff;appearance:none;text-align:left}
