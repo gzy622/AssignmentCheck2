@@ -592,12 +592,14 @@
         dialog.full .modal-card {
             background: linear-gradient(180deg, #f8fbff 0%, #f2f6fb 18%, var(--bg) 34%);
             box-shadow: 0 -10px 36px rgba(15, 23, 42, 0.12);
-            --modal-surface-enter-y: calc(100% + var(--motion-sheet-shift));
-            --modal-surface-exit-y: calc(100% + var(--motion-sheet-shift));
+            /* 缩短动画行程：从 100% 改为 60%，减少感知掉帧 */
+            --modal-surface-enter-y: 60%;
+            --modal-surface-exit-y: 60%;
             opacity: 1;
             border-radius: 0;
             transform: translate3d(0, var(--modal-surface-enter-y), 0);
-            transition: transform var(--motion-base) var(--motion-ease-enter);
+            /* 延长动画时长：从 220ms 改为 320ms，与行程匹配 */
+            transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
         }
 
         dialog.full.is-open .modal-card {
@@ -606,7 +608,7 @@
 
         dialog.full.is-closing .modal-card {
             transform: translate3d(0, var(--modal-surface-exit-y), 0);
-            transition: transform var(--motion-fast) var(--motion-ease-exit);
+            transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
         }
 
         /* Keyframes */
