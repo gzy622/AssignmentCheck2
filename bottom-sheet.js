@@ -4,7 +4,11 @@
  */
 const BottomSheet = {
     activeSheet: null,
-    CLOSE_ANIMATION_MS: 280,
+    CLOSE_ANIMATION_MS: 260,
+
+    animationsEnabled() {
+        return !globalThis.State || State.animations !== false;
+    },
 
     /**
      * 创建底部面板
@@ -232,6 +236,10 @@ const BottomSheet = {
                 if (this._resolve) {
                     this._resolve(result);
                     this._resolve = null;
+                }
+                if (!BottomSheet.animationsEnabled()) {
+                    this._teardown();
+                    return;
                 }
                 this._cleanupTimer = setTimeout(() => this._teardown(), BottomSheet.CLOSE_ANIMATION_MS);
             }
