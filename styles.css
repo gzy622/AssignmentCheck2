@@ -588,7 +588,7 @@
             --modal-surface-enter-y: calc(100% + var(--motion-sheet-shift));
             --modal-surface-exit-y: calc(100% + var(--motion-sheet-shift));
             opacity: 1;
-            border-radius: 0 0 26px 26px;
+            border-radius: 0;
         }
 
         dialog.full.is-open .modal-card {
