@@ -613,9 +613,9 @@
         .modal-close{background:transparent;border:none;font-size:1.5rem;color:var(--muted);cursor:pointer;padding:0;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s}
         .modal-close:hover{background:#f1f3f5;color:#000}
 
-        .modal-body{padding:0;font-size:.95rem;color:#495057;line-height:1.5;flex:1;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;transform:translateZ(0);min-height:0}
+        .modal-body{padding:0;font-size:.95rem;color:#495057;line-height:1.5;flex:1;background:var(--bg);display:flex;flex-direction:column;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;transform:translateZ(0);min-height:0;overflow:hidden}
         .modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px;background:#fff;flex-shrink:0}
-        dialog.full .modal-body{background:var(--bg);padding:0;display:flex;flex-direction:column;height:100%;flex:1}
+        dialog.full .modal-body{background:var(--bg);padding:0;display:flex;flex-direction:column;height:100%;flex:1;min-height:0;overflow:hidden}
 
         .modal-page-section{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:16px;box-shadow:0 6px 20px rgba(15,23,42,.05);padding:16px;display:flex;flex-direction:column;gap:12px}
         .modal-page-text{color:#495057;line-height:1.6;white-space:pre-wrap}

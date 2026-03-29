@@ -212,6 +212,7 @@
                     const token = ++listRenderToken;
                     const asgs = State.data.slice().reverse();
                     const next = new Set();
+                    const useChunked = !!(chunked && work?.animated);
                     list.replaceChildren();
                     if (!asgs.length) {
                         mounted.forEach(id => pool.get(id)?.remove());
@@ -219,7 +220,7 @@
                         return;
                     }
                     let index = 0;
-                    const batchSize = chunked ? 4 : asgs.length;
+                    const batchSize = useChunked ? 4 : asgs.length;
                     const paintBatch = () => {
                         if (token !== listRenderToken || !isViewActive()) return;
                         const frag = document.createDocumentFragment();
@@ -256,7 +257,7 @@
                         }
                         if (!frag.childNodes.length) return;
                         list.appendChild(frag);
-                        if (index < asgs.length && chunked && work?.animated) {
+                        if (index < asgs.length && useChunked) {
                             work.frame(paintBatch);
                             return;
                         }
@@ -343,6 +344,7 @@
                 const renderAllRows = ({ focusLast = false, chunked = !!work?.animated && entries.length > 18 } = {}) => {
                     const token = ++renderToken;
                     const next = new Set();
+                    const useChunked = !!(chunked && work?.animated);
                     listEl.replaceChildren();
                     if (!entries.length) {
                         listEl.replaceChildren(empty);
@@ -352,7 +354,7 @@
                         return;
                     }
                     let index = 0;
-                    const batchSize = chunked ? 12 : entries.length;
+                    const batchSize = useChunked ? 12 : entries.length;
                     const finishRender = () => {
                         mounted.forEach(id => { if (!next.has(id)) pool.get(id)?.remove(); });
                         mounted = next;
@@ -380,7 +382,7 @@
                             next.add(e._rowId);
                         }
                         listEl.appendChild(frag);
-                        if (index < entries.length && chunked && work?.animated) {
+                        if (index < entries.length && useChunked) {
                             work.frame(paintBatch);
                             return;
                         }
