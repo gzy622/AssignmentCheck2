@@ -506,7 +506,6 @@
             pointer-events: none;
             padding: var(--modal-top-gap, 16px) 0 var(--modal-bottom-gap, 16px);
             will-change: opacity;
-            contain: layout paint;
         }
 
         dialog.page {
@@ -559,21 +558,29 @@
             flex-shrink: 0;
             height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 0px) - var(--modal-bottom-gap, 0px));
             max-height: calc(var(--modal-vh, 100dvh) - var(--modal-top-gap, 0px) - var(--modal-bottom-gap, 0px));
-            will-change: transform, opacity;
+            will-change: transform;
             backface-visibility: hidden;
-            contain: layout paint;
         }
 
         dialog.page .modal-card {
             box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
         }
 
+        dialog.page .modal-card {
+            transform: translate3d(0, var(--modal-surface-enter-y), 0);
+            opacity: 0;
+            transition: transform var(--motion-base) var(--motion-ease-enter), opacity var(--motion-base) var(--motion-ease-enter);
+        }
+
         dialog.page.is-open .modal-card {
-            animation: motion-surface-in var(--motion-base) var(--motion-ease-enter) forwards;
+            transform: translate3d(0, 0, 0);
+            opacity: 1;
         }
 
         dialog.page.is-closing .modal-card {
-            animation: motion-surface-out var(--motion-fast) var(--motion-ease-exit) forwards;
+            transform: translate3d(0, var(--modal-surface-exit-y), 0);
+            opacity: 0;
+            transition: transform var(--motion-fast) var(--motion-ease-exit), opacity var(--motion-fast) var(--motion-ease-exit);
         }
 
         dialog.full {
@@ -589,14 +596,17 @@
             --modal-surface-exit-y: calc(100% + var(--motion-sheet-shift));
             opacity: 1;
             border-radius: 0;
+            transform: translate3d(0, var(--modal-surface-enter-y), 0);
+            transition: transform var(--motion-base) var(--motion-ease-enter);
         }
 
         dialog.full.is-open .modal-card {
-            animation: motion-sheet-in var(--motion-base) var(--motion-ease-enter) forwards;
+            transform: translate3d(0, 0, 0);
         }
 
         dialog.full.is-closing .modal-card {
-            animation: motion-sheet-out var(--motion-fast) var(--motion-ease-exit) forwards;
+            transform: translate3d(0, var(--modal-surface-exit-y), 0);
+            transition: transform var(--motion-fast) var(--motion-ease-exit);
         }
 
         /* Keyframes */

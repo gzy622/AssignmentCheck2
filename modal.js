@@ -341,19 +341,17 @@ const Modal = {
     stageOpenTransition() {
         this.cancelEnterTransition();
         this.el.classList.add('is-preopen');
+        // 单层 rAF 足够确保浏览器已应用 is-preopen 状态
         this._enterRafA = requestAnimationFrame(() => {
             this._enterRafA = 0;
-            this._enterRafB = requestAnimationFrame(() => {
-                this._enterRafB = 0;
-                if (!this.isOpen || this.isClosing) return;
-                this.el.classList.remove('is-preopen');
-                this.el.classList.add('is-open');
-                this._loadingTransitionTimer = setTimeout(() => {
-                    this._loadingTransitionTimer = 0;
-                    if (!this.isOpen || this.isClosing || !this.isFull) return;
-                    this.markLoadingTransitionReady();
-                }, this.FULL_ENTER_MS);
-            });
+            if (!this.isOpen || this.isClosing) return;
+            this.el.classList.remove('is-preopen');
+            this.el.classList.add('is-open');
+            this._loadingTransitionTimer = setTimeout(() => {
+                this._loadingTransitionTimer = 0;
+                if (!this.isOpen || this.isClosing || !this.isFull) return;
+                this.markLoadingTransitionReady();
+            }, this.FULL_ENTER_MS);
         });
     },
 
