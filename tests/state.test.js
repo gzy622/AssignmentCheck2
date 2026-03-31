@@ -5,6 +5,8 @@ describe('State', () => {
         State._draftTimer = 0;
         State._draftDirty = false;
         State._lastDraftSnapshot = null;
+        State._cacheVersion = 0;
+        State._metricsCache = new Map();
         vi.spyOn(Actions, 'deferFullscreenWork').mockImplementation((_root, task) => {
             const controller = {
                 animated: State.animations !== false,
@@ -41,6 +43,8 @@ describe('State', () => {
         State._draftTimer = 0;
         State._draftDirty = false;
         State._lastDraftSnapshot = null;
+        State._cacheVersion = 0;
+        State._metricsCache = new Map();
         BottomSheet.activeSheet = null;
         document.querySelectorAll('.bottom-sheet-backdrop, .bottom-sheet').forEach(el => el.remove());
     });

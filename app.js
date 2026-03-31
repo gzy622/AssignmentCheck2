@@ -10,9 +10,8 @@
             _draftDirty: false,
             _draftPersistMs: 1200,
             _lastDraftSnapshot: null,
-            _metricsToken: 0,
+            _cacheVersion: 0,
             _metricsCache: new Map(),
-            _scoreRangeCache: new Map(),
             _dirtyData: false,
             _dirtyList: false,
             _asgListVersion: 0,
@@ -66,26 +65,48 @@
                 initAsync();
             },
 
+            /**
+             * 规范化用户偏好设置
+             * @param {Object} raw - 原始偏好设置
+             * @returns {Object} 规范化后的偏好设置
+             */
             normalizePrefs(raw) {
                 const prefs = raw && typeof raw === 'object' ? raw : {};
                 return { cardDoneColor: ColorUtil.normalizeHex(prefs.cardDoneColor, '#68c490') };
             },
 
+            /**
+             * 确保任务索引映射已构建
+             * @private
+             */
             _ensureAsgIndex() {
                 if (!this.asgMap.size || this.asgMap.size !== this.data.length) {
                     this.asgMap = new Map(this.data.map(a => [a.id, a]));
                 }
             },
+
+            /**
+             * 重建任务索引映射
+             */
             rebuildAsgIndex() { this.asgMap = new Map(this.data.map(a => [a.id, a])); },
 
+            /**
+             * 解析当前任务ID
+             * @param {number} candidate - 候选ID
+             * @returns {number|null} 有效的任务ID或null
+             */
             resolveCurId(candidate) {
                 if (this.asgMap.has(candidate)) return candidate;
                 return this.data[this.data.length - 1]?.id ?? null;
             },
 
+            /**
+             * 获取恢复草稿数据
+             * @returns {Object|null} 恢复状态对象或null
+             */
             getRecoveryDraft() {
                 const draft = LS.get(KEYS.DRAFT, null);
-                if (!draft || typeof draft !== 'object' || !Array.isArray(draft.list) || !Array.isArray(draft.data)) return null;
+                if (!Validator.isValidRecoveryDraft(draft)) return null;
                 return this.cloneRecoveryState({
                     list: draft.list.map(v => String(v ?? '').trim()).filter(Boolean),
                     data: draft.data.map(a => this.normalizeAsg(a)).filter(Boolean),
@@ -94,6 +115,11 @@
                 });
             },
 
+            /**
+             * 克隆恢复记录
+             * @param {Object} records - 记录对象
+             * @returns {Object} 克隆后的记录
+             */
             cloneRecoveryRecords(records) {
                 const source = records && typeof records === 'object' ? records : {};
                 return Object.fromEntries(
@@ -101,6 +127,11 @@
                 );
             },
 
+            /**
+             * 克隆恢复数据
+             * @param {Array} data - 任务数据数组
+             * @returns {Array} 克隆后的任务数据
+             */
             cloneRecoveryData(data) {
                 return (Array.isArray(data) ? data : [])
                     .map(item => this.normalizeAsg(item))
@@ -108,6 +139,11 @@
                     .map(asg => ({ id: asg.id, name: asg.name, subject: asg.subject, records: this.cloneRecoveryRecords(asg.records) }));
             },
 
+            /**
+             * 克隆恢复状态
+             * @param {Object} state - 状态对象
+             * @returns {Object} 克隆后的状态
+             */
             cloneRecoveryState(state) {
                 const source = state && typeof state === 'object' ? state : {};
                 const curId = source.curId == null || source.curId === '' ? null : Number(source.curId);
@@ -119,6 +155,10 @@
                 };
             },
 
+            /**
+             * 获取当前恢复快照
+             * @returns {Object} 当前状态快照
+             */
             getRecoverySnapshot() {
                 return this.cloneRecoveryState({
                     list: this.list,
@@ -128,10 +168,22 @@
                 });
             },
 
+            /**
+             * 比较两个恢复值是否相同
+             * @param {*} a - 值A
+             * @param {*} b - 值B
+             * @returns {boolean}
+             */
             isSameRecoveryValue(a, b) {
                 return a === b || (a == null && b == null);
             },
 
+            /**
+             * 比较两个恢复条目是否相同
+             * @param {*} a - 条目A
+             * @param {*} b - 条目B
+             * @returns {boolean}
+             */
             isSameRecoveryEntry(a, b) {
                 if (a === b) return true;
                 const objA = a && typeof a === 'object' ? a : null;
@@ -143,6 +195,12 @@
                 return keysA.every(key => this.isSameRecoveryValue(objA[key], objB[key]));
             },
 
+            /**
+             * 比较两组恢复记录是否相同
+             * @param {Object} a - 记录A
+             * @param {Object} b - 记录B
+             * @returns {boolean}
+             */
             isSameRecoveryRecords(a, b) {
                 const recA = a && typeof a === 'object' ? a : {};
                 const recB = b && typeof b === 'object' ? b : {};
@@ -152,6 +210,12 @@
                 return idsA.every(id => this.isSameRecoveryEntry(recA[id], recB[id]));
             },
 
+            /**
+             * 比较两组恢复数据是否相同
+             * @param {Array} a - 数据A
+             * @param {Array} b - 数据B
+             * @returns {boolean}
+             */
             isSameRecoveryData(a, b) {
                 if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
                 for (let i = 0; i < a.length; i++) {
@@ -164,6 +228,12 @@
                 return true;
             },
 
+            /**
+             * 比较两个恢复状态是否相同
+             * @param {Object} a - 状态A
+             * @param {Object} b - 状态B
+             * @returns {boolean}
+             */
             isSameRecoveryState(a, b) {
                 if (!a || !b) return false;
                 if (!Array.isArray(a.list) || !Array.isArray(b.list) || a.list.length !== b.list.length) return false;
@@ -174,6 +244,10 @@
                 return curA === curB && this.normalizePrefs(a.prefs).cardDoneColor === this.normalizePrefs(b.prefs).cardDoneColor;
             },
 
+            /**
+             * 应用恢复草稿
+             * @returns {boolean} 是否成功应用
+             */
             applyRecoveryDraft() {
                 const draft = this.getRecoveryDraft();
                 if (!draft) return false;
@@ -183,6 +257,9 @@
                 return true;
             },
 
+            /**
+             * 队列恢复草稿保存
+             */
             queueRecoveryDraft() {
                 clearTimeout(this._draftTimer);
                 this._draftDirty = true;
@@ -225,6 +302,11 @@
                 return repaired;
             },
 
+            /**
+             * 规范化任务对象
+             * @param {Object} asg - 原始任务对象
+             * @returns {Object|null} 规范化后的任务对象
+             */
             normalizeAsg(asg) {
                 if (!asg || typeof asg !== 'object') return null;
                 const name = String(asg.name || '').trim();
@@ -236,6 +318,11 @@
                 return normalized;
             },
 
+            /**
+             * 原地规范化任务对象
+             * @param {Object} asg - 任务对象
+             * @returns {Object|null} 规范化后的任务对象
+             */
             normalizeAsgInPlace(asg) {
                 const n = this.normalizeAsg(asg);
                 if (!n) return null;
@@ -243,18 +330,30 @@
                 return n;
             },
 
+            /**
+             * 使派生数据失效，清除缓存
+             */
             invalidateDerived() {
-                this._metricsToken++;
+                this._cacheVersion++;
                 this._metricsCache.clear();
-                this._scoreRangeCache.clear();
             },
 
+            /**
+             * 标记网格需要重绘
+             * @param {Object} options - 选项
+             * @param {boolean} options.full - 是否完全重绘
+             * @param {string[]} options.ids - 需要重绘的学生ID列表
+             */
             markGridDirty({ full = false, ids = [] } = {}) {
                 if (full) { this._gridDirtyFull = true; this._gridDirtyStudentIds.clear(); return; }
                 if (this._gridDirtyFull) return;
                 ids.forEach(id => { const key = String(id || '').trim(); if (key) this._gridDirtyStudentIds.add(key); });
             },
 
+            /**
+             * 获取并清除网格脏标记
+             * @returns {Object} 脏标记状态
+             */
             consumeGridDirty() {
                 const dirty = { full: this._gridDirtyFull, ids: this._gridDirtyFull ? [] : Array.from(this._gridDirtyStudentIds) };
                 this._gridDirtyFull = false;
@@ -274,6 +373,11 @@
             },
             flushPersist(options) { this._flushPersist(options); }, // Maintain API
 
+            /**
+             * 解析名单行
+             * @param {string} rawLine - 原始行文本
+             * @returns {Object} 解析后的学生对象 {id, name, noEnglish}
+             */
             parseRosterLine(rawLine) {
                 const lineText = String(rawLine ?? '').trim();
                 const noEnRegex = /\s*#(?:非英语|非英|no-en|noeng|not-en)\s*$/i;
@@ -283,17 +387,31 @@
                 return i === -1 ? { id: line, name: '', noEnglish } : { id: line.slice(0, i), name: line.slice(i + 1), noEnglish };
             },
 
+            /**
+             * 获取重复的ID列表
+             * @param {string[]} ids - ID列表
+             * @returns {string[]} 重复的ID列表
+             */
             getDuplicateIds(ids) {
                 const seen = new Set(), dup = new Set();
                 ids.forEach(id => { const key = String(id || '').trim(); if (!key) return; if (seen.has(key)) dup.add(key); seen.add(key); });
                 return Array.from(dup);
             },
 
+            /**
+             * 断言名单ID唯一
+             * @param {string[]} ids - ID列表
+             * @param {string} sourceLabel - 来源标签
+             * @throws {Error} 存在重复ID时抛出错误
+             */
             assertUniqueRosterIds(ids, sourceLabel = '名单') {
                 const dup = this.getDuplicateIds(ids);
                 if (dup.length) throw new Error(`${sourceLabel}存在重复学号: ${dup.join('、')}`);
             },
 
+            /**
+             * 解析名单数据
+             */
             parseRoster() {
                 this.roster = this.list.map(l => this.parseRosterLine(l)).filter(s => s.id);
                 this.assertUniqueRosterIds(this.roster.map(stu => stu.id), '名单');
@@ -316,7 +434,7 @@
                 if (dirtyList) this._dirtyList = true;
                 if (asgListChanged) {
                     this._asgListVersion++;
-                    this._scoreRangeCache.clear();
+                    this._metricsCache.clear();
                 }
                 if (dirtyData || dirtyList) this.queueRecoveryDraft();
                 if (immediate) this._flushPersist({ includeDraft: true }); else this._queuePersist();
@@ -429,14 +547,14 @@
             getAsgMetrics(asg) {
                 if (!asg) return { total: 0, done: 0 };
                 const cached = this._metricsCache.get(asg.id);
-                if (cached && cached.token === this._metricsToken) return cached.metrics;
+                if (cached && cached.version === this._cacheVersion) return cached.metrics;
                 let total = 0, done = 0;
                 for (const stu of this.roster) {
                     if (!this.isStuIncluded(asg, stu)) continue;
                     total++; if (asg.records?.[stu.id]?.done) done++;
                 }
                 const metrics = { total, done };
-                this._metricsCache.set(asg.id, { token: this._metricsToken, metrics });
+                this._metricsCache.set(asg.id, { version: this._cacheVersion, metrics });
                 return metrics;
             },
 
@@ -492,9 +610,9 @@
 
             getScoreRangeReport(startId, endId, source = this.data) {
                 const assignments = this.getAsgRange(startId, endId, source);
-                const cacheKey = `${this._metricsToken}|${this._rosterVersion}|${this._asgListVersion}|${assignments.map(asg => asg.id).join(',')}`;
-                const cached = this._scoreRangeCache.get(cacheKey);
-                if (cached) return cached;
+                const cacheKey = `range:${this._cacheVersion}|${this._rosterVersion}|${this._asgListVersion}|${assignments.map(asg => asg.id).join(',')}`;
+                const cached = this._metricsCache.get(cacheKey);
+                if (cached && cached.version === this._cacheVersion) return cached.report;
 
                 let scoredStudentCount = 0;
                 const students = this.roster.map(stu => {
@@ -553,8 +671,9 @@
                     students,
                     scoredStudentCount
                 };
-                if (this._scoreRangeCache.size >= 12) this._scoreRangeCache.clear();
-                this._scoreRangeCache.set(cacheKey, report);
+                // 限制缓存大小，避免内存泄漏
+                if (this._metricsCache.size >= 50) this._metricsCache.clear();
+                this._metricsCache.set(cacheKey, { version: this._cacheVersion, report });
                 return report;
             },
 

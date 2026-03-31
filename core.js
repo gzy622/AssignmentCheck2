@@ -145,6 +145,104 @@ const IdGenerator = {
     }
 };
 
+/**
+ * 数据验证工具类
+ * 统一处理各种数据验证逻辑，减少代码重复
+ */
+const Validator = {
+    /**
+     * 验证是否为有效的对象
+     * @param {*} value - 要验证的值
+     * @returns {boolean}
+     */
+    isValidObject(value) {
+        return value !== null && typeof value === 'object';
+    },
+
+    /**
+     * 验证是否为有效的数组
+     * @param {*} value - 要验证的值
+     * @returns {boolean}
+     */
+    isValidArray(value) {
+        return Array.isArray(value);
+    },
+
+    /**
+     * 验证是否为非空字符串
+     * @param {*} value - 要验证的值
+     * @returns {boolean}
+     */
+    isNonEmptyString(value) {
+        return typeof value === 'string' && value.trim().length > 0;
+    },
+
+    /**
+     * 验证是否为有效的数字
+     * @param {*} value - 要验证的值
+     * @returns {boolean}
+     */
+    isValidNumber(value) {
+        return typeof value === 'number' && Number.isFinite(value);
+    },
+
+    /**
+     * 验证存储数据的基本结构
+     * @param {*} data - 要验证的数据
+     * @param {string[]} requiredArrays - 必需的数组字段名
+     * @returns {boolean}
+     */
+    validateStorageData(data, requiredArrays = []) {
+        if (!this.isValidObject(data)) {
+            return false;
+        }
+        for (const key of requiredArrays) {
+            if (!this.isValidArray(data[key])) {
+                return false;
+            }
+        }
+        return true;
+    },
+
+    /**
+     * 验证导入/恢复数据格式
+     * @param {*} data - 要验证的数据
+     * @returns {boolean}
+     */
+    isValidImportData(data) {
+        return this.validateStorageData(data, ['list', 'data']);
+    },
+
+    /**
+     * 验证恢复草稿数据格式
+     * @param {*} draft - 要验证的草稿数据
+     * @returns {boolean}
+     */
+    isValidRecoveryDraft(draft) {
+        return this.validateStorageData(draft, ['list', 'data']);
+    },
+
+    /**
+     * 验证学生ID格式（两位数字）
+     * @param {*} id - 要验证的ID
+     * @returns {boolean}
+     */
+    isValidStudentId(id) {
+        return this.isNonEmptyString(id) && /^\d{2}$/.test(id);
+    },
+
+    /**
+     * 验证任务对象的基本结构
+     * @param {*} asg - 要验证的任务对象
+     * @returns {boolean}
+     */
+    isValidAssignment(asg) {
+        return this.isValidObject(asg) &&
+               this.isValidNumber(asg.id) &&
+               this.isNonEmptyString(asg.name);
+    }
+};
+
 globalThis.Device = Device;
 
 const Toast = {
@@ -172,5 +270,6 @@ Object.assign(globalThis, {
     ColorUtil,
     formatBackupFileName,
     IdGenerator,
+    Validator,
     Toast
 });

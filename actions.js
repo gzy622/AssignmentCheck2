@@ -712,7 +712,7 @@
                 Modal.show({ title: '', content: ui.root, type: 'full' });
             },
             parseImportData(raw) {
-                if (!raw || typeof raw !== 'object' || !Array.isArray(raw.list) || !Array.isArray(raw.data)) return null;
+                if (!Validator.isValidImportData(raw)) return null;
                 return { list: raw.list, data: raw.data, prefs: State.normalizePrefs(raw.prefs) };
             },
             applyImportData(payload) {
