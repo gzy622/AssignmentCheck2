@@ -455,7 +455,7 @@ const Modal = {
         this.el.classList.add('is-closing');
         this.el.classList.remove('is-open');
         if (!this.animationsEnabled()) return this._cleanup(val);
-        setTimeout(() => this._cleanup(val), 220);
+        setTimeout(() => this._cleanup(val), this.FULL_EXIT_MS);
     },
 
     forceClose(val = false) { if (this.isOpen) this._cleanup(val); },

@@ -418,7 +418,7 @@
                     entries.splice(i, 1);
                     renderAllRows();
                 };
-                Modal.show({ title: '', content: root, type: 'full' });
+                Modal.show({ title: '', content: root, type: 'full', loadingMask: false });
                 work = this.deferFullscreenWork(root, {
                     aboveFold: () => { mountChrome(); renderSummary(); },
                     heavy: () => renderAllRows({ chunked: true })
