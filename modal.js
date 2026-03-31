@@ -284,6 +284,13 @@ const Modal = {
             schedule: (task, { phase = 'shell', delay = 0, frame = true, frames = 1 } = {}) => {
                 if (typeof task !== 'function') return 0;
                 if (!animated) {
+                    const d = Math.max(0, Number(delay) || 0);
+                    if (d === 0) {
+                        const release = acquirePending();
+                        if (api.isActive()) runTask(task, release);
+                        else release();
+                        return 0;
+                    }
                     const release = acquirePending();
                     const timerId = setTimeout(() => {
                         timers.delete(timerId);
@@ -292,7 +299,7 @@ const Modal = {
                             return;
                         }
                         runTask(task, release);
-                    }, Math.max(0, Number(delay) || 0));
+                    }, d);
                     timers.add(timerId);
                     return timerId;
                 }
@@ -378,7 +385,7 @@ const Modal = {
         s.setProperty('--modal-bottom-gap', `${bot}px`);
     },
 
-    show({ title, content, type = 'normal', btns = [], autoFocusEl = null }) {
+    show({ title, content, type = 'normal', btns = [], autoFocusEl = null, loadingMask = true }) {
         if (this.isOpen) this.forceClose(false);
         UI.setGridFrozen(true);
         this.releaseActiveInput();
@@ -413,7 +420,7 @@ const Modal = {
         }
 
         this.isClosing = false; this.isOpen = true; this._lastLayout = null;
-        if (isFullScreen) this.showLoadingMask();
+        if (isFullScreen && loadingMask) this.showLoadingMask();
         const animated = this.animationsEnabled();
         this.registerProgressiveRoot(mountedContent instanceof Element ? mountedContent : null, animated);
         if (animated) {

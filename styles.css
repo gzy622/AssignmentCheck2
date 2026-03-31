@@ -709,14 +709,17 @@
         .st-layout{display:flex;flex-direction:column;flex:1;min-height:0}
         .modal-stage-host{display:flex;flex-direction:column;gap:12px}
         .modal-stage-ready{animation:motion-stage-in 140ms var(--motion-ease-enter)}
-        .modal-skeleton-card{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,249,252,.96));border:1px solid rgba(15,23,42,.08);box-shadow:0 4px 16px rgba(15,23,42,.04)}
+        .modal-skeleton-card{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,249,252,.96));border:1px solid rgba(15,23,42,.08);box-shadow:0 4px 16px rgba(15,23,42,.04);position:relative;overflow:hidden}
+        .modal-skeleton-card::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.6s infinite}
         .modal-skeleton-card-lg{padding:18px;gap:12px}
         .modal-skeleton-card-compact{min-height:86px}
-        .modal-skeleton-line{height:12px;border-radius:999px;background:rgba(148,163,184,.18)}
+        .modal-skeleton-line{height:12px;border-radius:999px;background:rgba(148,163,184,.18);position:relative;overflow:hidden}
+        .modal-skeleton-line::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.4s infinite}
         .modal-skeleton-line:nth-child(2n){opacity:.74}
-        .modal-skeleton-pill{display:inline-flex;height:28px;border-radius:999px;background:rgba(148,163,184,.16)}
-        @keyframes motion-stage-in{from{opacity:0}to{opacity:1}}
-        @keyframes loadingTilePulse{0%,100%{transform:translateY(0) scale(1);filter:saturate(.96)}50%{transform:translateY(-2px) scale(1.03);filter:saturate(1.08)}}
+        .modal-skeleton-pill{display:inline-flex;height:28px;border-radius:999px;background:rgba(148,163,184,.16);position:relative;overflow:hidden}
+        .modal-skeleton-pill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.5s infinite}
+        @keyframes motion-stage-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes skeleton-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
         .asg-row-view{grid-template-columns:minmax(0,1fr) 74px 60px}
         .asg-row-btn{width:100%;border:none;background:#fff;appearance:none;text-align:left}
