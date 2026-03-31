@@ -114,6 +114,37 @@ const formatBackupFileName = (date = new Date()) => {
     return `${APP_NAME_SLUG}_backup_${y}${m}${d}_${hh}${mm}${ss}.json`;
 };
 
+// ID 生成器工具类
+const IdGenerator = {
+    _lastId: 0,
+
+    // 生成唯一 ID（基于时间戳，确保递增）
+    generate() {
+        const now = Date.now();
+        this._lastId = Math.max(now, this._lastId + 1);
+        return this._lastId;
+    },
+
+    // 生成唯一 ID，并检查是否存在于给定的集合中
+    generateUnique(existsCheck) {
+        let id = this.generate();
+        while (existsCheck(id)) {
+            id = this.generate();
+        }
+        return id;
+    },
+
+    // 重置内部状态（仅用于测试）
+    reset() {
+        this._lastId = 0;
+    },
+
+    // 获取下一个可能的 ID（不增加计数器）
+    peek() {
+        return Math.max(Date.now(), this._lastId + 1);
+    }
+};
+
 globalThis.Device = Device;
 
 const Toast = {
@@ -140,5 +171,6 @@ Object.assign(globalThis, {
     APP_NAME_SLUG,
     ColorUtil,
     formatBackupFileName,
+    IdGenerator,
     Toast
 });

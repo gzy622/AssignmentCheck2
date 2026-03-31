@@ -57,6 +57,8 @@
                             this._lastDraftSnapshot = this.getRecoverySnapshot();
                             if (recovered) Toast.show('已恢复上次未完成的临时登记数据');
                         } catch (err) {
+                            console.error('初始化失败:', err);
+                            Toast.show('初始化失败: ' + (err?.message || '未知错误'));
                         }
                     }, 100);
                 };
@@ -207,15 +209,14 @@
             },
 
             sanitizeAsgIds() {
-                const used = new Set(), cleaned = [], nextId = Date.now();
+                const used = new Set(), cleaned = [];
                 let repaired = false;
                 this.data.forEach(item => {
                     const asg = this.normalizeAsg(item);
                     if (!asg || asg._invalidId) { repaired = true; return; }
                     if (used.has(asg.id)) {
                         repaired = true;
-                        let nid = nextId; while (used.has(nid)) nid++;
-                        asg.id = nid;
+                        asg.id = IdGenerator.generateUnique(id => used.has(id));
                     }
                     used.add(asg.id);
                     cleaned.push(asg);
@@ -369,8 +370,7 @@
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
 
             addAsg(n) {
-                let id = Date.now();
-                while (this.asgMap.has(id)) id++;
+                const id = IdGenerator.generateUnique(id => this.asgMap.has(id));
                 this.data.push(this.normalizeAsg({ id, name: (n || '').trim() || '未命名任务', subject: '英语', records: {} }));
                 this._ensureAsgIndex();
                 this.curId = id;
@@ -742,10 +742,64 @@
                 this.syncCardPool();
                 return this.gridEl.children[index] || null;
             },
+            // 虚拟列表配置
+            VIRTUAL_SCROLL_THRESHOLD: 50,
+            _virtualRenderToken: 0,
+            _isVirtualRendering: false,
+
             syncCardPool() {
                 const grid = this.gridEl, target = State.roster.length;
                 while (grid.children.length < target) grid.appendChild(this.createCard());
                 while (grid.children.length > target) grid.lastElementChild.remove();
+            },
+
+            // 分块渲染卡片池，避免大数据量时阻塞主线程
+            syncCardPoolChunked(onComplete) {
+                const grid = this.gridEl;
+                const target = State.roster.length;
+                const current = grid.children.length;
+                const token = ++this._virtualRenderToken;
+
+                if (current === target) {
+                    onComplete?.();
+                    return;
+                }
+
+                this._isVirtualRendering = true;
+                const batchSize = 10;
+                let index = current;
+
+                const processBatch = () => {
+                    if (token !== this._virtualRenderToken) {
+                        this._isVirtualRendering = false;
+                        return;
+                    }
+
+                    const frag = document.createDocumentFragment();
+                    const end = Math.min(index + batchSize, target);
+
+                    if (current < target) {
+                        // 添加卡片
+                        for (; index < end; index++) {
+                            frag.appendChild(this.createCard());
+                        }
+                        grid.appendChild(frag);
+                    } else {
+                        // 移除多余卡片
+                        for (; index < end; index++) {
+                            grid.lastElementChild?.remove();
+                        }
+                    }
+
+                    if (index < target) {
+                        requestAnimationFrame(processBatch);
+                    } else {
+                        this._isVirtualRendering = false;
+                        onComplete?.();
+                    }
+                };
+
+                requestAnimationFrame(processBatch);
             },
             renderCard(card, stu, rec, excluded = false) {
                 card.dataset.id = stu.id; card.dataset.name = stu.name; card.dataset.excluded = excluded ? '1' : '0';
@@ -787,18 +841,45 @@
             render() {
                 // 确保State数据已加载
                 if (!State.data.length || !State.roster.length) return;
-                
+
                 const asg = State.cur; if (!asg) return;
-                const currentPoolSize = State.roster.length, dirty = State.consumeGridDirty(), force = dirty.full || this._lastCardPoolSize !== currentPoolSize;
-                this.ensureTaskOptions(); this.syncCardPool();
-                const cards = this.gridEl.children;
-                if (force) {
-                    // 使用requestAnimationFrame优化渲染性能
-                    requestAnimationFrame(() => {
-                        State.roster.forEach((stu, i) => this.renderCard(cards[i], stu, asg.records[stu.id] || {}, !State.isStuIncluded(asg, stu)));
+                const currentPoolSize = State.roster.length;
+                const dirty = State.consumeGridDirty();
+                const force = dirty.full || this._lastCardPoolSize !== currentPoolSize;
+                const useVirtual = currentPoolSize > this.VIRTUAL_SCROLL_THRESHOLD;
+
+                this.ensureTaskOptions();
+
+                // 大数据量时使用分块渲染
+                if (useVirtual && force) {
+                    this.syncCardPoolChunked(() => {
+                        this._renderCardsContent(asg, dirty, force);
                     });
+                    return;
+                }
+
+                this.syncCardPool();
+                this._renderCardsContent(asg, dirty, force);
+            },
+
+            // 分块渲染卡片内容，避免阻塞主线程
+            _renderCardsContent(asg, dirty, force) {
+                const cards = this.gridEl.children;
+                const roster = State.roster;
+                const token = ++this._virtualRenderToken;
+
+                if (force) {
+                    if (roster.length > this.VIRTUAL_SCROLL_THRESHOLD) {
+                        // 大数据量：分块渲染内容
+                        this._renderCardsChunked(asg, roster, cards, token);
+                    } else {
+                        // 小数据量：直接渲染
+                        requestAnimationFrame(() => {
+                            roster.forEach((stu, i) => this.renderCard(cards[i], stu, asg.records[stu.id] || {}, !State.isStuIncluded(asg, stu)));
+                        });
+                    }
                 } else {
-                    // 对单个卡片的更新也使用requestAnimationFrame
+                    // 对单个卡片的更新
                     requestAnimationFrame(() => {
                         dirty.ids.forEach(id => {
                             const idx = State.rosterIndexMap.get(id);
@@ -806,8 +887,32 @@
                         });
                     });
                 }
+
                 this.renderProgress(State.getAsgDoneCount(asg), State.getAsgTotalCount(asg));
-                this._lastCardPoolSize = currentPoolSize; this.scheduleGridLayout();
+                this._lastCardPoolSize = roster.length;
+                this.scheduleGridLayout();
+            },
+
+            // 分块渲染卡片内容
+            _renderCardsChunked(asg, roster, cards, token) {
+                const batchSize = 10;
+                let index = 0;
+
+                const processBatch = () => {
+                    if (token !== this._virtualRenderToken) return;
+
+                    const end = Math.min(index + batchSize, roster.length);
+                    for (; index < end; index++) {
+                        const stu = roster[index];
+                        this.renderCard(cards[index], stu, asg.records[stu.id] || {}, !State.isStuIncluded(asg, stu));
+                    }
+
+                    if (index < roster.length) {
+                        requestAnimationFrame(processBatch);
+                    }
+                };
+
+                requestAnimationFrame(processBatch);
             }
         };
 
