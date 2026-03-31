@@ -654,7 +654,9 @@
         .score-toolbar,.score-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
         .score-nav .btn[disabled],.score-toolbar .btn[disabled]{opacity:.45;cursor:default}
 
-        @media (max-width: 680px){.score-hero,.score-input-row,.asg-manage-form,.asg-card-fields{grid-template-columns:1fr}.score-index{text-align:left}}
+        @media (max-width: 680px){.score-hero,.score-input-row,.asg-card-fields{grid-template-columns:1fr}.score-index{text-align:left}}
+        @media (max-width: 680px){.asg-manage-form{grid-template-columns:1fr;gap:8px}.asg-manage-form .btn{padding:10px 14px;font-size:.88rem}}
+        @media (max-width: 400px){.asg-manage-form .btn{padding:8px 10px;font-size:.8rem}}
 
         textarea.st-editor{width:100%;height:300px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;resize:vertical;outline:none;font-size:.9rem}
         textarea.st-editor:focus{border-color:var(--primary)}
@@ -730,7 +732,8 @@
         .asg-manage-hero-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
         .asg-manage-hero-title{font-size:.96rem;font-weight:700;line-height:1.25;letter-spacing:.01em;color:#17324d}
         .asg-manage-hero-note{font-size:.74rem;line-height:1.45;color:#54708c}
-        .asg-manage-form{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(110px,.8fr) auto;gap:10px;align-items:center}
+        .asg-manage-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(72px,.6fr) auto;gap:8px;align-items:center}
+        .asg-manage-form .btn{padding:8px 12px;font-size:.84rem;white-space:nowrap}
         .asg-manage-grid{display:grid;gap:12px}
         .asg-card{background:linear-gradient(180deg,#fff,#fbfcff);border:1px solid rgba(15,23,42,.08);border-radius:18px;padding:14px;box-shadow:0 6px 18px rgba(15,23,42,.05);display:flex;flex-direction:column;gap:10px;position:relative;cursor:pointer}
         .asg-card.current{border-color:rgba(13,110,253,.3);box-shadow:0 10px 26px rgba(13,110,253,.12)}
