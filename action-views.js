@@ -37,6 +37,13 @@ const ActionViews = {
         return pill;
     },
 
+    createSkeletonChip(width = '80px') {
+        const chip = document.createElement('span');
+        chip.className = 'modal-skeleton-chip';
+        chip.style.width = typeof width === 'number' ? `${width}px` : width;
+        return chip;
+    },
+
     createColorPanel(selected) {
         const panel = document.createElement('div');
         panel.className = 'color-panel';
@@ -195,7 +202,7 @@ const ActionViews = {
         toolbarHost.appendChild(this.createSkeletonCard(['18%', '18%', '18%', '18%'], 'modal-skeleton-card-lg'));
         const assignmentEl = document.createElement('div');
         assignmentEl.className = 'trend-assignment-strip';
-        assignmentEl.append(this.createSkeletonPill('88px'), this.createSkeletonPill('88px'), this.createSkeletonPill('104px'));
+        assignmentEl.append(this.createSkeletonChip('88px'), this.createSkeletonChip('88px'), this.createSkeletonChip('104px'));
         const boardEl = document.createElement('div');
         boardEl.className = 'trend-board';
         const listEl = document.createElement('div');

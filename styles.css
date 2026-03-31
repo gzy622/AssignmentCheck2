@@ -708,17 +708,19 @@
         .st-scroll-area > *{flex-shrink:0}
         .st-layout{display:flex;flex-direction:column;flex:1;min-height:0}
         .modal-stage-host{display:flex;flex-direction:column;gap:12px}
-        .modal-stage-ready{animation:motion-stage-in 140ms var(--motion-ease-enter)}
-        .modal-skeleton-card{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,249,252,.96));border:1px solid rgba(15,23,42,.08);box-shadow:0 4px 16px rgba(15,23,42,.04);position:relative;overflow:hidden}
+        .modal-stage-ready{animation:motion-stage-in 160ms var(--motion-ease-enter) both}
+        .modal-skeleton-card{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(246,249,252,.96));border:1px solid rgba(15,23,42,.08);box-shadow:0 4px 16px rgba(15,23,42,.04);position:relative;overflow:hidden;min-height:52px}
         .modal-skeleton-card::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.6s infinite}
-        .modal-skeleton-card-lg{padding:18px;gap:12px}
+        .modal-skeleton-card-lg{padding:18px;gap:12px;min-height:76px}
         .modal-skeleton-card-compact{min-height:86px}
-        .modal-skeleton-line{height:12px;border-radius:999px;background:rgba(148,163,184,.18);position:relative;overflow:hidden}
+        .modal-skeleton-line{height:14px;border-radius:999px;background:rgba(148,163,184,.18);position:relative;overflow:hidden;opacity:.85}
         .modal-skeleton-line::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.4s infinite}
         .modal-skeleton-line:nth-child(2n){opacity:.74}
         .modal-skeleton-pill{display:inline-flex;height:28px;border-radius:999px;background:rgba(148,163,184,.16);position:relative;overflow:hidden}
         .modal-skeleton-pill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.5s infinite}
-        @keyframes motion-stage-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+        .modal-skeleton-chip{display:inline-flex;height:33px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);position:relative;overflow:hidden;opacity:.9}
+        .modal-skeleton-chip::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-100%);animation:skeleton-shimmer 1.4s infinite}
+        @keyframes motion-stage-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         @keyframes skeleton-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
         .asg-row-view{grid-template-columns:minmax(0,1fr) 74px 60px}
@@ -794,7 +796,7 @@
         .trend-assignment-strip,.trend-score-row{display:flex;gap:8px;overflow:auto;padding-bottom:4px}
         .trend-assignment-chip,.trend-score-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff;border:1px solid rgba(15,23,42,.08);white-space:nowrap}
         .trend-assignment-chip{font-size:.82rem;font-weight:700;color:#405366;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease,opacity .15s ease}
-        .trend-assignment-chip.active{background:#17324d;color:#fff;border-color:#17324d;box-shadow:0 6px 16px rgba(23,50,77,.18)}
+        .trend-assignment-chip.active{background:#17324d;color:#fff;border-color:#17324d}
         .trend-assignment-chip:not(.active){opacity:.68}
         .trend-board{overflow-x:hidden}
         .trend-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
