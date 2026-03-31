@@ -2,10 +2,8 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-// Mock the environment
 beforeAll(async () => {
-    const coreContent = readFileSync(join(__dirname, 'core.js'), 'utf8');
-    // Execute core.js in the global scope
+    const coreContent = readFileSync(join(__dirname, '..', 'core.js'), 'utf8');
     (new Function(coreContent))();
 });
 
