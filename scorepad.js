@@ -113,6 +113,33 @@ const ScorePad = {
         // 全局键盘事件监听（回车确认、ESC退出）
         this._handleKeyDown = (e) => {
             if (!this.isOpen) return;
+            
+            const numpadMap = {
+                'Numpad0': '0', 'Numpad1': '1', 'Numpad2': '2', 'Numpad3': '3',
+                'Numpad4': '4', 'Numpad5': '5', 'Numpad6': '6', 'Numpad7': '7',
+                'Numpad8': '8', 'Numpad9': '9'
+            };
+            
+            if (numpadMap[e.code]) {
+                e.preventDefault();
+                this.value += numpadMap[e.code];
+                this._updateDisplay();
+                return;
+            }
+            
+            if (e.code === 'NumpadEnter') {
+                e.preventDefault();
+                this._saveAndClose();
+                return;
+            }
+            
+            if (e.code === 'NumpadDecimal' || e.code === 'NumpadSubtract') {
+                e.preventDefault();
+                this.value = this.value.slice(0, -1);
+                this._updateDisplay();
+                return;
+            }
+            
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this._saveAndClose();
