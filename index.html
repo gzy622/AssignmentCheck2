@@ -11,7 +11,16 @@
 
 <body>
     <header>
-        <div class="select-wrapper"><select id="asgSelect"></select></div>
+        <div class="custom-select-wrapper">
+            <div class="custom-select" id="customSelect">
+                <span class="custom-select-text"></span>
+                <svg class="custom-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div class="custom-select-dropdown" id="customSelectDropdown"></div>
+            <select id="asgSelect" hidden></select>
+        </div>
         <div class="toolbar">
             <div id="counter" class="badge">0/0</div>
             <button id="btnScore" class="btn-icon">打分</button>

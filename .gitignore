@@ -1,5 +1,6 @@
 # Repo instruction files are intentionally untracked.
 AGENTS.md
+04-Prompt的艺术：如何让AI正确做事.md
 
 .vscode/
 node_modules/

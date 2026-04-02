@@ -702,14 +702,39 @@
             init() {
                 BackHandler.init();
                 this.gridEl = $('grid'); this.counterEl = $('counter'); this.progressFillEl = $('progressFill');
-                this.asgSelectEl = $('asgSelect'); this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
+                this.asgSelectEl = $('asgSelect'); 
+                this.customSelectEl = $('customSelect');
+                this.customSelectDropdownEl = $('customSelectDropdown');
+                this.customSelectTextEl = this.customSelectEl?.querySelector('.custom-select-text');
+                
+                // 初始化自定义下拉列表
+                if (this.customSelectEl && this.customSelectDropdownEl) {
+                    this.customSelectEl.onclick = (e) => {
+                        e.stopPropagation();
+                        this.toggleCustomSelect();
+                    };
+                    
+                    this.customSelectDropdownEl.onclick = (e) => {
+                        e.stopPropagation();
+                        const option = e.target.closest('.custom-select-option');
+                        if (option) {
+                            const value = option.dataset.value;
+                            State.selectAsg(+value);
+                            this.closeCustomSelect();
+                        }
+                    };
+                    
+                    document.onclick = (e) => {
+                        if (e.target.closest('#btnMenu, #menu, .custom-select-wrapper')) return;
+                        this.closeCustomSelect();
+                        this.closeMenu();
+                    };
+                }
+                
+                this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
                 this.menuEl = $('menu');
                 $('btnScore').onclick = () => this.actions.run('toggleScore');
                 $('btnMenu').onclick = e => { e.stopPropagation(); this.toggleMenu(); };
-                document.onclick = e => {
-                    if (e.target.closest('#btnMenu, #menu')) return;
-                    this.closeMenu();
-                };
                 this.menuEl.onclick = e => {
                     e.stopPropagation();
                     const act = e.target.closest('[act]')?.getAttribute('act');
@@ -956,6 +981,87 @@
                     this._taskSelectVersion = State._asgListVersion;
                 }
                 if (sel.value != State.curId) sel.value = String(State.curId);
+                
+                // 同时更新自定义下拉列表
+                this.ensureCustomSelectOptions();
+            },
+            
+            ensureCustomSelectOptions() {
+                if (!this.customSelectEl || !this.customSelectDropdownEl || !this.customSelectTextEl) {
+                    this.customSelectEl = $('customSelect');
+                    this.customSelectDropdownEl = $('customSelectDropdown');
+                    this.customSelectTextEl = this.customSelectEl?.querySelector('.custom-select-text');
+                }
+                
+                if (!this.customSelectEl || !this.customSelectDropdownEl) return;
+                
+                // 更新下拉选项
+                if (this._customSelectVersion !== State._asgListVersion) {
+                    this.customSelectDropdownEl.innerHTML = State.data.map(a => `
+                        <div class="custom-select-option" data-value="${a.id}">
+                            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>${a.name}</span>
+                        </div>
+                    `).join('');
+                    this._customSelectVersion = State._asgListVersion;
+                }
+                
+                // 更新选中状态和显示文本
+                const currentAsg = State.cur;
+                if (currentAsg) {
+                    this.customSelectTextEl.textContent = currentAsg.name;
+                    const options = this.customSelectDropdownEl.querySelectorAll('.custom-select-option');
+                    options.forEach(opt => {
+                        opt.classList.toggle('active', opt.dataset.value === String(State.curId));
+                    });
+                }
+            },
+            
+            toggleCustomSelect() {
+                if (!this.customSelectEl || !this.customSelectDropdownEl) return;
+                
+                const isOpen = this.customSelectEl.classList.contains('open');
+                if (isOpen) {
+                    this.closeCustomSelect();
+                } else {
+                    this.openCustomSelect();
+                }
+            },
+            
+            openCustomSelect() {
+                if (!this.customSelectEl || !this.customSelectDropdownEl) return;
+                
+                // 先关闭菜单
+                this.closeMenu();
+                
+                this.customSelectEl.classList.add('open');
+                this.customSelectDropdownEl.classList.remove('closing');
+                this.customSelectDropdownEl.classList.add('show');
+            },
+            
+            closeCustomSelect({ immediate = !this.animationsEnabled() } = {}) {
+                if (!this.customSelectEl || !this.customSelectDropdownEl) return;
+                
+                if (immediate) {
+                    this.customSelectEl.classList.remove('open');
+                    this.customSelectDropdownEl.classList.remove('show', 'closing');
+                    return;
+                }
+                
+                if (!this.customSelectDropdownEl.classList.contains('show')) {
+                    this.customSelectEl.classList.remove('open');
+                    return;
+                }
+                
+                this.customSelectDropdownEl.classList.remove('show');
+                this.customSelectDropdownEl.classList.add('closing');
+                
+                setTimeout(() => {
+                    this.customSelectEl.classList.remove('open');
+                    this.customSelectDropdownEl?.classList.remove('closing');
+                }, this.MENU_CLOSE_MS);
             },
             render() {
                 // 确保State数据已加载
