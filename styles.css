@@ -264,29 +264,6 @@
             box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
         }
 
-        .progress-track {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: rgba(0, 0, 0, 0.05);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        header > :not(.progress-track) {
-            position: relative;
-            z-index: 1;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--success);
-            width: 0%;
-            transition: width 0.4s;
-        }
-
         main {
             flex: 1;
             display: grid;

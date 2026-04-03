@@ -4,7 +4,7 @@
             asgMap: new Map(),
             rosterIndexMap: new Map(),
             noEnglishIds: [],
-            view: { init() { }, render() { }, renderStudent() { }, renderProgress() { }, isReady() { return false; } },
+            view: { init() { }, render() { }, renderStudent() { }, isReady() { return false; } },
             _persistTimer: 0,
             _draftTimer: 0,
             _draftDirty: false,
@@ -690,7 +690,6 @@
                 this.queueRecoveryDraft();
                 this._queuePersist();
                 this.view.renderStudent(id);
-                if (prevDone !== !!asg.records[id]?.done) this.view.renderProgress(this.getAsgDoneCount(asg), this.getAsgTotalCount(asg));
             }
         };
 
@@ -701,7 +700,7 @@
             _gridFrozen: false, _taskSelectVersion: -1, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0, _menuTimer: 0,
             init() {
                 BackHandler.init();
-                this.gridEl = $('grid'); this.counterEl = $('counter'); this.progressFillEl = $('progressFill');
+                this.gridEl = $('grid'); this.counterEl = $('counter');
                 this.asgSelectEl = $('asgSelect'); 
                 this.customSelectEl = $('customSelect');
                 this.customSelectDropdownEl = $('customSelectDropdown');
@@ -965,13 +964,7 @@
                 if (!card) return;
                 this.renderCard(card, State.roster[index], asg.records[id] || {}, !State.isStuIncluded(asg, State.roster[index]));
             },
-            renderProgress(done, total = State.roster.length) {
-                if (!this.counterEl || !this.counterEl.isConnected) this.counterEl = $('counter');
-                if (!this.progressFillEl || !this.progressFillEl.isConnected) this.progressFillEl = $('progressFill');
-                if (!this.counterEl || !this.progressFillEl) return;
-                this.counterEl.textContent = `${done}/${total}`;
-                this.progressFillEl.style.width = total ? `${(done / total) * 100}%` : '0%';
-            },
+
             ensureTaskOptions() {
                 if (!this.asgSelectEl || !this.asgSelectEl.isConnected) this.asgSelectEl = $('asgSelect');
                 const sel = this.asgSelectEl;
@@ -1113,7 +1106,6 @@
                     });
                 }
 
-                this.renderProgress(State.getAsgDoneCount(asg), State.getAsgTotalCount(asg));
                 this._lastCardPoolSize = roster.length;
                 this.scheduleGridLayout();
             },
@@ -1144,7 +1136,6 @@
         State.view = {
             init: () => UI.init(), render: () => UI.render(),
             renderStudent: id => UI.renderStudent(id),
-            renderProgress: (done, total) => UI.renderProgress(done, total),
             isReady: () => UI.isReady
         };
 
