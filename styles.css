@@ -272,6 +272,12 @@
             height: 4px;
             background: rgba(0, 0, 0, 0.05);
             pointer-events: none;
+            z-index: 0;
+        }
+
+        header > :not(.progress-track) {
+            position: relative;
+            z-index: 1;
         }
 
         .progress-fill {
