@@ -690,6 +690,7 @@
                 this.queueRecoveryDraft();
                 this._queuePersist();
                 this.view.renderStudent(id);
+                this.view.renderCounter(asg);
             }
         };
 
@@ -1059,13 +1060,24 @@
             renderCounter(asg) {
                 if (!this.counterEl) this.counterEl = $('counter');
                 if (!this.counterEl) return;
+                const numEl = this.counterEl.querySelector('.counter-num');
+                if (!numEl) {
+                    if (!asg) {
+                        this.counterEl.textContent = '未交 0';
+                        return;
+                    }
+                    const { total, done } = State.getAsgMetrics(asg);
+                    const pending = Math.max(0, total - done);
+                    this.counterEl.textContent = `未交 ${pending}`;
+                    return;
+                }
                 if (!asg) {
-                    this.counterEl.textContent = '未交 0';
+                    numEl.textContent = '0';
                     return;
                 }
                 const { total, done } = State.getAsgMetrics(asg);
                 const pending = Math.max(0, total - done);
-                this.counterEl.textContent = `未交 ${pending}`;
+                numEl.textContent = pending;
             },
             render() {
                 // 确保State数据已加载
@@ -1152,6 +1164,7 @@
         State.view = {
             init: () => UI.init(), render: () => UI.render(),
             renderStudent: id => UI.renderStudent(id),
+            renderCounter: asg => UI.renderCounter(asg),
             isReady: () => UI.isReady
         };
 

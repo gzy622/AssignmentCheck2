@@ -239,6 +239,15 @@
             font-variant-numeric: tabular-nums;
             font-weight: 800;
             font-size: 0.8rem;
+            text-align: center;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .counter-num {
+            display: inline-block;
+            width: 16px;
+            font-variant-numeric: tabular-nums;
         }
 
         .btn-icon {
