@@ -40,4 +40,16 @@ test.describe('AssignmentCheck2 E2E', () => {
         await expect(toast).toBeVisible();
         await expect(toast).toHaveText('测试消息');
     });
+
+    test('should show pending count only in top badge', async ({ page }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem('tracker_roster', JSON.stringify(['01 张三', '02 李四']));
+            localStorage.setItem('tracker_db', JSON.stringify({
+                curId: 1,
+                data: [{ id: 1, name: '作业1', records: { '01': { done: true } } }]
+            }));
+        });
+        await page.goto(indexUrl);
+        await expect(page.locator('#counter')).toHaveText('未交 1');
+    });
 });

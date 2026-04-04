@@ -1056,11 +1056,27 @@
                     this.customSelectDropdownEl?.classList.remove('closing');
                 }, this.MENU_CLOSE_MS);
             },
+            renderCounter(asg) {
+                if (!this.counterEl) this.counterEl = $('counter');
+                if (!this.counterEl) return;
+                if (!asg) {
+                    this.counterEl.textContent = '未交 0';
+                    return;
+                }
+                const { total, done } = State.getAsgMetrics(asg);
+                const pending = Math.max(0, total - done);
+                this.counterEl.textContent = `未交 ${pending}`;
+            },
             render() {
                 // 确保State数据已加载
-                if (!State.data.length || !State.roster.length) return;
+                if (!State.data.length || !State.roster.length) {
+                    this.renderCounter(null);
+                    return;
+                }
 
-                const asg = State.cur; if (!asg) return;
+                const asg = State.cur;
+                this.renderCounter(asg);
+                if (!asg) return;
                 const currentPoolSize = State.roster.length;
                 const dirty = State.consumeGridDirty();
                 const force = dirty.full || this._lastCardPoolSize !== currentPoolSize;
