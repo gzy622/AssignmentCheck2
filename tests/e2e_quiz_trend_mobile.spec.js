@@ -6,7 +6,7 @@ const indexUrl = pathToFileURL(join(process.cwd(), 'index.html')).href;
 
 test.describe('Quiz trend mobile layout', () => {
     test('should keep trend content inside a horizontally scrollable board on portrait mobile', async ({ page }) => {
-        await page.setViewportSize({ width: 390, height: 844 });
+        await page.setViewportSize({ width: 393, height: 851 });
         await page.addInitScript(() => {
             localStorage.clear();
             localStorage.setItem('tracker_roster', JSON.stringify([

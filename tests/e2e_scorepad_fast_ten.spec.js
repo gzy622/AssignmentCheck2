@@ -6,7 +6,7 @@ const indexUrl = pathToFileURL(join(process.cwd(), 'index.html')).href;
 
 test.describe('Scorepad fast ten mode', () => {
     test('should switch keypad to tens and auto confirm on click', async ({ page }) => {
-        await page.setViewportSize({ width: 430, height: 932 });
+        await page.setViewportSize({ width: 393, height: 851 });
         await page.addInitScript(() => {
             localStorage.clear();
             const roster = ['01 张三', '02 李四'];

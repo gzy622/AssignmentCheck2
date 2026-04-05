@@ -8,6 +8,7 @@
             --border: #dee2e6;
             --radius: 12px;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            --font-sans: "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "DengXian", "SimHei", "SimSun", system-ui, sans-serif;
             --done-card-start: #68c490;
             --done-card-end: #4dae77;
             --done-card-border: #459f6c;
@@ -40,7 +41,7 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif;
+            font-family: var(--font-sans);
             background: var(--bg);
             margin: 0;
             padding: 0 10px 10px;

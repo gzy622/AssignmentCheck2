@@ -6,11 +6,11 @@
   "scripts": {
     "preview": "npx -y http-server -p 3000",
     "preview:local": "bash scripts/preview.sh",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
+    "test": "TMPDIR=/tmp TMP=/tmp TEMP=/tmp vitest run",
+    "test:watch": "TMPDIR=/tmp TMP=/tmp TEMP=/tmp vitest",
+    "test:ui": "TMPDIR=/tmp TMP=/tmp TEMP=/tmp vitest --ui",
+    "test:coverage": "TMPDIR=/tmp TMP=/tmp TEMP=/tmp vitest run --coverage",
+    "test:e2e": "TMPDIR=/tmp TMP=/tmp TEMP=/tmp playwright test",
     "test:all": "npm run test && npm run test:e2e"
   },
   "repository": {
