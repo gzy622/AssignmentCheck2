@@ -699,21 +699,30 @@
             transition: transform var(--motion-fast) var(--motion-ease-exit), opacity var(--motion-fast) var(--motion-ease-exit);
         }
 
+        dialog.full.is-open,
+        dialog.full.is-closing {
+            animation: none;
+            opacity: 1;
+        }
+
         dialog.full {
             align-items: stretch;
             padding: 0;
-            background: rgba(15, 23, 42, 0.08);
+            background: transparent;
         }
 
         dialog.full .modal-card {
             background: linear-gradient(180deg, #f8fbff 0%, #f2f6fb 18%, var(--bg) 34%);
-            box-shadow: -10px 0 36px rgba(15, 23, 42, 0.12);
+            box-shadow: none;
             opacity: 1;
             border-radius: 0;
             width: 100%;
             height: 100%;
             max-height: none;
             transform: translate3d(100%, 0, 0);
+            will-change: transform;
+            backface-visibility: hidden;
+            contain: layout style paint;
         }
 
         dialog.full.is-open .modal-card {
@@ -722,6 +731,24 @@
 
         dialog.full.is-closing .modal-card {
             animation: slide-out-right 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+
+        dialog.full .modal-body {
+            visibility: hidden;
+        }
+
+        dialog.full.is-closing .modal-body {
+            visibility: visible;
+        }
+
+        body.no-animations dialog.full .modal-body,
+        dialog.no-anim .modal-body {
+            visibility: visible;
+        }
+
+        dialog.full::backdrop {
+            background: transparent;
+            pointer-events: none;
         }
 
         /* Keyframes */

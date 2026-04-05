@@ -349,12 +349,17 @@ const Modal = {
         this.cancelEnterTransition();
         this.isAnimating = true;
         this.el.classList.add('is-preopen');
-        // 单层 rAF 足够确保浏览器已应用 is-preopen 状态
         this._enterRafA = requestAnimationFrame(() => {
             this._enterRafA = 0;
             if (!this.isOpen || this.isClosing) { this.isAnimating = false; return; }
             this.el.classList.remove('is-preopen');
             this.el.classList.add('is-open');
+            const SLIDE_DURATION = 300;
+            setTimeout(() => {
+                if (this.isOpen && !this.isClosing && this.isFull) {
+                    this.body.style.visibility = 'visible';
+                }
+            }, SLIDE_DURATION);
             this._loadingTransitionTimer = setTimeout(() => {
                 this._loadingTransitionTimer = 0;
                 this.isAnimating = false;
@@ -429,7 +434,7 @@ const Modal = {
         } else {
             this.cancelEnterTransition();
             this.el.classList.remove('is-preopen');
-            this.el.classList.add('is-open');
+            this.el.classList.add('is-open', 'no-anim');
             this.markLoadingTransitionReady();
         }
         this.lockBody(); this.bindViewport(); this.scheduleLayout(); this.scheduleFocus(autoFocusEl);
@@ -440,7 +445,7 @@ const Modal = {
         this.cancelEnterTransition();
         this.cancelProgressiveWork();
         this.hideLoadingMask({ force: true });
-        this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable');
+        this.el.classList.remove('is-preopen', 'is-open', 'is-closing', 'full', 'page', 'focus-stable', 'no-anim');
         this.isOpen = this.isClosing = this.isFull = this.isAnimating = this._stableFocusMode = false;
         this._lastLayout = null;
         clearTimeout(this._pointerGuardTimer); this.el.style.pointerEvents = '';
