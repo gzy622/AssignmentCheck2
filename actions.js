@@ -371,7 +371,7 @@
                             if (!r) {
                                 r = document.createElement('div');
                                 r.className = 'roster-row';
-                                r.innerHTML = `<input class="input-ui roster-seat" data-r="id" placeholder="座号"><input class="input-ui roster-name" data-r="name" placeholder="姓名"><label class="roster-check"><input type="checkbox" data-r="ex">排除</label><button class="btn btn-d roster-del" data-act="del">&times;</button>`;
+                                r.innerHTML = `<div class="roster-row-main"><input class="input-ui roster-seat" data-r="id" placeholder="座号"><input class="input-ui roster-name" data-r="name" placeholder="姓名"><label class="roster-check"><input type="checkbox" data-r="ex">排除</label><button class="btn btn-d roster-del" data-act="del">&times;</button></div>`;
                                 pool.set(e._rowId, r);
                             }
                             r.dataset.idx = index;
