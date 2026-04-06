@@ -728,7 +728,6 @@
             transform: translate3d(100%, 0, 0);
             will-change: transform;
             backface-visibility: hidden;
-            contain: layout style paint;
         }
 
         dialog.full.is-open .modal-card {
@@ -737,28 +736,6 @@
 
         dialog.full.is-closing .modal-card {
             animation: slide-out-right 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
-        }
-
-        dialog.full .modal-body {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 150ms ease;
-        }
-
-        dialog.full.is-open .modal-body {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        dialog.full.is-closing .modal-body {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        body.no-animations dialog.full .modal-body,
-        dialog.no-anim .modal-body {
-            opacity: 1;
-            pointer-events: auto;
         }
 
         dialog.full::backdrop {

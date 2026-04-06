@@ -355,11 +355,6 @@ const Modal = {
             this.el.classList.remove('is-preopen');
             this.el.classList.add('is-open');
             const SLIDE_DURATION = 300;
-            setTimeout(() => {
-                if (this.isOpen && !this.isClosing && this.isFull) {
-                    this.body.style.visibility = 'visible';
-                }
-            }, SLIDE_DURATION);
             this._loadingTransitionTimer = setTimeout(() => {
                 this._loadingTransitionTimer = 0;
                 this.isAnimating = false;
