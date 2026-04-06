@@ -47,7 +47,7 @@
                     btn.onclick = () => apply(hex); presetHost.appendChild(btn);
                 });
                 picker.oninput = e => apply(e.target.value); apply(selected);
-                const val = await modal.show({ title: '', content: root, type: 'slide', loadingMask: false, btns: [{ text: '恢复默认', val: defaults.cardDoneColor }, { text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => modal.close(selected) }] });
+                const val = await modal.show({ title: '', content: root, type: 'full', loadingMask: false, btns: [{ text: '恢复默认', val: defaults.cardDoneColor }, { text: '取消', val: false }, { text: '保存', type: 'btn-p', onClick: () => modal.close(selected) }] });
                 if (val) { state.prefs.cardDoneColor = colorUtil.normalizeHex(val, defaults.cardDoneColor); state.savePrefs(); toast.show('卡片颜色已更新'); }
             },
             async add() {
@@ -272,7 +272,7 @@
                     renderList({ chunked: !!work?.animated && State.data.length > 6 });
                 };
 
-                Modal.show({ title: '', content: root, type: 'slide', loadingMask: false });
+                Modal.show({ title: '', content: root, type: 'full', loadingMask: false });
                 work = this.deferFullscreenWork(root, {
                     aboveFold: () => { mountHero(); },
                     heavy: () => renderList({ chunked: true })
@@ -418,7 +418,7 @@
                     entries.splice(i, 1);
                     renderAllRows();
                 };
-                Modal.show({ title: '', content: root, type: 'slide', loadingMask: false });
+                Modal.show({ title: '', content: root, type: 'full', loadingMask: false });
                 work = this.deferFullscreenWork(root, {
                     aboveFold: () => { mountChrome(); renderSummary(); },
                     heavy: () => renderAllRows({ chunked: true })
@@ -1002,7 +1002,7 @@
                         renderForCurrentRange();
                     };
                 };
-                Modal.show({ title: '', content: ui.root, type: 'slide', loadingMask: false });
+                Modal.show({ title: '', content: ui.root, type: 'full', loadingMask: false });
                 work = this.deferFullscreenWork(ui.root, {
                     aboveFold: controller => {
                         mountChrome();
