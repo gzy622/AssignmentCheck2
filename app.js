@@ -701,7 +701,7 @@
             _gridFrozen: false, _taskSelectVersion: -1, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0, _menuTimer: 0,
             init() {
                 BackHandler.init();
-                this.gridEl = $('grid'); this.counterEl = $('counter'); this.progressFillEl = $('progressFill');
+                this.gridEl = $('grid'); this.counterEl = $('counter');
                 this.asgSelectEl = $('asgSelect'); 
                 this.customSelectEl = $('customSelect');
                 this.customSelectDropdownEl = $('customSelectDropdown');
@@ -967,10 +967,8 @@
             },
             renderProgress(done, total = State.roster.length) {
                 if (!this.counterEl || !this.counterEl.isConnected) this.counterEl = $('counter');
-                if (!this.progressFillEl || !this.progressFillEl.isConnected) this.progressFillEl = $('progressFill');
-                if (!this.counterEl || !this.progressFillEl) return;
+                if (!this.counterEl) return;
                 this.counterEl.textContent = `${done}/${total}`;
-                this.progressFillEl.style.width = total ? `${(done / total) * 100}%` : '0%';
             },
             ensureTaskOptions() {
                 if (!this.asgSelectEl || !this.asgSelectEl.isConnected) this.asgSelectEl = $('asgSelect');
