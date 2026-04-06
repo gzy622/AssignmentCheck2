@@ -389,8 +389,9 @@ const Modal = {
         if (this.isOpen) this.forceClose(false);
         UI.setGridFrozen(true);
         this.releaseActiveInput();
-        const usePage = type !== 'full';
+        const usePage = type !== 'full' && type !== 'slide';
         const isFullScreen = !usePage;
+        const isSlide = type === 'slide';
         this.title.textContent = title || '';
         this.body.innerHTML = '';
         let mountedContent = usePage ? this.buildPagePanel(title, content, btns) : content;
@@ -402,7 +403,7 @@ const Modal = {
         if (mountedContent instanceof Node) this.body.appendChild(mountedContent);
 
         this.isFull = isFullScreen;
-        this.el.className = `${isFullScreen ? 'full' : 'page'}`;
+        this.el.className = `${isSlide ? 'slide' : (isFullScreen ? 'full' : 'page')}`;
         this._stableFocusMode = IS_ANDROID_FIREFOX && autoFocusEl?.matches?.('input, textarea, [contenteditable="true"]');
         if (this._stableFocusMode) this.el.classList.add('focus-stable');
         this.header.style.display = 'none';

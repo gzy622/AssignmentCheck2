@@ -710,6 +710,56 @@
             animation: zoom-out 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
 
+        /* Android-style slide from right - for asgManage, roster, quizTrend, cardColor */
+        dialog.slide {
+            align-items: flex-end;
+            padding: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background var(--motion-base) var(--motion-ease-enter);
+        }
+
+        dialog.slide.is-open,
+        dialog.slide.is-closing {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        dialog.slide.is-closing {
+            background: rgba(0, 0, 0, 0);
+            transition: background var(--motion-fast) var(--motion-ease-exit);
+        }
+
+        dialog.slide .modal-card {
+            background: linear-gradient(180deg, #f8fbff 0%, #f2f6fb 18%, var(--bg) 34%);
+            box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+            opacity: 1;
+            border-radius: 0;
+            height: 100dvh;
+            max-height: 100dvh;
+            width: 100%;
+            max-width: 100%;
+            transform: translate3d(100%, 0, 0);
+            transition: transform var(--motion-base) var(--motion-ease-enter);
+        }
+
+        dialog.slide.is-open .modal-card {
+            transform: translate3d(0, 0, 0);
+        }
+
+        dialog.slide.is-closing .modal-card {
+            transform: translate3d(100%, 0, 0);
+            transition: transform var(--motion-fast) var(--motion-ease-exit);
+        }
+
+        @media (min-width: 640px) {
+            dialog.slide .modal-card {
+                width: 480px;
+                max-width: 480px;
+                margin-left: auto;
+                margin-right: 0;
+                border-radius: 16px 0 0 16px;
+            }
+        }
+
         /* Keyframes */
         @keyframes dropdown-enter{from{opacity:0;transform:translate3d(0,calc(var(--motion-shift-sm) * -1),0)}to{opacity:1;transform:translate3d(0,0,0)}}
         @keyframes dropdown-exit{from{opacity:1;transform:translate3d(0,0,0)}to{opacity:0;transform:translate3d(0,calc(var(--motion-shift-sm) * -1),0)}}
