@@ -997,9 +997,6 @@
                 if (this._customSelectVersion !== State._asgListVersion) {
                     this.customSelectDropdownEl.innerHTML = State.data.map(a => `
                         <div class="custom-select-option" data-value="${a.id}">
-                            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
                             <span>${a.name}</span>
                         </div>
                     `).join('');
