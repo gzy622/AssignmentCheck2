@@ -738,7 +738,6 @@
                     const act = e.target.closest('[act]')?.getAttribute('act');
                     if (act && this.actions.has(act)) { this.closeMenu(); this.actions.run(act); }
                 };
-                $('fileIn').onchange = e => this.actions.handleFile(e);
                 this.setupGrid(); this.setupGridSizing(); State.applyViewMode(); State.applyScoring(); 
                 
                 // 延迟标记UI为就绪状态，确保State数据已加载
