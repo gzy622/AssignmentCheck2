@@ -171,21 +171,89 @@ const ActionViews = {
     createImportShell() {
         const { root, body } = this.createShell('导入备份');
         body.style.padding = '16px';
-        body.innerHTML = `<section class="import-shell">
-            <div class="import-note">导入会直接覆盖当前名单、任务与设置。请先确认备份文件来源正确。</div>
-            <div class="import-actions">
-                <button class="btn btn-c" type="button" data-role="pick">选择备份文件</button>
-                <button class="btn btn-p" type="button" data-role="apply" disabled>确认覆盖并导入</button>
+        
+        const shell = document.createElement('section');
+        shell.className = 'import-shell';
+        
+        // 警告提示区域
+        const warningSection = document.createElement('div');
+        warningSection.className = 'import-warning';
+        warningSection.innerHTML = `
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>导入将完全覆盖当前的名单、作业任务和设置数据，请确保备份文件来源可靠。</span>
+        `;
+        
+        // 拖拽上传区域
+        const dropZone = document.createElement('div');
+        dropZone.className = 'import-dropzone';
+        dropZone.innerHTML = `
+            <input type="file" accept=".json" data-role="file-input" hidden>
+            <div class="import-dropzone-content">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <div class="import-dropzone-text">
+                    <strong>点击选择文件</strong>或拖拽文件到此处
+                </div>
+                <div class="import-dropzone-hint">支持 .json 格式的备份文件</div>
             </div>
-            <div class="import-file" data-role="file">未选择文件</div>
-            <div class="import-status" data-role="status">等待选择备份文件</div>
-        </section>`;
+        `;
+        
+        // 文件信息区域
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'import-fileinfo';
+        fileInfo.hidden = true;
+        fileInfo.innerHTML = `
+            <div class="import-fileinfo-header">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span data-role="filename"></span>
+                <button class="import-fileinfo-remove" type="button" data-role="remove-file" title="移除文件">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="import-fileinfo-preview" data-role="preview"></div>
+        `;
+        
+        // 状态消息区域
+        const statusArea = document.createElement('div');
+        statusArea.className = 'import-status';
+        statusArea.dataset.role = 'status';
+        statusArea.textContent = '请选择备份文件';
+        
+        // 操作按钮区域
+        const actions = document.createElement('div');
+        actions.className = 'import-actions';
+        actions.innerHTML = `
+            <button class="btn btn-c" type="button" data-role="cancel">取消</button>
+            <button class="btn btn-p" type="button" data-role="apply" disabled>确认导入</button>
+        `;
+        
+        shell.append(warningSection, dropZone, fileInfo, statusArea, actions);
+        body.appendChild(shell);
+        
         return {
             root,
-            pickBtn: body.querySelector('[data-role="pick"]'),
-            applyBtn: body.querySelector('[data-role="apply"]'),
-            fileEl: body.querySelector('[data-role="file"]'),
-            statusEl: body.querySelector('[data-role="status"]')
+            dropZone,
+            fileInput: dropZone.querySelector('[data-role="file-input"]'),
+            fileInfo,
+            fileNameEl: fileInfo.querySelector('[data-role="filename"]'),
+            previewEl: fileInfo.querySelector('[data-role="preview"]'),
+            removeBtn: fileInfo.querySelector('[data-role="remove-file"]'),
+            statusEl: statusArea,
+            cancelBtn: actions.querySelector('[data-role="cancel"]'),
+            applyBtn: actions.querySelector('[data-role="apply"]')
         };
     },
 

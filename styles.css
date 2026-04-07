@@ -875,13 +875,44 @@
         .asg-card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
         .asg-card-confirm{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:#fff3f2;border:1px solid rgba(220,53,69,.2);color:#a32634;font-size:.8rem;font-weight:600}
         .asg-hint{font-size:.74rem;line-height:1.45;color:#7a8795}
-        .import-shell{display:flex;flex-direction:column;gap:12px}
-        .import-note{font-size:.82rem;line-height:1.5;color:#5a6774;background:#f7faff;border:1px solid #dfe9f8;border-radius:12px;padding:12px}
-        .import-actions{display:flex;gap:8px;flex-wrap:wrap}
-        .import-file{font-size:.8rem;color:#4d5d6d;background:#f8fafc;border:1px solid #e8eef5;border-radius:10px;padding:10px 12px;word-break:break-all}
-        .import-status{font-size:.82rem;line-height:1.45;border-radius:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e8eef5;color:#5f6f7f}
-        .import-status.ok{background:#f2fcf5;border-color:#cdeed7;color:#237a42}
-        .import-status.err{background:#fff4f2;border-color:#ffd8d3;color:#b24132}
+        .import-shell{display:flex;flex-direction:column;gap:16px}
+        
+        /* 警告提示 */
+        .import-warning{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:linear-gradient(135deg,#fff8e7,#fff3cd);border:1px solid #f0dca1;border-radius:14px;color:#856404;font-size:.88rem;line-height:1.6}
+        .import-warning svg{flex-shrink:0;color:#e6a700;margin-top:1px}
+        
+        /* 拖拽上传区域 */
+        .import-dropzone{position:relative;padding:40px 24px;border:2px dashed #d0d8e0;border-radius:18px;background:linear-gradient(180deg,#fafbfc,#f5f7f9);cursor:pointer;transition:all .2s ease}
+        .import-dropzone:hover{border-color:#9aa5b1;background:linear-gradient(180deg,#f5f7f9,#eef1f4)}
+        .import-dropzone.dragover{border-color:#4a90d9;background:linear-gradient(180deg,#e8f4fd,#dcedfc);transform:scale(1.01)}
+        .import-dropzone-content{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;color:#6b7b8a}
+        .import-dropzone-content svg{color:#a0aec0}
+        .import-dropzone-text{font-size:1rem;color:#4a5568}
+        .import-dropzone-text strong{color:#2d3748;margin-right:4px}
+        .import-dropzone-hint{font-size:.8rem;color:#a0aec0;margin-top:4px}
+        
+        /* 文件信息区域 */
+        .import-fileinfo{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+        .import-fileinfo-header{display:flex;align-items:center;gap:10px;padding:14px 16px;background:linear-gradient(180deg,#f7fafc,#edf2f7);border-bottom:1px solid #e2e8f0}
+        .import-fileinfo-header svg{color:#4a5568}
+        .import-fileinfo-header span{flex:1;font-size:.9rem;font-weight:600;color:#2d3748;word-break:break-all}
+        .import-fileinfo-remove{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:none;border-radius:8px;background:transparent;color:#a0aec0;cursor:pointer;transition:all .15s ease}
+        .import-fileinfo-remove:hover{background:#fed7d7;color:#c53030}
+        .import-fileinfo-preview{padding:16px;font-size:.85rem;color:#4a5568;line-height:1.6}
+        .import-fileinfo-preview-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf2f7}
+        .import-fileinfo-preview-item:last-child{border-bottom:none}
+        .import-fileinfo-preview-label{color:#718096}
+        .import-fileinfo-preview-value{font-weight:600;color:#2d3748}
+        
+        /* 操作按钮 */
+        .import-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:8px}
+        .import-actions .btn{padding:10px 20px;font-size:.95rem}
+        
+        /* 状态消息 */
+        .import-status{font-size:.9rem;line-height:1.5;border-radius:12px;padding:14px 16px;background:#f7fafc;border:1px solid #e2e8f0;color:#4a5568;text-align:center}
+        .import-status.ok{background:#f0fff4;border-color:#9ae6b4;color:#22543d}
+        .import-status.err{background:#fff5f5;border-color:#fc8181;color:#c53030}
+        .import-status.loading{background:#ebf8ff;border-color:#90cdf4;color:#2b6cb0}
 
         .export-excel-shell{display:flex;flex-direction:column;gap:12px}
         .export-excel-note{font-size:.82rem;line-height:1.5;color:#5a6774;background:#f7faff;border:1px solid #dfe9f8;border-radius:12px;padding:12px}

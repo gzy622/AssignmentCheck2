@@ -626,38 +626,151 @@
             },
             imp() {
                 const ui = this.ctx.views.createImportShell();
+                const { toast } = this.ctx;
+                
+                let currentPayload = null;
+                
                 const setStatus = (text, type = '') => {
                     ui.statusEl.textContent = text;
                     ui.statusEl.className = `import-status${type ? ` ${type}` : ''}`;
                 };
-                this._importCtx = {
-                    payload: null,
-                    onFileParsed: ({ fileName, payload }) => {
-                        ui.fileEl.textContent = fileName;
-                        ui.applyBtn.disabled = !payload;
-                        this._importCtx.payload = payload || null;
-                        if (!payload) return setStatus('文件无效，请选择包含 list 与 data 的备份文件。', 'err');
-                        setStatus(`已载入文件，待导入：名单 ${payload.list.length} 条，任务 ${payload.data.length} 条。`);
-                    },
-                    onFileError: msg => {
-                        ui.fileEl.textContent = '未选择文件';
-                        ui.applyBtn.disabled = true;
-                        this._importCtx.payload = null;
-                        setStatus(msg, 'err');
-                    }
+                
+                const clearFile = () => {
+                    currentPayload = null;
+                    ui.fileInfo.hidden = true;
+                    ui.dropZone.hidden = false;
+                    ui.applyBtn.disabled = true;
+                    ui.fileInput.value = '';
+                    setStatus('请选择备份文件');
                 };
-                ui.pickBtn.onclick = () => this.ctx.getFileInput()?.click();
-                ui.applyBtn.onclick = () => {
-                    const payload = this._importCtx?.payload;
-                    if (!payload) return setStatus('请先选择有效备份文件。', 'err');
+                
+                const showFileInfo = (fileName, payload) => {
+                    currentPayload = payload;
+                    ui.fileNameEl.textContent = fileName;
+                    
+                    // 生成预览信息
+                    const previewHtml = `
+                        <div class="import-fileinfo-preview-item">
+                            <span class="import-fileinfo-preview-label">学生名单</span>
+                            <span class="import-fileinfo-preview-value">${payload.list.length} 人</span>
+                        </div>
+                        <div class="import-fileinfo-preview-item">
+                            <span class="import-fileinfo-preview-label">作业任务</span>
+                            <span class="import-fileinfo-preview-value">${payload.data.length} 个</span>
+                        </div>
+                        <div class="import-fileinfo-preview-item">
+                            <span class="import-fileinfo-preview-label">卡片颜色</span>
+                            <span class="import-fileinfo-preview-value" style="display:inline-flex;align-items:center;gap:6px">
+                                <span style="width:14px;height:14px;border-radius:4px;background:${payload.prefs?.cardDoneColor || '#68c490'};border:1px solid rgba(0,0,0,.1)}"></span>
+                                ${payload.prefs?.cardDoneColor?.toUpperCase() || '#68C490'}
+                            </span>
+                        </div>
+                    `;
+                    ui.previewEl.innerHTML = previewHtml;
+                    
+                    ui.dropZone.hidden = true;
+                    ui.fileInfo.hidden = false;
+                    ui.applyBtn.disabled = false;
+                    setStatus('文件已就绪，点击"确认导入"开始恢复数据', 'ok');
+                };
+                
+                const handleFile = (file) => {
+                    if (!file) return;
+                    
+                    if (!file.name.endsWith('.json')) {
+                        setStatus('请选择 .json 格式的备份文件', 'err');
+                        toast.show('文件格式不正确');
+                        return;
+                    }
+                    
+                    setStatus('正在读取文件...', 'loading');
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            const payload = this.parseImportData(data);
+                            
+                            if (!payload) {
+                                setStatus('文件格式不符合备份规范，请检查文件内容', 'err');
+                                toast.show('备份文件格式错误');
+                                return;
+                            }
+                            
+                            showFileInfo(file.name, payload);
+                        } catch (err) {
+                            setStatus(`文件解析失败：${err.message}`, 'err');
+                            toast.show('无法解析备份文件');
+                        }
+                    };
+                    reader.onerror = () => {
+                        setStatus('文件读取失败，请重试', 'err');
+                        toast.show('文件读取失败');
+                    };
+                    reader.readAsText(file);
+                };
+                
+                // 点击上传区域选择文件
+                ui.dropZone.addEventListener('click', (e) => {
+                    if (e.target.closest('.import-dropzone-content')) {
+                        ui.fileInput.click();
+                    }
+                });
+                
+                // 文件选择变化
+                ui.fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFile(file);
+                });
+                
+                // 拖拽上传
+                ui.dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    ui.dropZone.classList.add('dragover');
+                });
+                
+                ui.dropZone.addEventListener('dragleave', () => {
+                    ui.dropZone.classList.remove('dragover');
+                });
+                
+                ui.dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    ui.dropZone.classList.remove('dragover');
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleFile(file);
+                });
+                
+                // 移除文件
+                ui.removeBtn.addEventListener('click', clearFile);
+                
+                // 取消按钮
+                ui.cancelBtn.addEventListener('click', () => Modal.close(false));
+                
+                // 确认导入
+                ui.applyBtn.addEventListener('click', () => {
+                    if (!currentPayload) {
+                        setStatus('请先选择有效备份文件', 'err');
+                        return;
+                    }
+                    
+                    setStatus('正在导入数据...', 'loading');
+                    ui.applyBtn.disabled = true;
+                    
                     try {
-                        this.applyImportData(payload);
-                        setStatus('导入完成，当前数据已覆盖并保存。', 'ok');
+                        this.applyImportData(currentPayload);
+                        setStatus('导入成功！数据已恢复', 'ok');
+                        toast.show('备份导入成功');
+                        
+                        // 延迟关闭，让用户看到成功消息
+                        setTimeout(() => Modal.close(true), 800);
                     } catch (err) {
                         setStatus(`导入失败：${err.message}`, 'err');
+                        ui.applyBtn.disabled = false;
+                        toast.show('导入失败：' + err.message);
                     }
-                };
-                Modal.show({ title: '', content: ui.root, type: 'full' });
+                });
+                
+                Modal.show({ title: '', content: ui.root, type: 'full', loadingMask: false });
             },
             parseImportData(raw) {
                 if (!Validator.isValidImportData(raw)) return null;
@@ -671,23 +784,6 @@
                 State.rebuildAsgIndex();
                 State.curId = State.resolveCurId(State.data[0].id);
                 State.save({ immediate: true, asgListChanged: true, invalidateDerived: false });
-            },
-            handleFile(e) {
-                const ctx = this._importCtx;
-                const f = e.target.files[0];
-                if (!ctx || !f) return;
-                const r = new FileReader();
-                r.onload = ev => {
-                    try {
-                        const parsed = this.parseImportData(JSON.parse(ev.target.result));
-                        if (!parsed) throw new Error('文件格式不符合备份规范');
-                        ctx.onFileParsed({ fileName: f.name, payload: parsed });
-                    } catch (err) {
-                        ctx.onFileError(`解析失败：${err.message}`);
-                    }
-                };
-                r.readAsText(f);
-                e.target.value = '';
             },
             quizTrend() {
                 const ui = this.ctx.views.createQuizTrendShell();
@@ -963,6 +1059,6 @@
             }
         };
 
-        UI.actions = { has: a => typeof Actions[a] === 'function', run: a => Actions[a](), handleFile: e => Actions.handleFile(e), score: (id, name) => Actions.score(id, name) };
-        Actions.ctx = { state: State, modal: Modal, bottomSheet: BottomSheet, toast: Toast, views: ActionViews, colorUtil: ColorUtil, subjectPresets: SUBJECT_PRESETS, cardColorPresets: CARD_COLOR_PRESETS, getFileInput: () => $('fileIn') };
+        UI.actions = { has: a => typeof Actions[a] === 'function', run: a => Actions[a](), score: (id, name) => Actions.score(id, name) };
+        Actions.ctx = { state: State, modal: Modal, bottomSheet: BottomSheet, toast: Toast, views: ActionViews, colorUtil: ColorUtil, subjectPresets: SUBJECT_PRESETS, cardColorPresets: CARD_COLOR_PRESETS };
         globalThis.Actions = Actions;
