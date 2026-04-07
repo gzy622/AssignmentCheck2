@@ -698,11 +698,10 @@
             isReady: false,
             actions: { has() { return false; }, run() { }, handleFile() { }, score() { } },
             MENU_CLOSE_MS: 160,
-            _gridFrozen: false, _taskSelectVersion: -1, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0, _menuTimer: 0,
+            _gridFrozen: false, _lastRenderAsgId: null, _lastRosterVersion: -1, _lastCardPoolSize: -1, _lastGridMetricsKey: '', _gridPaddingX: 0, _gridPaddingY: 0, _menuTimer: 0,
             init() {
                 BackHandler.init();
                 this.gridEl = $('grid'); this.counterEl = $('counter');
-                this.asgSelectEl = $('asgSelect'); 
                 this.customSelectEl = $('customSelect');
                 this.customSelectDropdownEl = $('customSelectDropdown');
                 this.customSelectTextEl = this.customSelectEl?.querySelector('.custom-select-text');
@@ -731,7 +730,6 @@
                     };
                 }
                 
-                this.asgSelectEl.onchange = e => State.selectAsg(+e.target.value);
                 this.menuEl = $('menu');
                 $('btnScore').onclick = () => this.actions.run('toggleScore');
                 $('btnMenu').onclick = e => { e.stopPropagation(); this.toggleMenu(); };
@@ -971,16 +969,6 @@
                 this.counterEl.textContent = `${done}/${total}`;
             },
             ensureTaskOptions() {
-                if (!this.asgSelectEl || !this.asgSelectEl.isConnected) this.asgSelectEl = $('asgSelect');
-                const sel = this.asgSelectEl;
-                if (!sel) return;
-                if (this._taskSelectVersion !== State._asgListVersion) {
-                    sel.replaceChildren(...State.data.map(a => { const o = document.createElement('option'); o.value = String(a.id); o.textContent = a.name; return o; }));
-                    this._taskSelectVersion = State._asgListVersion;
-                }
-                if (sel.value != State.curId) sel.value = String(State.curId);
-                
-                // 同时更新自定义下拉列表
                 this.ensureCustomSelectOptions();
             },
             
