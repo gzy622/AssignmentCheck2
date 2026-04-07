@@ -428,19 +428,25 @@
                 const b = new Blob([JSON.stringify({ list: State.list, data: State.data, prefs: State.normalizePrefs(State.prefs) })], { type: 'application/json' }), a = document.createElement('a');
                 a.href = URL.createObjectURL(b); a.download = formatBackupFileName(new Date()); a.click();
             },
-            async expExcel() {
+            /**
+             * 显示导出范围选择对话框
+             * @param {string} title - 对话框标题
+             * @param {string} note - 说明文字
+             * @returns {Promise<Array|null>} 选中的作业列表，取消返回null
+             */
+            async _showExportRangeDialog(title, note) {
                 const { modal, toast } = this.ctx;
                 
                 if (!State.data.length) {
                     toast.show('暂无作业数据');
-                    return;
+                    return null;
                 }
 
                 const assignments = State.data;
                 
                 const root = document.createElement('div');
                 root.innerHTML = `<section class="export-excel-shell">
-                    <div class="export-excel-note">选择要导出的作业项目，选择后将生成Excel表格。</div>
+                    <div class="export-excel-note">${note}</div>
                     <div class="export-excel-options">
                         <label class="export-excel-option">
                             <input type="radio" name="exportRange" value="current" checked>
@@ -481,7 +487,7 @@
                 updateChecklist();
 
                 const result = await modal.show({
-                    title: '导出Excel',
+                    title,
                     content: root,
                     btns: [
                         { text: '取消', type: 'btn-c', val: false },
@@ -489,7 +495,7 @@
                     ]
                 });
 
-                if (!result) return;
+                if (!result) return null;
 
                 let targetAssignments = [];
                 const rangeType = root.querySelector('input[name="exportRange"]:checked').value;
@@ -507,8 +513,21 @@
 
                 if (!targetAssignments.length) {
                     toast.show('请至少选择一个作业');
-                    return;
+                    return null;
                 }
+
+                return targetAssignments;
+            },
+
+            async expExcel() {
+                const { toast } = this.ctx;
+                
+                const targetAssignments = await this._showExportRangeDialog(
+                    '导出Excel',
+                    '选择要导出的作业项目，选择后将生成Excel表格。'
+                );
+                
+                if (!targetAssignments) return;
 
                 const headers = ['学号', '姓名', ...targetAssignments.map(a => a.name)];
                 const rows = State.roster.map(stu => {
@@ -545,87 +564,16 @@
                 XLSX.writeFile(wb, fileName);
                 toast.show(`已导出 ${targetAssignments.length} 个作业的成绩`);
             },
+
             async expText() {
-                const { modal, toast } = this.ctx;
+                const { toast } = this.ctx;
                 
-                if (!State.data.length) {
-                    toast.show('暂无作业数据');
-                    return;
-                }
-
-                const assignments = State.data;
+                const targetAssignments = await this._showExportRangeDialog(
+                    '导出文本',
+                    '选择要导出的作业项目，选择后将生成纯文本，可以直接粘贴到微信等聊天软件中。'
+                );
                 
-                const root = document.createElement('div');
-                root.innerHTML = `<section class="export-excel-shell">
-                    <div class="export-excel-note">选择要导出的作业项目，选择后将生成纯文本，可以直接粘贴到微信等聊天软件中。</div>
-                    <div class="export-excel-options">
-                        <label class="export-excel-option">
-                            <input type="radio" name="exportRange" value="current" checked>
-                            <span>当前作业（${State.cur?.name || '未选择'}）</span>
-                        </label>
-                        <label class="export-excel-option">
-                            <input type="radio" name="exportRange" value="all">
-                            <span>全部作业（${assignments.length}个）</span>
-                        </label>
-                        <label class="export-excel-option">
-                            <input type="radio" name="exportRange" value="custom">
-                            <span>自定义选择</span>
-                        </label>
-                    </div>
-                    <div class="export-excel-checklist" hidden></div>
-                </section>`;
-
-                const checklistEl = root.querySelector('.export-excel-checklist');
-                const radioEls = root.querySelectorAll('input[name="exportRange"]');
-                
-                const updateChecklist = () => {
-                    const selected = root.querySelector('input[name="exportRange"]:checked').value;
-                    if (selected === 'custom') {
-                        checklistEl.hidden = false;
-                        checklistEl.innerHTML = '<div style="font-size:.84rem;font-weight:700;color:#5a6774;margin-bottom:8px">选择作业</div>';
-                        assignments.forEach(asg => {
-                            const label = document.createElement('label');
-                            label.className = 'export-excel-checkitem';
-                            label.innerHTML = `<input type="checkbox" value="${asg.id}" checked><span>${asg.name}</span>`;
-                            checklistEl.appendChild(label);
-                        });
-                    } else {
-                        checklistEl.hidden = true;
-                    }
-                };
-
-                radioEls.forEach(el => el.addEventListener('change', updateChecklist));
-                updateChecklist();
-
-                const result = await modal.show({
-                    title: '导出文本',
-                    content: root,
-                    btns: [
-                        { text: '取消', type: 'btn-c', val: false },
-                        { text: '导出', type: 'btn-p', val: true }
-                    ]
-                });
-
-                if (!result) return;
-
-                let targetAssignments = [];
-                const rangeType = root.querySelector('input[name="exportRange"]:checked').value;
-                
-                if (rangeType === 'current') {
-                    const cur = State.cur;
-                    if (cur) targetAssignments = [cur];
-                } else if (rangeType === 'all') {
-                    targetAssignments = assignments;
-                } else {
-                    const checked = checklistEl.querySelectorAll('input[type="checkbox"]:checked');
-                    const checkedIds = Array.from(checked).map(c => +c.value);
-                    targetAssignments = assignments.filter(a => checkedIds.includes(a.id));
-                }
-
-                if (!targetAssignments.length) {
-                    toast.show('请至少选择一个作业');
-                    return;
-                }
+                if (!targetAssignments) return;
 
                 const lines = [];
                 targetAssignments.forEach(asg => {
