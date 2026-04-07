@@ -677,7 +677,7 @@
                 const handleFile = (file) => {
                     if (!file) return;
                     
-                    if (!file.name.endsWith('.json')) {
+                    if (!file.name.toLowerCase().endsWith('.json')) {
                         setStatus('请选择 .json 格式的备份文件', 'err');
                         toast.show('文件格式不正确');
                         return;

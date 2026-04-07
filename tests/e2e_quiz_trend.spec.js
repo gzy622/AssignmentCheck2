@@ -21,8 +21,10 @@ test.describe('Quiz Trend View', () => {
             ]));
         });
         await page.goto(indexUrl);
+        await page.waitForFunction(() => typeof document.getElementById('btnMenu')?.onclick === 'function');
 
         await page.click('#btnMenu');
+        await expect(page.locator('#menu')).toHaveClass(/show/);
         await page.click('button[act="quizTrend"]');
 
         await expect(page.locator('.trend-shell')).toBeVisible();

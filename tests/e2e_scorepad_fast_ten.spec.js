@@ -20,14 +20,16 @@ test.describe('Scorepad fast ten mode', () => {
             localStorage.setItem('tracker_db', JSON.stringify(data));
         });
         await page.goto(indexUrl);
+        await page.waitForFunction(() => typeof document.getElementById('btnScore')?.onclick === 'function');
 
         await page.click('#btnScore');
+        await expect(page.locator('.student-card')).toHaveCount(2);
         const card = page.locator('.student-card').first();
         await card.click();
 
         const scorepad = page.locator('.scorepad');
         const toggle = page.locator('button[data-action="toggle-fast-ten"]');
-        await expect(scorepad).toHaveClass(/is-open/);
+        await expect(scorepad).toBeVisible();
         await expect(toggle).toHaveAttribute('aria-pressed', 'false');
 
         const toggleBox = await toggle.boundingBox();

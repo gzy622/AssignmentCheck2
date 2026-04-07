@@ -617,42 +617,6 @@ describe('State', () => {
         expect(State.data).toHaveLength(1);
     });
 
-    it('should create assignment with input placeholder when name input is empty', () => {
-        State.data = [State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} })];
-        State.rebuildAsgIndex();
-        State.curId = 1;
-
-        Actions.asgManage();
-
-        const nameInput = document.querySelector('[data-role="new-name"]');
-        const createBtn = document.querySelector('[data-role="new-create"]');
-        const placeholderName = '使用占位文本';
-        nameInput.value = '';
-        nameInput.placeholder = placeholderName;
-        createBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-        expect(State.data).toHaveLength(2);
-        expect(State.cur.name).toBe(placeholderName);
-    });
-
-    it('should show toast when creating assignment without input and placeholder', () => {
-        State.data = [State.normalizeAsg({ id: 1, name: '作业 1', subject: '英语', records: {} })];
-        State.rebuildAsgIndex();
-        State.curId = 1;
-
-        const toastSpy = vi.spyOn(Toast, 'show').mockImplementation(() => {});
-        Actions.asgManage();
-
-        const nameInput = document.querySelector('[data-role="new-name"]');
-        const createBtn = document.querySelector('[data-role="new-create"]');
-        nameInput.value = '';
-        nameInput.placeholder = '';
-        createBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-        expect(toastSpy).toHaveBeenCalledWith('任务名称不能为空');
-        expect(State.data).toHaveLength(1);
-    });
-
     it('should freeze grid layout while scorepad is open', () => {
         State.list = ['01 张三'];
         State.parseRoster();

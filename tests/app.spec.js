@@ -12,9 +12,10 @@ test.describe('AssignmentCheck2 E2E', () => {
 
     test('should show the menu when clicking the menu button', async ({ page }) => {
         await page.goto(indexUrl);
+        await page.waitForFunction(() => typeof document.getElementById('btnMenu')?.onclick === 'function');
         await page.click('#btnMenu');
         const menu = page.locator('#menu');
-        await expect(menu).toBeVisible();
+        await expect(menu).toHaveClass(/show/);
     });
 
     test('should default to showing names and toggle it from menu', async ({ page }) => {

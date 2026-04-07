@@ -16,8 +16,10 @@ test.describe('Roster topbar', () => {
             }]));
         });
         await page.goto(indexUrl);
+        await page.waitForFunction(() => typeof document.getElementById('btnMenu')?.onclick === 'function');
 
         await page.click('#btnMenu');
+        await expect(page.locator('#menu')).toHaveClass(/show/);
         await page.click('button[act="roster"]');
 
         const topbar = page.locator('.roster-topbar');
