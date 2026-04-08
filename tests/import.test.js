@@ -24,6 +24,7 @@ describe('Import backup', () => {
         Actions.imp();
 
         const input = document.querySelector('[data-role="file-input"]');
+        expect(input.hasAttribute('accept')).toBe(false);
         const file = new File([JSON.stringify(payload)], 'backup', { type: 'application/json' });
 
         Object.defineProperty(input, 'files', {
