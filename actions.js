@@ -661,7 +661,7 @@
                         <div class="import-fileinfo-preview-item">
                             <span class="import-fileinfo-preview-label">卡片颜色</span>
                             <span class="import-fileinfo-preview-value" style="display:inline-flex;align-items:center;gap:6px">
-                                <span style="width:14px;height:14px;border-radius:4px;background:${payload.prefs?.cardDoneColor || '#68c490'};border:1px solid rgba(0,0,0,.1)}"></span>
+                                <span style="width:14px;height:14px;border-radius:4px;background:${payload.prefs?.cardDoneColor || '#68c490'};border:1px solid rgba(0,0,0,.1)"></span>
                                 ${payload.prefs?.cardDoneColor?.toUpperCase() || '#68C490'}
                             </span>
                         </div>
@@ -676,14 +676,11 @@
                 
                 const handleFile = (file) => {
                     if (!file) return;
-                    
-                    if (!file.name.toLowerCase().endsWith('.json')) {
-                        setStatus('请选择 .json 格式的备份文件', 'err');
-                        toast.show('文件格式不正确');
-                        return;
-                    }
+
+                    const fileName = String(file.name || '').trim() || '未命名文件';
                     
                     setStatus('正在读取文件...', 'loading');
+                    ui.fileInput.value = '';
                     
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -692,18 +689,24 @@
                             const payload = this.parseImportData(data);
                             
                             if (!payload) {
+                                currentPayload = null;
+                                ui.applyBtn.disabled = true;
                                 setStatus('文件格式不符合备份规范，请检查文件内容', 'err');
                                 toast.show('备份文件格式错误');
                                 return;
                             }
                             
-                            showFileInfo(file.name, payload);
+                            showFileInfo(fileName, payload);
                         } catch (err) {
+                            currentPayload = null;
+                            ui.applyBtn.disabled = true;
                             setStatus(`文件解析失败：${err.message}`, 'err');
                             toast.show('无法解析备份文件');
                         }
                     };
                     reader.onerror = () => {
+                        currentPayload = null;
+                        ui.applyBtn.disabled = true;
                         setStatus('文件读取失败，请重试', 'err');
                         toast.show('文件读取失败');
                     };
