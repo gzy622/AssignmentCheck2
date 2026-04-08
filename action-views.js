@@ -191,7 +191,7 @@ const ActionViews = {
         const dropZone = document.createElement('div');
         dropZone.className = 'import-dropzone';
         dropZone.innerHTML = `
-            <input type="file" accept=".json" data-role="file-input" hidden>
+            <input type="file" data-role="file-input" hidden>
             <div class="import-dropzone-content">
                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -201,7 +201,7 @@ const ActionViews = {
                 <div class="import-dropzone-text">
                     <strong>点击选择文件</strong>或拖拽文件到此处
                 </div>
-                <div class="import-dropzone-hint">支持 .json 格式的备份文件</div>
+                <div class="import-dropzone-hint">支持备份文件导入（将自动校验内容）</div>
             </div>
         `;
         
