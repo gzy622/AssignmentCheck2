@@ -485,6 +485,24 @@
                 this.applyViewMode();
             },
 
+            invertCurrentSelection() {
+                const asg = this.cur;
+                if (!asg) return;
+                const records = asg.records || (asg.records = {});
+                for (const stu of this.roster) {
+                    if (!this.isStuIncluded(asg, stu)) continue;
+                    const id = stu.id;
+                    const nextDone = !records[id]?.done;
+                    records[id] = { ...(records[id] || {}), done: nextDone };
+                    if (!records[id].done && (records[id].score == null || records[id].score === '')) delete records[id];
+                }
+                this.invalidateDerived();
+                this.markGridDirty({ full: true });
+                this.queueRecoveryDraft();
+                this._queuePersist();
+                this.view.render();
+            },
+
             get cur() { return this.asgMap.get(this.curId) || this.data[0]; },
 
             addAsg(n) {

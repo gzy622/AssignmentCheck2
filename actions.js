@@ -30,6 +30,7 @@
             toggleView() { const { state } = this.ctx; state.toggleViewMode(); },
             toggleScore() { const { state } = this.ctx; state.scoring = !state.scoring; state.applyScoring(); },
             toggleAnim() { const { state } = this.ctx; state.animations = !state.animations; state.saveAnim(); },
+            invertSelection() { const { state, toast } = this.ctx; state.invertCurrentSelection(); toast.show('已执行整体反选'); },
 
             async cardColor() {
                 const { state, modal, toast, views, colorUtil, cardColorPresets } = this.ctx, defaults = state.normalizePrefs({});
